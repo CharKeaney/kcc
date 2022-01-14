@@ -109,7 +109,8 @@ inline TestResult test_lex_keyword(
 			FileLocationDescriptor(NULL, 0, 0),
 			PreprocessingTokenForm::SIMPLE
 		);
-		LexerExitCode exitcode = lex_keyword(ppt, out);
+		PreprocessingToken *ppt_ptr = &ppt;
+		LexerExitCode exitcode = lex_keyword(ppt_ptr, out);
 		bool success_criteria
 			= o.get_name() == ltc->name
 			  && o.get_form() == ltc->form;
@@ -161,7 +162,8 @@ inline TestResult test_lex_identifier(
 			FileLocationDescriptor(NULL, 0, 0),
 			PreprocessingTokenForm::SIMPLE
 		);
-		LexerExitCode exitcode = lex_identifier(ppt, out);
+		PreprocessingToken* ppt_ptr = &ppt;
+		LexerExitCode exitcode = lex_identifier(ppt_ptr, out);
 		bool success_criteria = o.get_name() == ltc->name;
 		results[ltc - test_identifier_table] 
 			= success_criteria ? TestResult::SUCCESS : TestResult::FAIL;
@@ -255,7 +257,10 @@ inline TestResult test_lex_constant(
 			FileLocationDescriptor(NULL, 0, 0),
 			PreprocessingTokenForm::SIMPLE
 		);
-		LexerExitCode exitcode = lex_constant(ppt, out);
+
+		PreprocessingToken* ppt_ptr = &ppt;
+		LexerExitCode exitcode = lex_constant(ppt_ptr, out);
+
 		bool success_criteria = o.get_name() == ltc->name;
 		results[ltc - test_constant_table]
 			= success_criteria ? TestResult::SUCCESS : TestResult::FAIL;
@@ -308,8 +313,10 @@ inline TestResult test_lex_string_literal(
 			FileLocationDescriptor(NULL, 0, 0),
 			PreprocessingTokenForm::SIMPLE
 		);
+
+		PreprocessingToken* ppt_ptr = &ppt;
 		LexerExitCode exitcode = lex_string_literal(
-			ppt, out);
+			ppt_ptr, out);
 		bool success_criteria = o.get_name() == ltc->name;
 		results[ltc - test_string_literal_table]
 			= success_criteria ? TestResult::SUCCESS : TestResult::FAIL;
@@ -404,7 +411,8 @@ inline TestResult test_lex_punctuator(
 			FileLocationDescriptor(NULL, 0, 0),
 			PreprocessingTokenForm::SIMPLE);
 
-		LexerExitCode exitcode = lex_punctuator(ppt, out);
+		PreprocessingToken* ppt_ptr = &ppt;
+		LexerExitCode exitcode = lex_punctuator(ppt_ptr, out);
 		bool success_criteria = o.get_name() == ltc->name
 			&& o.get_form() == ltc->form;
 		results[ltc - test_punctuator_table]

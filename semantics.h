@@ -13,6 +13,7 @@ private:
 	AnnotatedAstNode* sibling;
 	SymbolTable* symbol_table;
 	Type* type;
+	const char* symbol;
 public:
 	inline AnnotatedAstNode(
 		AstNode* n)
@@ -20,6 +21,11 @@ public:
 		symbol_table(NULL),
 		child(NULL),
 		sibling(NULL) {
+	};
+
+	inline const char* get_symbol() const
+	{
+		return symbol;
 	};
 
 	inline AstNodeName get_name() const 
@@ -56,6 +62,11 @@ public:
 		symbol_table = st;
 	}
 
+	inline void set_symbol(const char* s)
+	{
+		symbol = s;
+	}
+
 	inline SymbolTable* get_symbol_table(const char* symbol = NULL) const
 	{
 		SymbolTable* symtab = NULL;
@@ -76,7 +87,7 @@ public:
 		return ast_node->get_terminal();
 	}
 
-	inline Type* set_type(Type* &const t) {
+	inline void set_type(Type* const& t) {
 		type = t;
 	}
 
@@ -142,21 +153,21 @@ public:
 };
 
 struct StackDescriptor {
-	int stack_address;
-	uint32_t stack[1028];
+	char* stack_name;
+	uint8_t stack[1028];
 	int stack_i;
 };
 
 inline void print_stack(
-	StackDescriptor& stack_descriptor)
+	StackDescriptor* const& stack_descriptor)
 {
-	for (uint32_t* i = stack_descriptor.stack;
-		i < stack_descriptor.stack + stack_descriptor.stack_i;
+	for (uint8_t* i = stack_descriptor->stack;
+		i < stack_descriptor->stack + stack_descriptor->stack_i;
 		i++) {
 
-		cout << std::hex << 4 * (i - stack_descriptor.stack);
+		cout << std::hex << (i - stack_descriptor->stack);
 		cout << " : ";
-		cout << (void*)*i;
+		cout << std::hex << setw(2) << setfill('0') << (int) *i;
 		cout << endl;
 	}
 }

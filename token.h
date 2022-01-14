@@ -258,20 +258,20 @@ public:
 		: name(n), form(f), val(v), lexeme(l) {
 	}
 
-	inline TokenName get_name() const { return name; }
-	inline TokenForm get_form() const { return form; }
+	inline TokenName get_name() const { return name;	   }
+	inline TokenForm get_form() const { return form;	   }
 	inline const char* get_lexeme() const { return lexeme; }
-	inline TokenValue get_val() const { return val;  }
+	inline TokenValue get_val() const { return val;		   }
 
 	inline void print() 
 	{
 		cout << "<Token={"
-			<< lexeme
-			<< ","
-			<< token_name_string_reprs[(int) name]
-			<< ","
-			<< token_form_string_reprs[(int) form]
-			<< "}>";
+			 << lexeme
+			 << ","
+			 << token_name_string_reprs[(int) name]
+			 << ","
+			 << token_form_string_reprs[(int) form]
+			 << "}>";
 	}
 };
 

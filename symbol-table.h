@@ -84,11 +84,23 @@ enum class DerivedType {
 
 static const char* derived_type_string_repr[] {
 	"UNDEFINED",
-	"ARRAY",
+	"ARRAY-",
 	"STRUCTURE",
 	"UNION",
 	"FUNCTION",
 	"POINTER"
+};
+
+enum class Scope {
+	UNDEFINED = 0,
+	FUNCTION,
+	GLOBAL
+};
+
+static const char* scope_string_repr[]{
+	"UNDEFINED",
+	"FUNCTION",
+	"GLOBAL",
 };
 
 enum class DerivedOrBasic {
@@ -121,16 +133,22 @@ inline void print_type(Type* t)
 }
 
 struct SymbolTableEntry {
-	/* Key data */
+	/* Key data. */
 	const char* symbol;
 	SymbolTableEntry* next_entry;
-	/* General Attributes */
+	/* General Attributes. */
 	bool is_typedef;
-	int address;
+	bool is_literal;
+	int value;
 	int base_pointer_offset;
 	Type *type;
 	int number_formal_parameters;
-	bool is_recursive;
+	SymbolTableEntry* function_ptr;
+	int function_frame_size;
+	Scope scope;	
+	/* Attributes added during code generation. */
+	const char* literal_constant_ptr_label;
+
 };
 
 inline SymbolTableEntry construct_symbol_table_entry(
@@ -141,14 +159,101 @@ inline SymbolTableEntry construct_symbol_table_entry(
 		NULL,
 		0,
 		0,
+		0,
 		false,
 		NULL,
 		0,
 		0,
+		NULL
 	};
 	return result;
 }
 
+static inline void print_symbol_table_entry_header()
+{
+	cout << ": symbol       "
+		 << ": is typedef?  "
+		 << ": is literal?  "
+		 << ": value        "
+		 << ": offset       "
+		 << ": function ptr "
+		 << ": num_params   "		
+		 << ": scope type   "
+		 << ": frame size   "
+		 << ": type         ";
+}
+
+static inline void print_symbol_table_entry_content(
+	SymbolTableEntry* entry)
+{
+	cout << ": "
+		<< std::left
+		<< std::setw(13)
+		<< std::setfill(' ')
+		<< entry->symbol;
+
+	cout << ": "
+		<< std::left
+		<< std::setw(13)
+		<< std::setfill(' ')
+		<< (entry->is_typedef 
+			? "true" 
+			: "false");
+
+	cout << ": "
+		<< std::left
+		<< std::setw(13)
+		<< std::setfill(' ')
+		<< (entry->is_literal 
+			? "true" 
+			: "false");
+
+	cout << ": 0x"
+		<< std::right
+		<< std::hex
+		<< std::setw(8)
+		<< std::setfill('0')
+		<< entry->value
+		<< "   ";
+
+	cout << ": 0x"
+		<< std::right
+		<< std::hex
+		<< std::setw(8)
+		<< std::setfill('0')
+		<< entry->base_pointer_offset
+		<< "   ";
+
+	const char* id = entry->function_ptr 
+					 ? entry->function_ptr->symbol 
+					 : "N/A";
+	cout << ": "
+		<< std::left
+		<< std::setw(13)
+		<< std::setfill(' ')
+		<< id;
+
+	cout << ": "
+		<< std::left
+		<< std::setw(13)
+		<< std::setfill(' ')
+		<< entry->number_formal_parameters;
+
+	cout << ": "
+		<< std::left
+		<< std::setw(13)
+		<< std::setfill(' ')
+		<< scope_string_repr[(int)entry->scope];
+
+	cout << ": "
+		<< std::left
+		<< std::setw(13)
+		<< std::setfill(' ')
+		<< entry->function_frame_size;
+
+	cout << ": ";
+	print_type(entry->type);
+}
 #define NUM_SYMBOL_TABLE_ENTRIES 6151
 
 class SymbolTable {
@@ -231,22 +336,17 @@ public:
 	inline void print(string prefix = "") 
 	{
 		cout << prefix;
-		for (int i = 0; i < 16 * 7; i++) {
+		for (int i = 0; i < 16 * 9; i++) {
 			cout << "-";
 		}
 		cout << endl;
 
 		cout << prefix;
-		cout <<": symbol       " 
-			<< ": is_typedef   "
-			<< ": address      "
-			<< ": offset       " 
-			<< ": num_params   " 
-			<< ": recurses     " 
-			<< ": type         " << endl;
+		print_symbol_table_entry_header();
+		cout << endl;
 
 		cout << prefix;
-		for (int i = 0; i < 16 * 7; i++) {
+		for (int i = 0; i < 16 * 9; i++) {
 			cout << "-";
 		}
 		cout << endl;
@@ -255,60 +355,18 @@ public:
 			e < entries + NUM_SYMBOL_TABLE_ENTRIES;
 			e++) {
 
-			
-
 			for (SymbolTableEntry* f = *e;
 				f != NULL;
 				f = f->next_entry) {
 
 				cout << prefix;
-
-				cout << ": "
-					 << std::left
-					 << std::setw(13)
-					 << std::setfill(' ')
-					 << f->symbol;
-
-				cout << ": "
-					<< std::left
-					<< std::setw(13)
-					<< std::setfill(' ')
-					 << f->is_typedef;
-
-				cout << ": "
-					<< std::left
-					<< std::setw(13)
-					<< std::setfill(' ')
-					 << f->address;
-
-				cout << ": 0x"
-					<< std::right
-					<< std::hex
-					<< std::setw(8)
-					<< std::setfill('0')
-					<< f->base_pointer_offset
-					<< "   ";
-
-				cout << ": "
-					<< std::left
-					<< std::setw(13)
-					<< std::setfill(' ')
-					 << f->number_formal_parameters;
-
-				cout << ": "
-					<< std::left
-					<< std::setw(13)
-					<< std::setfill(' ')
-					 << f->is_recursive;
-
-				cout << ": ";
-				print_type(f->type);
+				print_symbol_table_entry_content(f);
 				cout << endl;
 			}		
 		}
 
 		cout << prefix;
-		for (int i = 0; i < 16 * 7; i++) {
+		for (int i = 0; i < 16 * 9; i++) {
 			cout << "-";
 		}
 		cout << endl;

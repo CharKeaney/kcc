@@ -760,7 +760,7 @@ public:
 		}
 	}
 
-	inline void add_children(AstNode** nodes, int count)
+	inline void add_children(AstNode** const& nodes, int const& count)
 	{
 		for (AstNode** n = nodes;
 			n < nodes + count;

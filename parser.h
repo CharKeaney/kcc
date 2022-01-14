@@ -27,77 +27,99 @@
 
 #define parse(tokens, root) parse_translation_unit(tokens, root)
 
+#define free_stack(s, si) while (si > 0) { delete stack[--si]; } 
+
 enum class ParserExitCode {
 	SUCCESS,
 	FAIL,
 };
 
-ParserExitCode parse_primary_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_postfix_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_type_name(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_unary_operator(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_cast_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_unary_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_multiplicative_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_additive_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_shift_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_relational_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_equality_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_and_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_exclusive_or_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_inclusive_or_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_logical_and_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_logical_or_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_assignment_operator(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_conditional_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_assignment_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_constant_expression(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_declaration(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_declaration_specifiers(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_init_declarator_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_init_declarator(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_type_specifier(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_struct_or_union_specifier(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_struct_or_union(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_struct_declaration_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_struct_declaration(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_specifier_qualifier_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_struct_declarator_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_struct_declarator(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_enumerator_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_enumeration_specifier(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_type_qualifier(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_declarator(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_direct_declarator(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_pointer(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_type_qualifier_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_parameter_type_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_parameter_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_parameter_declaration(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_identifier_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_abstract_declarator(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_direct_abstract_declarator(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_initializer(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_initializer_list(SymbolTable *&, Token*&, AstNode*& );
-ParserExitCode parse_designation(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_designator_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_designator(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_statement(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_compound_statement(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_block_item_list(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_block_item(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_expression_statement(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_selection_statement(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_iteration_statement(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_jump_statement(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_translation_unit_statement(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_external_declaration_statement(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_function_definition(SymbolTable *&, Token*&, AstNode*&);
-ParserExitCode parse_declaration_list(SymbolTable*&, Token*&, AstNode*&);
+AstNode* construct_node_from_children(
+	AstNodeName const& name,
+	AstNodeAlt const& alt,
+	AstNode** const& children,
+	int const& count);
+
+ParserExitCode parse_primary_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_postfix_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_type_name(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_unary_operator(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_cast_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_unary_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_multiplicative_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_additive_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_shift_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_relational_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_equality_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_and_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_exclusive_or_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_inclusive_or_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_logical_and_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_logical_or_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_assignment_operator(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_conditional_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_assignment_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_constant_expression(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_declaration(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_declaration_specifiers(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_init_declarator_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_init_declarator(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_type_specifier(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_struct_or_union_specifier(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_struct_or_union(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_struct_declaration_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_struct_declaration(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_specifier_qualifier_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_struct_declarator_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_struct_declarator(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_enumerator_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_enumeration_specifier(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_type_qualifier(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_declarator(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_direct_declarator(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_pointer(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_type_qualifier_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_parameter_type_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_parameter_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_parameter_declaration(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_identifier_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_abstract_declarator(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_direct_abstract_declarator(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_initializer(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_initializer_list(SymbolTable* const&, Token*&, AstNode*& );
+ParserExitCode parse_designation(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_designator_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_designator(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_statement(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_compound_statement(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_block_item_list(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_block_item(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_expression_statement(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_selection_statement(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_iteration_statement(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_jump_statement(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_translation_unit(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_external_declaration(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_function_definition(SymbolTable* const&, Token*&, AstNode*&);
+ParserExitCode parse_declaration_list(SymbolTable* const&, Token*&, AstNode*&);
+
+static inline AstNode* construct_node_from_children(
+	AstNodeName const& name,
+	AstNodeAlt const& alt,
+	AstNode** const& children,
+	int const& count)
+{
+	AstNode* node = new AstNode(
+		name,
+		alt,
+		NULL);
+	node->add_children(children, count);
+	return node;
+}
 
 static inline ParserExitCode parse_primary_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& primary_expression)
 {
@@ -163,25 +185,22 @@ static inline ParserExitCode parse_primary_expression(
 		break;
 	}
 	if (should_generate) {
-		primary_expression = new AstNode(
+		primary_expression = construct_node_from_children(
 			AstNodeName::PRIMARY_EXPRESSION,
 			alt,
-			NULL
-		);
-		primary_expression->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_argument_expression_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& argument_expression_list)
 {
@@ -200,7 +219,10 @@ static inline ParserExitCode parse_argument_expression_list(
 		case START:
 		{
 			AstNode* assignment_expression;
-			if (parse_assignment_expression(sym, tokens, assignment_expression)
+			if (parse_assignment_expression(
+					sym,
+					tokens,
+					assignment_expression)
 				== ParserExitCode::SUCCESS) {
 
 				argument_expression_list = new AstNode(
@@ -258,7 +280,7 @@ static inline ParserExitCode parse_argument_expression_list(
 }
 
 static inline ParserExitCode parse_postfix_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& postfix_expression)
 {
@@ -299,7 +321,7 @@ static inline ParserExitCode parse_postfix_expression(
 
 			}
 			else if (tokens->get_name() == TokenName::PUNCTUATOR
-				&& tokens->get_form() == TokenForm::OPEN_PAREN) {
+				  && tokens->get_form() == TokenForm::OPEN_PAREN) {
 				tokens++;
 				AstNode* type_name;;
 				if (parse_type_name(sym, tokens, type_name)
@@ -310,14 +332,14 @@ static inline ParserExitCode parse_postfix_expression(
 					break;
 				}
 				if (tokens->get_name() == TokenName::PUNCTUATOR
-					&& tokens->get_form() == TokenForm::CLOSE_PAREN) {
+				    && tokens->get_form() == TokenForm::CLOSE_PAREN) {
 					tokens++;
 				}
 				else {
 					break;
 				}
 				if (tokens->get_name() == TokenName::PUNCTUATOR
-					&& tokens->get_form() == TokenForm::OPEN_SQUARE_BRACKET) {
+				    && tokens->get_form() == TokenForm::OPEN_SQUARE_BRACKET) {
 					tokens++;
 				}
 				else {
@@ -395,7 +417,10 @@ static inline ParserExitCode parse_postfix_expression(
 			case TokenForm::OPEN_PAREN:
 				tokens++;
 				AstNode* argument_expression_list;
-				if (parse_argument_expression_list(sym, tokens, argument_expression_list)
+				if (parse_argument_expression_list(
+						sym, 
+						tokens, 
+						argument_expression_list)
 					== ParserExitCode::SUCCESS) {
 					stack[si++] = argument_expression_list;
 				}
@@ -466,7 +491,7 @@ static inline ParserExitCode parse_postfix_expression(
 }
 
 static inline ParserExitCode parse_type_name(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& type_name)
 {
@@ -507,25 +532,22 @@ static inline ParserExitCode parse_type_name(
 		}
 	}
 	if (should_generate) {
-		type_name = new AstNode(
+		type_name = construct_node_from_children(
 			AstNodeName::TYPE_NAME,
 			AstNodeAlt::TYPE_NAME_1,
-			NULL
-		);
-		type_name->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_unary_operator(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& unary_operator)
 {
@@ -585,25 +607,22 @@ static inline ParserExitCode parse_unary_operator(
 		}
 	}
 	if (should_generate) {
-		unary_operator = new AstNode(
+		unary_operator = construct_node_from_children(
 			AstNodeName::UNARY_EXPRESSION,
 			alt,
-			NULL
-		);
-		unary_operator->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_cast_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& cast_expression)
 {
@@ -640,7 +659,10 @@ static inline ParserExitCode parse_cast_expression(
 				tokens++;
 
 				AstNode* cast_expression;
-				if (parse_cast_expression(sym, tokens, cast_expression)
+				if (parse_cast_expression(
+						sym, 
+						tokens, 
+						cast_expression)
 					== ParserExitCode::SUCCESS) {
 					stack[si++] = cast_expression;
 
@@ -656,7 +678,10 @@ static inline ParserExitCode parse_cast_expression(
 		tokens->get_form())) {
 
 		AstNode* unary_expression;
-		if (parse_unary_expression(sym, tokens, unary_expression)
+		if (parse_unary_expression(
+				sym, 
+				tokens, 
+				unary_expression)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = unary_expression;
 
@@ -666,25 +691,22 @@ static inline ParserExitCode parse_cast_expression(
 	}
 
 	if (should_generate) {
-		cast_expression = new AstNode(
+		cast_expression = construct_node_from_children(
 			AstNodeName::CAST_EXPRESSION,
 			alt,
-			NULL
-		);
-		cast_expression->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_unary_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& unary_expression)
 {
@@ -810,25 +832,22 @@ static inline ParserExitCode parse_unary_expression(
 		}
 	}
 	if (should_generate) {
-		unary_expression = new AstNode(
+		unary_expression = construct_node_from_children(
 			AstNodeName::UNARY_EXPRESSION,
 			alt,
-			NULL
-		);
-		unary_expression->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_multiplicative_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& multiplicative_expression)
 {
@@ -919,7 +938,6 @@ static inline ParserExitCode parse_multiplicative_expression(
 				}
 				break;
 
-
 				case TokenForm::MODULO:
 				{
 					tokens++;
@@ -956,7 +974,7 @@ static inline ParserExitCode parse_multiplicative_expression(
 }
 
 static inline ParserExitCode parse_additive_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& additive_expression)
 {
@@ -1068,7 +1086,7 @@ static inline ParserExitCode parse_additive_expression(
 }
 
 static inline ParserExitCode parse_shift_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& shift_expression)
 {
@@ -1090,7 +1108,10 @@ static inline ParserExitCode parse_shift_expression(
 
 		case START:
 			AstNode* additive_expression;
-			if (parse_additive_expression(sym, tokens, additive_expression)
+			if (parse_additive_expression(
+					sym, 
+					tokens, 
+					additive_expression)
 				== ParserExitCode::SUCCESS) {
 
 				state = SHIFT_EXPRESSION;
@@ -1116,7 +1137,10 @@ static inline ParserExitCode parse_shift_expression(
 				{
 					tokens++;
 					AstNode* additive_expression;
-					if (parse_additive_expression(sym, tokens, additive_expression)
+					if (parse_additive_expression(
+							sym, 
+							tokens, 
+							additive_expression)
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_shift_expression;
@@ -1176,7 +1200,7 @@ static inline ParserExitCode parse_shift_expression(
 }
 
 static inline ParserExitCode parse_relational_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& relational_expression)
 {
@@ -1271,7 +1295,10 @@ static inline ParserExitCode parse_relational_expression(
 				{
 					tokens++;
 					AstNode* shift_expression;
-					if (parse_shift_expression(sym, tokens, shift_expression)
+					if (parse_shift_expression(
+							sym, 
+							tokens, 
+							shift_expression)
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_relational_expression;
@@ -1295,7 +1322,10 @@ static inline ParserExitCode parse_relational_expression(
 				{
 					tokens++;
 					AstNode* shift_expression;
-					if (parse_shift_expression(sym, tokens, shift_expression)
+					if (parse_shift_expression(
+							sym, 
+							tokens, 
+							shift_expression)
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_relational_expression;
@@ -1331,7 +1361,7 @@ static inline ParserExitCode parse_relational_expression(
 }
 
 static inline ParserExitCode parse_equality_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& equality_expression)
 {
@@ -1354,7 +1384,10 @@ static inline ParserExitCode parse_equality_expression(
 		case START:
 		{
 			AstNode* relational_expression;
-			if (parse_relational_expression(sym, tokens, relational_expression)
+			if (parse_relational_expression(
+					sym,
+					tokens, 
+					relational_expression)
 				== ParserExitCode::SUCCESS) {
 
 				equality_expression = new AstNode(
@@ -1380,7 +1413,10 @@ static inline ParserExitCode parse_equality_expression(
 				{
 					tokens++;
 					AstNode* relational_expression;
-					if (parse_relational_expression(sym, tokens, relational_expression)
+					if (parse_relational_expression(
+							sym, 
+							tokens, 
+							relational_expression)
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_equality_expression;
@@ -1404,7 +1440,10 @@ static inline ParserExitCode parse_equality_expression(
 				{
 					tokens++;
 					AstNode* relational_expression;
-					if (parse_relational_expression(sym, tokens, relational_expression)
+					if (parse_relational_expression(
+							sym, 
+							tokens, 
+							relational_expression)
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_equality_expression;
@@ -1439,7 +1478,7 @@ static inline ParserExitCode parse_equality_expression(
 }
 
 static inline ParserExitCode parse_and_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& and_expression)
 {
@@ -1462,7 +1501,10 @@ static inline ParserExitCode parse_and_expression(
 		case START:
 		{
 			AstNode* equality_expression;
-			if (parse_equality_expression(sym, tokens, equality_expression)
+			if (parse_equality_expression(
+					sym, 
+					tokens, 
+					equality_expression)
 				== ParserExitCode::SUCCESS) {
 
 				and_expression = new AstNode(
@@ -1489,7 +1531,10 @@ static inline ParserExitCode parse_and_expression(
 				{
 					tokens++;
 					AstNode* equality_expression;
-					if (parse_equality_expression(sym, tokens, equality_expression)
+					if (parse_equality_expression(
+							sym, 
+							tokens, 
+							equality_expression)
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_and_expression;
@@ -1524,7 +1569,7 @@ static inline ParserExitCode parse_and_expression(
 }
 
 static inline ParserExitCode parse_exclusive_or_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& exclusive_or_expression)
 {
@@ -1546,7 +1591,10 @@ static inline ParserExitCode parse_exclusive_or_expression(
 		case START:
 		{
 			AstNode* and_expression;
-			if (parse_and_expression(sym, tokens, and_expression)
+			if (parse_and_expression(
+					sym, 
+					tokens, 
+					and_expression)
 				== ParserExitCode::SUCCESS) {
 
 				exclusive_or_expression = new AstNode(
@@ -1573,7 +1621,10 @@ static inline ParserExitCode parse_exclusive_or_expression(
 				{
 					tokens++;
 					AstNode* and_expression;
-					if (parse_and_expression(sym, tokens, and_expression)
+					if (parse_and_expression(
+							sym, 
+							tokens, 
+							and_expression)
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_exclusive_or_expression;
@@ -1599,7 +1650,6 @@ static inline ParserExitCode parse_exclusive_or_expression(
 		}
 		break;
 
-
 		default:
 			break;
 		}
@@ -1609,7 +1659,7 @@ static inline ParserExitCode parse_exclusive_or_expression(
 }
 
 static inline ParserExitCode parse_inclusive_or_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& inclusive_or_expression)
 {
@@ -1631,7 +1681,10 @@ static inline ParserExitCode parse_inclusive_or_expression(
 		case START:
 		{
 			AstNode* exclusive_or_expression;
-			if (parse_exclusive_or_expression(sym, tokens, exclusive_or_expression)
+			if (parse_exclusive_or_expression(
+					sym, 
+					tokens, 
+					exclusive_or_expression)
 				== ParserExitCode::SUCCESS) {
 
 				inclusive_or_expression = new AstNode(
@@ -1658,7 +1711,10 @@ static inline ParserExitCode parse_inclusive_or_expression(
 				{
 					tokens++;
 					AstNode* exclusive_or_expression;
-					if (parse_exclusive_or_expression(sym, tokens, exclusive_or_expression)
+					if (parse_exclusive_or_expression(
+							sym, 
+							tokens, 
+							exclusive_or_expression)
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_inclusive_or_expression;
@@ -1693,7 +1749,7 @@ static inline ParserExitCode parse_inclusive_or_expression(
 }
 
 static inline ParserExitCode parse_logical_and_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& logical_and_expression)
 {
@@ -1715,7 +1771,10 @@ static inline ParserExitCode parse_logical_and_expression(
 		case START:
 		{
 			AstNode* inclusive_or_expression;
-			if (parse_inclusive_or_expression(sym, tokens, inclusive_or_expression)
+			if (parse_inclusive_or_expression(
+					sym, 
+					tokens, 
+					inclusive_or_expression)
 				== ParserExitCode::SUCCESS) {
 
 				logical_and_expression = new AstNode(
@@ -1742,7 +1801,10 @@ static inline ParserExitCode parse_logical_and_expression(
 				{
 					tokens++;
 					AstNode* inclusive_or_expression;
-					if (parse_inclusive_or_expression(sym, tokens, inclusive_or_expression)
+					if (parse_inclusive_or_expression(
+							sym, 
+							tokens, 
+							inclusive_or_expression)
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_inclusive_or_expression;
@@ -1777,7 +1839,7 @@ static inline ParserExitCode parse_logical_and_expression(
 }
 
 static inline ParserExitCode parse_logical_or_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& logical_or_expression)
 {
@@ -1799,7 +1861,10 @@ static inline ParserExitCode parse_logical_or_expression(
 		case START:
 		{
 			AstNode* logical_and_expression;
-			if (parse_logical_and_expression(sym, tokens, logical_and_expression)
+			if (parse_logical_and_expression(
+					sym, 
+					tokens, 
+					logical_and_expression)
 				== ParserExitCode::SUCCESS) {
 
 				logical_or_expression = new AstNode(
@@ -1826,7 +1891,10 @@ static inline ParserExitCode parse_logical_or_expression(
 				{
 					tokens++;
 					AstNode* logical_and_expression;
-					if (parse_logical_and_expression(sym, tokens, logical_and_expression)
+					if (parse_logical_and_expression(
+							sym, 
+							tokens, 
+							logical_and_expression)
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_logical_or_expression;
@@ -1861,7 +1929,7 @@ static inline ParserExitCode parse_logical_or_expression(
 }
 
 static inline ParserExitCode parse_assignment_operator(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& assignment_operator)
 {
@@ -1933,25 +2001,22 @@ static inline ParserExitCode parse_assignment_operator(
 		}
 	}
 	if (should_generate) {
-		assignment_operator = new AstNode(
+		assignment_operator = construct_node_from_children(
 			AstNodeName::ASSIGNMENT_OPERATOR,
 			alt,
-			NULL
-		);
-		assignment_operator->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& expression)
 {
@@ -1974,7 +2039,10 @@ static inline ParserExitCode parse_expression(
 		case START:
 		{
 			AstNode* assignment_expression;
-			if (parse_assignment_expression(sym, tokens, assignment_expression)
+			if (parse_assignment_expression(
+					sym,
+					tokens,
+					assignment_expression)
 				== ParserExitCode::SUCCESS) {
 
 				expression = new AstNode(
@@ -2029,7 +2097,7 @@ static inline ParserExitCode parse_expression(
 }
 
 static inline ParserExitCode parse_conditional_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& conditional_expression)
 {
@@ -2051,7 +2119,10 @@ static inline ParserExitCode parse_conditional_expression(
 	bool should_generate = false;
 
 	AstNode* logical_or_expression;
-	if (parse_logical_or_expression(sym, tokens, logical_or_expression)
+	if (parse_logical_or_expression(
+			sym, 
+			tokens, 
+			logical_or_expression)
 		== ParserExitCode::SUCCESS) {
 		stack[si++] = logical_or_expression;
 
@@ -2065,7 +2136,10 @@ static inline ParserExitCode parse_conditional_expression(
 				stack[si++] = expression;
 
 				AstNode* conditional_expression;
-				if (parse_conditional_expression(sym, tokens, conditional_expression)
+				if (parse_conditional_expression(
+						sym, 
+						tokens, 
+						conditional_expression)
 					== ParserExitCode::SUCCESS) {
 					stack[si++] = conditional_expression;
 
@@ -2080,12 +2154,11 @@ static inline ParserExitCode parse_conditional_expression(
 		}
 	}
 	if (should_generate) {
-		conditional_expression = new AstNode(
+		conditional_expression = construct_node_from_children(
 			AstNodeName::CONDITIONAL_EXPRESSION,
 			alt,
-			NULL
-		);
-		conditional_expression->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
@@ -2098,7 +2171,7 @@ static inline ParserExitCode parse_conditional_expression(
 }
 
 static inline ParserExitCode parse_assignment_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& assignment_expression)
 {
@@ -2127,27 +2200,27 @@ static inline ParserExitCode parse_assignment_expression(
 
 		AstNode* unary_expression;
 		if (parse_unary_expression(
-			sym,
-			tokens,
-			unary_expression)
+				sym,
+				tokens,
+				unary_expression)
 			== ParserExitCode::SUCCESS) {
 
 			stack[si++] = unary_expression;
 
 			AstNode* assignment_operator;
 			if (parse_assignment_operator(
-				sym,
-				tokens,
-				assignment_operator)
+					sym,
+					tokens,
+					assignment_operator)
 				== ParserExitCode::SUCCESS) {
 
 				stack[si++] = assignment_operator;
 
 				AstNode* assignment_expression;
 				if (parse_assignment_expression(
-					sym,
-					tokens,
-					assignment_expression)
+						sym,
+						tokens,
+						assignment_expression)
 					== ParserExitCode::SUCCESS) {
 
 					stack[si++] = assignment_expression;
@@ -2159,9 +2232,7 @@ static inline ParserExitCode parse_assignment_expression(
 	}
 	if (!should_generate) {
 		tokens = backtrack;
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	if (!should_generate && lookup(
 		first_of_conditional_expression,
@@ -2187,26 +2258,22 @@ static inline ParserExitCode parse_assignment_expression(
 
 	}
 	if (should_generate) {
-		assignment_expression = new AstNode(
+		assignment_expression = construct_node_from_children(
 			AstNodeName::ASSIGNMENT_EXPRESSION,
 			alt,
-			NULL
-		);
-		assignment_expression->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
-
 static inline ParserExitCode parse_constant_expression(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& constant_expression)
 {
@@ -2237,25 +2304,22 @@ static inline ParserExitCode parse_constant_expression(
 		}
 	}
 	if (should_generate) {
-		constant_expression = new AstNode(
+		constant_expression = construct_node_from_children(
 			AstNodeName::CONDITIONAL_EXPRESSION,
 			AstNodeAlt::CONSTANT_EXPRESSION_1,
-			NULL
-		);
-		constant_expression->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_declaration(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& declaration)
 {
@@ -2277,7 +2341,10 @@ static inline ParserExitCode parse_declaration(
 	bool should_generate = false;
 
 	AstNode* declaration_specifiers;
-	if (parse_declaration_specifiers(sym, tokens, declaration_specifiers)
+	if (parse_declaration_specifiers(
+			sym, 
+			tokens, 
+			declaration_specifiers)
 		== ParserExitCode::SUCCESS) {
 		stack[si++] = declaration_specifiers;
 
@@ -2303,26 +2370,22 @@ static inline ParserExitCode parse_declaration(
 		}
 	}
 	if (should_generate) {
-		declaration = new AstNode(
+		declaration = construct_node_from_children(
 			AstNodeName::DECLARATION,
 			AstNodeAlt::DECLARATION_1,
-			NULL
-		);
-		declaration->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
-
 static inline ParserExitCode parse_storage_class_specifier(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& storage_class_specifier)
 {
@@ -2370,26 +2433,22 @@ static inline ParserExitCode parse_storage_class_specifier(
 		}
 	}
 	if (should_generate) {
-		storage_class_specifier = new AstNode(
+		storage_class_specifier = construct_node_from_children(
 			AstNodeName::STORAGE_CLASS_SPECIFIER,
 			alt,
-			NULL
-		);
-		storage_class_specifier->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
-
 static inline ParserExitCode parse_function_specifier(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& function_specifier)
 {
@@ -2411,7 +2470,7 @@ static inline ParserExitCode parse_function_specifier(
 }
 
 static inline ParserExitCode parse_declaration_specifiers(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& declaration_specifiers)
 {
@@ -2505,7 +2564,10 @@ static inline ParserExitCode parse_declaration_specifiers(
 					&& (sym->get_entry(tokens->get_lexeme())->is_typedef))) {
 
 				AstNode* declaration_specifiers;
-				if (parse_declaration_specifiers(sym, tokens, declaration_specifiers)
+				if (parse_declaration_specifiers(
+						sym, 
+						tokens, 
+						declaration_specifiers)
 					== ParserExitCode::SUCCESS) {
 					stack[si++] = declaration_specifiers;
 				}
@@ -2526,7 +2588,6 @@ static inline ParserExitCode parse_declaration_specifiers(
 			function_specifier)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = function_specifier;
-
 
 			if (tokens->get_name() != TokenName::IDENTIFIER
 				|| (sym->get_entry(tokens->get_lexeme())
@@ -2552,7 +2613,6 @@ static inline ParserExitCode parse_declaration_specifiers(
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = type_specifier;
 
-
 			if (tokens->get_name() != TokenName::IDENTIFIER
 				|| (sym->get_entry(tokens->get_lexeme())
 					&& (sym->get_entry(tokens->get_lexeme())->is_typedef))) {
@@ -2566,25 +2626,22 @@ static inline ParserExitCode parse_declaration_specifiers(
 		}
 	}
 	if (should_generate) {
-		declaration_specifiers = new AstNode(
+		declaration_specifiers = construct_node_from_children(
 			AstNodeName::DECLARATION_SPECIFIERS,
 			alt,
-			NULL
-		);
-		declaration_specifiers->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_init_declarator_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& init_declarator_list)
 {
@@ -2606,7 +2663,10 @@ static inline ParserExitCode parse_init_declarator_list(
 		case START:
 		{
 			AstNode* init_declarator;
-			if (parse_init_declarator(sym, tokens, init_declarator)
+			if (parse_init_declarator(
+					sym, 
+					tokens, 
+					init_declarator)
 				== ParserExitCode::SUCCESS) {
 
 				init_declarator_list = new AstNode(
@@ -2659,7 +2719,6 @@ static inline ParserExitCode parse_init_declarator_list(
 		}
 		break;
 
-
 		default:
 			break;
 		}
@@ -2669,7 +2728,7 @@ static inline ParserExitCode parse_init_declarator_list(
 }
 
 static inline ParserExitCode parse_init_declarator(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& init_declarator)
 {
@@ -2685,7 +2744,10 @@ static inline ParserExitCode parse_init_declarator(
 	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	AstNode* declarator;
-	if (parse_declarator(sym, tokens, declarator)
+	if (parse_declarator(
+			sym, 
+			tokens, 
+			declarator)
 		== ParserExitCode::SUCCESS) {
 		stack[si++] = declarator;
 
@@ -2694,7 +2756,10 @@ static inline ParserExitCode parse_init_declarator(
 			tokens++;
 
 			AstNode* initializer;
-			if (parse_initializer(sym, tokens, initializer)
+			if (parse_initializer(
+					sym, 
+					tokens, 
+					initializer)
 				== ParserExitCode::SUCCESS) {
 				stack[si++] = initializer;
 				alt = AstNodeAlt::INIT_DECLARATOR_2;
@@ -2707,25 +2772,22 @@ static inline ParserExitCode parse_init_declarator(
 		}
 	}
 	if (should_generate) {
-		init_declarator = new AstNode(
+		init_declarator = construct_node_from_children(
 			AstNodeName::INIT_DECLARATOR,
 			alt,
-			NULL
-		);
-		init_declarator->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_enum_specifier(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& enum_specifier)
 {
@@ -2825,12 +2887,11 @@ static inline ParserExitCode parse_enum_specifier(
 		}
 	}
 	if (should_generate) {
-		enum_specifier = new AstNode(
+		enum_specifier = construct_node_from_children(
 			AstNodeName::ENUM_SPECIFIER,
 			alt,
-			NULL
-		);
-		enum_specifier->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
@@ -2843,7 +2904,7 @@ static inline ParserExitCode parse_enum_specifier(
 }
 
 static inline ParserExitCode parse_typedef_name(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& typedef_name)
 {
@@ -2862,7 +2923,7 @@ static inline ParserExitCode parse_typedef_name(
 }
 
 static inline ParserExitCode parse_type_specifier(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& type_specifier)
 {
@@ -2947,25 +3008,22 @@ static inline ParserExitCode parse_type_specifier(
 		should_generate = true;
 	}
 	if (should_generate) {
-		type_specifier = new AstNode(
+		type_specifier = construct_node_from_children(
 			AstNodeName::TYPE_SPECIFIER,
 			alt,
-			NULL
-		);
-		type_specifier->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_struct_or_union_specifier(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& struct_or_union_specifier)
 {
@@ -3059,25 +3117,22 @@ static inline ParserExitCode parse_struct_or_union_specifier(
 		}
 	}
 	if (should_generate) {
-		struct_or_union_specifier = new AstNode(
+		struct_or_union_specifier = construct_node_from_children(
 			AstNodeName::STRUCT_OR_UNION_SPECIFIER,
 			alt,
-			NULL
-		);
-		struct_or_union_specifier->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_struct_or_union(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& struct_or_union)
 {
@@ -3122,7 +3177,7 @@ static inline ParserExitCode parse_struct_or_union(
 }
 
 static inline ParserExitCode parse_struct_declaration_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& struct_declaration_list)
 {
@@ -3207,7 +3262,7 @@ static inline ParserExitCode parse_struct_declaration_list(
 }
 
 static inline ParserExitCode parse_struct_declaration(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& struct_declaration)
 {
@@ -3250,25 +3305,22 @@ static inline ParserExitCode parse_struct_declaration(
 		}
 	}
 	if (should_generate) {
-		struct_declaration = new AstNode(
+		struct_declaration = construct_node_from_children(
 			AstNodeName::STRUCT_DECLARATION,
 			AstNodeAlt::STRUCT_DECLARATION_1,
-			NULL
-		);
-		struct_declaration->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_specifier_qualifier_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& specifier_qualifier_list)
 {
@@ -3335,25 +3387,22 @@ static inline ParserExitCode parse_specifier_qualifier_list(
 		}
 	}
 	if (should_generate) {
-		specifier_qualifier_list = new AstNode(
+		specifier_qualifier_list = construct_node_from_children(
 			AstNodeName::SPECIFIER_QUALIFIER_LIST,
 			alt,
-			NULL
-		);
-		specifier_qualifier_list->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_struct_declarator_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& struct_declarator_list)
 {
@@ -3440,7 +3489,7 @@ static inline ParserExitCode parse_struct_declarator_list(
 }
 
 static inline ParserExitCode parse_struct_declarator(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& struct_declarator)
 {
@@ -3493,25 +3542,22 @@ static inline ParserExitCode parse_struct_declarator(
 		}
 	}
 	if (should_generate) {
-		struct_declarator = new AstNode(
+		struct_declarator = construct_node_from_children(
 			AstNodeName::STRUCT_DECLARATOR,
 			alt,
-			NULL
-		);
-		struct_declarator->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_enumeration_constant(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& enumeration_constant)
 {
@@ -3539,7 +3585,7 @@ static inline ParserExitCode parse_enumeration_constant(
 }
 
 static inline ParserExitCode parse_enumerator(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& enumerator)
 {
@@ -3561,7 +3607,10 @@ static inline ParserExitCode parse_enumerator(
 		case START:
 		{
 			AstNode* enumeration_constant;
-			if (parse_enumeration_constant(sym, tokens, enumeration_constant)
+			if (parse_enumeration_constant(
+					sym, 
+					tokens, 
+					enumeration_constant)
 				== ParserExitCode::SUCCESS) {
 
 				enumerator = new AstNode(
@@ -3580,7 +3629,10 @@ static inline ParserExitCode parse_enumerator(
 		case ENUMERATOR:
 		{
 			AstNode* enumeration_constant;
-			if (parse_enumeration_constant(sym, tokens, enumeration_constant)
+			if (parse_enumeration_constant(
+					sym, 
+					tokens, 
+					enumeration_constant)
 				== ParserExitCode::SUCCESS) {
 
 				AstNode* higher_enumerator = new AstNode(
@@ -3604,7 +3656,7 @@ static inline ParserExitCode parse_enumerator(
 }
 
 static inline ParserExitCode parse_enumerator_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& enumerator_list)
 {
@@ -3626,7 +3678,10 @@ static inline ParserExitCode parse_enumerator_list(
 		case START:
 		{
 			AstNode* enumerator;
-			if (parse_enumerator(sym, tokens, enumerator)
+			if (parse_enumerator(
+					sym, 
+					tokens, 
+					enumerator)
 				== ParserExitCode::SUCCESS) {
 
 				enumerator_list = new AstNode(
@@ -3673,7 +3728,7 @@ static inline ParserExitCode parse_enumerator_list(
 }
 
 static inline ParserExitCode parse_enumeration_specifier(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& enumeration_specifier)
 {
@@ -3698,7 +3753,10 @@ static inline ParserExitCode parse_enumeration_specifier(
 			&& tokens->get_form() == TokenForm::OPEN_PAREN) {
 
 			AstNode* enumerator_list;
-			if ((parse_enumerator_list(sym, tokens, enumerator_list))
+			if ((parse_enumerator_list(
+					sym, 
+					tokens, 
+					enumerator_list))
 				== ParserExitCode::SUCCESS) {
 				stack[si++] = enumerator_list;
 
@@ -3724,25 +3782,22 @@ static inline ParserExitCode parse_enumeration_specifier(
 		}
 	}
 	if (should_generate) {
-		enumeration_specifier = new AstNode(
+		enumeration_specifier = construct_node_from_children(
 			AstNodeName::ENUMERATION_SPECIFIER,
 			alt,
-			NULL
-		);
-		enumeration_specifier->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_type_qualifier(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& type_qualifier)
 {
@@ -3781,25 +3836,22 @@ static inline ParserExitCode parse_type_qualifier(
 		}
 	}
 	if (should_generate) {
-		type_qualifier = new AstNode(
+		type_qualifier = construct_node_from_children(
 			AstNodeName::TYPE_QUALIFIER,
 			alt,
-			NULL
-		);
-		type_qualifier->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_parameter_type_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& parameter_type_list)
 {
@@ -3836,25 +3888,22 @@ static inline ParserExitCode parse_parameter_type_list(
 		}
 	}
 	if (should_generate) {
-		parameter_type_list = new AstNode(
+		parameter_type_list = construct_node_from_children(
 			AstNodeName::PARAMETER_TYPE_LIST,
 			alt,
-			NULL
-		);
-		parameter_type_list->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_direct_declarator(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& direct_declarator)
 {
@@ -4044,9 +4093,7 @@ static inline ParserExitCode parse_direct_declarator(
 				}
 				else {
 					/* Free unused ast nodes generated. */
-					while (si) {
-						delete stack[--si];
-					}
+					free_stack(stack, si);
 					break;
 				}
 				break;
@@ -4061,7 +4108,7 @@ static inline ParserExitCode parse_direct_declarator(
 }
 
 static inline ParserExitCode parse_declarator(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& declarator)
 {
@@ -4081,39 +4128,42 @@ static inline ParserExitCode parse_declarator(
 		&& tokens->get_form() == TokenForm::ASTERIX) {
 
 		AstNode* pointer;
-		if (parse_pointer(sym, tokens, pointer)
+		if (parse_pointer(
+				sym, 
+				tokens, 
+				pointer)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = pointer;
 		}
 	}
 	if (tokens->get_name() == TokenName::IDENTIFIER) {
 		AstNode* direct_declarator;
-		if (parse_direct_declarator(sym, tokens, direct_declarator)
+		if (parse_direct_declarator(
+				sym, 
+				tokens, 
+				direct_declarator)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = direct_declarator;
 			should_generate = true;
 		}
 	}
 	if (should_generate) {
-		declarator = new AstNode(
+		declarator = construct_node_from_children(
 			AstNodeName::DECLARATOR,
 			AstNodeAlt::DECLARATOR_1,
-			NULL
-		);
-		declarator->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_type_qualifier_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& type_qualifier_list)
 {
@@ -4199,7 +4249,7 @@ static inline ParserExitCode parse_type_qualifier_list(
 }
 
 static inline ParserExitCode parse_pointer(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& pointer)
 {
@@ -4272,7 +4322,7 @@ static inline ParserExitCode parse_pointer(
 }
 
 static inline ParserExitCode parse_parameter_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& parameter_list)
 {
@@ -4291,33 +4341,7 @@ static inline ParserExitCode parse_parameter_list(
 
 		switch (state) {
 
-		case START:
-			AstNode* parameter_declaration;
-			if (parse_parameter_declaration(
-				sym,
-				tokens,
-				parameter_declaration)
-				== ParserExitCode::SUCCESS) {
-
-				parameter_list = new AstNode(
-					AstNodeName::PARAMETER_LIST,
-					AstNodeAlt::PARAMETER_LIST_1,
-					NULL
-				);
-				parameter_list->add_child(parameter_declaration);
-				exitcode = ParserExitCode::SUCCESS;
-				state = PARAMETER_LIST;
-				continue;
-			}
-			exitcode = ParserExitCode::SUCCESS;
-			break;
-
-		case PARAMETER_LIST:
-		{
-			if (tokens->get_name() == TokenName::PUNCTUATOR
-				&& tokens->get_form() == TokenForm::COMMA) {
-				tokens++;
-
+			case START:
 				AstNode* parameter_declaration;
 				if (parse_parameter_declaration(
 					sym,
@@ -4325,19 +4349,48 @@ static inline ParserExitCode parse_parameter_list(
 					parameter_declaration)
 					== ParserExitCode::SUCCESS) {
 
-					AstNode* higher_parameter_list = new AstNode(
+					parameter_list = new AstNode(
 						AstNodeName::PARAMETER_LIST,
-						AstNodeAlt::PARAMETER_LIST_2,
+						AstNodeAlt::PARAMETER_LIST_1,
 						NULL
 					);
-					higher_parameter_list->add_child(parameter_list);
-					higher_parameter_list->add_child(parameter_declaration);
-					parameter_list = higher_parameter_list;
+					parameter_list->add_child(parameter_declaration);
+					exitcode = ParserExitCode::SUCCESS;
+					state = PARAMETER_LIST;
 					continue;
 				}
+				exitcode = ParserExitCode::SUCCESS;
+				break;
+
+			case PARAMETER_LIST:
+			{
+				if (tokens->get_name() == TokenName::PUNCTUATOR
+					&& tokens->get_form() == TokenForm::COMMA) {
+					tokens++;
+
+					AstNode* parameter_declaration;
+					if (parse_parameter_declaration(
+						sym,
+						tokens,
+						parameter_declaration)
+						== ParserExitCode::SUCCESS) {
+
+						AstNode* higher_parameter_list = new AstNode(
+							AstNodeName::PARAMETER_LIST,
+							AstNodeAlt::PARAMETER_LIST_2,
+							NULL
+						);
+						higher_parameter_list->add_child(parameter_list);
+						higher_parameter_list->add_child(parameter_declaration);
+						parameter_list = higher_parameter_list;
+						continue;
+					}
+				}
+				break;
 			}
-			break;
-		}
+
+			default:
+				break;
 		}
 		break;
 	}
@@ -4345,7 +4398,7 @@ static inline ParserExitCode parse_parameter_list(
 }
 
 static inline ParserExitCode parse_parameter_declaration(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& parameter_declaration)
 {
@@ -4362,7 +4415,10 @@ static inline ParserExitCode parse_parameter_declaration(
 	bool should_generate = true;
 
 	AstNode* declaration_specifiers;
-	if (parse_declaration_specifiers(sym, tokens, declaration_specifiers)
+	if (parse_declaration_specifiers(
+			sym, 
+			tokens, 
+			declaration_specifiers)
 		== ParserExitCode::SUCCESS) {
 		stack[si++] = declaration_specifiers;
 
@@ -4372,7 +4428,10 @@ static inline ParserExitCode parse_parameter_declaration(
 			tokens->get_form())) {
 
 			AstNode* declarator;
-			if (parse_declarator(sym, tokens, declarator)
+			if (parse_declarator(
+					sym, 
+					tokens, 
+					declarator)
 				== ParserExitCode::SUCCESS) {
 				stack[si++] = declarator;
 				alt = AstNodeAlt::PARAMETER_DECLARATION_1;
@@ -4386,7 +4445,10 @@ static inline ParserExitCode parse_parameter_declaration(
 			tokens->get_form())) {
 
 			AstNode* abstract_declarator;
-			if (parse_abstract_declarator(sym, tokens, abstract_declarator)
+			if (parse_abstract_declarator(
+					sym, 
+					tokens, 
+					abstract_declarator)
 				== ParserExitCode::SUCCESS) {
 				stack[si++] = abstract_declarator;
 				alt = AstNodeAlt::PARAMETER_DECLARATION_2;
@@ -4395,25 +4457,22 @@ static inline ParserExitCode parse_parameter_declaration(
 		}
 	}
 	if (should_generate) {
-		parameter_declaration = new AstNode(
+		parameter_declaration = construct_node_from_children(
 			AstNodeName::PARAMETER_DECLARATION,
 			alt,
-			NULL
-		);
-		parameter_declaration->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_identifier_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& identifier_list)
 {
@@ -4478,7 +4537,7 @@ static inline ParserExitCode parse_identifier_list(
 }
 
 static inline ParserExitCode parse_abstract_declarator(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& abstract_declarator)
 {
@@ -4519,7 +4578,10 @@ static inline ParserExitCode parse_abstract_declarator(
 			tokens->get_form())) {
 
 			AstNode* direct_declarator;
-			if (parse_direct_declarator(sym, tokens, direct_declarator)
+			if (parse_direct_declarator(
+					sym, 
+					tokens, 
+					direct_declarator)
 				== ParserExitCode::SUCCESS) {
 				stack[si++] = direct_declarator;
 				alt = AstNodeAlt::ABSTRACT_DECLARATOR_2;
@@ -4534,25 +4596,22 @@ static inline ParserExitCode parse_abstract_declarator(
 
 	}
 	if (should_generate) {
-		abstract_declarator = new AstNode(
+		abstract_declarator = construct_node_from_children(
 			AstNodeName::ABSTRACT_DECLARATOR,
 			alt,
-			NULL
-		);
-		abstract_declarator->add_children(stack, si);
+			stack, 
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_direct_abstract_declarator(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& direct_abstract_declarator)
 {
@@ -4581,7 +4640,8 @@ static inline ParserExitCode parse_direct_abstract_declarator(
 					AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_1,
 					NULL
 				);
-				direct_abstract_declarator->add_child(construct_terminal(tokens++));
+				direct_abstract_declarator->add_child(
+					construct_terminal(tokens++));
 				exitcode = ParserExitCode::SUCCESS;
 			}
 			/* Intentional passover since matching of
@@ -4608,9 +4668,9 @@ static inline ParserExitCode parse_direct_abstract_declarator(
 
 					AstNode* type_qualifier_list;
 					if (parse_type_qualifier_list(
-						sym,
-						tokens,
-						type_qualifier_list)
+							sym,
+							tokens,
+							type_qualifier_list)
 						== ParserExitCode::SUCCESS) {
 						stack[si++] = type_qualifier_list;
 					}
@@ -4622,9 +4682,9 @@ static inline ParserExitCode parse_direct_abstract_declarator(
 
 						AstNode* assignment_expression;
 						if (parse_assignment_expression(
-							sym,
-							tokens,
-							assignment_expression)
+								sym,
+								tokens,
+								assignment_expression)
 							== ParserExitCode::SUCCESS) {
 							stack[si++] = assignment_expression;
 						}
@@ -4672,18 +4732,18 @@ static inline ParserExitCode parse_direct_abstract_declarator(
 
 						AstNode* type_qualifier_list;
 						if (parse_type_qualifier_list(
-							sym,
-							tokens,
-							type_qualifier_list)
+								sym,
+								tokens,
+								type_qualifier_list)
 							== ParserExitCode::SUCCESS) {
 							stack[si++] = type_qualifier_list;
 						}
 					}
 					AstNode* assignment_expression;
 					if (parse_assignment_expression(
-						sym,
-						tokens,
-						assignment_expression)
+							sym,
+							tokens,
+							assignment_expression)
 						== ParserExitCode::SUCCESS) {
 						stack[si++] = assignment_expression;
 					}
@@ -4740,25 +4800,22 @@ static inline ParserExitCode parse_direct_abstract_declarator(
 				AstNode* higher_direct_abstract_declarator = new AstNode(
 					AstNodeName::DIRECT_ABSTRACT_DECLARATOR,
 					appended_alt,
-					NULL
-				);
+					NULL);
 				if (direct_abstract_declarator) {
 					higher_direct_abstract_declarator->add_child(
-						direct_abstract_declarator
-					);
+						direct_abstract_declarator);
 				}
 				higher_direct_abstract_declarator->add_children(stack, si);
 				if (direct_abstract_declarator) {
-					direct_abstract_declarator = higher_direct_abstract_declarator;
+					direct_abstract_declarator 
+						= higher_direct_abstract_declarator;
 				}
 				exitcode = ParserExitCode::SUCCESS;
 				continue;
 			}
 			else {
 				/* Free unused ast nodes generated. */
-				while (si) {
-					delete stack[--si];
-				}
+				free_stack(stack, si);
 				break;
 			}
 			break;
@@ -4771,7 +4828,7 @@ static inline ParserExitCode parse_direct_abstract_declarator(
 }
 
 static inline ParserExitCode parse_initializer(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& initializer)
 {
@@ -4814,7 +4871,10 @@ static inline ParserExitCode parse_initializer(
 	}
 	else {
 		AstNode* assignment_expression;
-		if (parse_assignment_expression(sym, tokens, assignment_expression)
+		if (parse_assignment_expression(
+				sym,
+				tokens,
+				assignment_expression)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = assignment_expression;
 			alt = AstNodeAlt::INITIALIZER_1;
@@ -4822,25 +4882,22 @@ static inline ParserExitCode parse_initializer(
 		}
 	}
 	if (should_generate) {
-		initializer = new AstNode(
+		initializer = construct_node_from_children(
 			AstNodeName::INITIALIZER,
 			alt,
-			NULL
-		);
-		initializer->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_initializer_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& initializer_list)
 {
@@ -4871,9 +4928,9 @@ static inline ParserExitCode parse_initializer_list(
 
 				AstNode* designation;
 				if (parse_designation(
-					sym,
-					tokens,
-					designation)
+						sym,
+						tokens,
+						designation)
 					== ParserExitCode::SUCCESS) {
 
 					start_stack[start_si++] = designation;
@@ -4881,9 +4938,9 @@ static inline ParserExitCode parse_initializer_list(
 			}
 			AstNode* initializer;
 			if (parse_initializer(
-				sym,
-				tokens,
-				initializer)
+					sym,
+					tokens,
+					initializer)
 				== ParserExitCode::SUCCESS) {
 				start_stack[start_si++] = initializer;
 			}
@@ -4962,7 +5019,7 @@ static inline ParserExitCode parse_initializer_list(
 }
 
 static inline ParserExitCode parse_designation(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& designation)
 {
@@ -4996,25 +5053,22 @@ static inline ParserExitCode parse_designation(
 		}
 	}
 	if (should_generate) {
-		designation = new AstNode(
+		designation = construct_node_from_children(
 			AstNodeName::DESIGNATION,
 			alt,
-			NULL
-		);
-		designation->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_designator_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& designator_list)
 {
@@ -5089,7 +5143,7 @@ static inline ParserExitCode parse_designator_list(
 }
 
 static inline ParserExitCode parse_designator(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& designator) {
 
@@ -5105,7 +5159,6 @@ static inline ParserExitCode parse_designator(
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
 	bool should_generate = false;
-
 
 	if (tokens->get_name() == TokenName::PUNCTUATOR
 		&& tokens->get_form() == TokenForm::OPEN_SQUARE_BRACKET) {
@@ -5135,25 +5188,22 @@ static inline ParserExitCode parse_designator(
 		}
 	}
 	if (should_generate) {
-		designator = new AstNode(
+		designator = construct_node_from_children(
 			AstNodeName::DESIGNATOR,
 			alt,
-			NULL
-		);
-		designator->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_labeled_statement(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& labeled_statement)
 {
@@ -5232,25 +5282,22 @@ static inline ParserExitCode parse_labeled_statement(
 		}
 	}
 	if (should_generate) {
-		labeled_statement = new AstNode(
+		labeled_statement = construct_node_from_children(
 			AstNodeName::LABELED_STATEMENT,
 			alt,
-			NULL
-		);
-		labeled_statement->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_statement(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& statement)
 {
@@ -5275,7 +5322,10 @@ static inline ParserExitCode parse_statement(
 				&& (sym->get_entry(tokens->get_lexeme())->is_typedef)))) {
 
 		AstNode* labeled_statement;
-		if (parse_labeled_statement(sym, tokens, labeled_statement)
+		if (parse_labeled_statement(
+				sym, 
+				tokens, 
+				labeled_statement)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = labeled_statement;
 			alt = AstNodeAlt::STATEMENT_1;
@@ -5289,7 +5339,10 @@ static inline ParserExitCode parse_statement(
 		tokens->get_form())) {
 
 		AstNode* compound_statement;
-		if (parse_compound_statement(sym, tokens, compound_statement)
+		if (parse_compound_statement(
+				sym, 
+				tokens, 
+				compound_statement)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = compound_statement;
 			alt = AstNodeAlt::STATEMENT_2;
@@ -5303,7 +5356,10 @@ static inline ParserExitCode parse_statement(
 		tokens->get_form())) {
 
 		AstNode* expression_statement;
-		if (parse_expression_statement(sym, tokens, expression_statement)
+		if (parse_expression_statement(
+				sym, 
+				tokens, 
+				expression_statement)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = expression_statement;
 			alt = AstNodeAlt::STATEMENT_3;
@@ -5317,7 +5373,10 @@ static inline ParserExitCode parse_statement(
 		tokens->get_form())) {
 
 		AstNode* selection_statement;
-		if (parse_selection_statement(sym, tokens, selection_statement)
+		if (parse_selection_statement(
+				sym, 
+				tokens, 
+				selection_statement)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = selection_statement;
 			alt = AstNodeAlt::STATEMENT_4;
@@ -5331,7 +5390,10 @@ static inline ParserExitCode parse_statement(
 		tokens->get_form())) {
 
 		AstNode* iteration_statement;
-		if (parse_iteration_statement(sym, tokens, iteration_statement)
+		if (parse_iteration_statement(
+				sym, 
+				tokens, 
+				iteration_statement)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = iteration_statement;
 			alt = AstNodeAlt::STATEMENT_5;
@@ -5345,7 +5407,10 @@ static inline ParserExitCode parse_statement(
 		tokens->get_form())) {
 
 		AstNode* jump_statement;
-		if (parse_jump_statement(sym, tokens, jump_statement)
+		if (parse_jump_statement(
+				sym, 
+				tokens, 
+				jump_statement)
 			== ParserExitCode::SUCCESS) {
 			stack[si++] = jump_statement;
 			alt = AstNodeAlt::STATEMENT_6;
@@ -5354,25 +5419,22 @@ static inline ParserExitCode parse_statement(
 
 	}
 	if (should_generate) {
-		statement = new AstNode(
+		statement = construct_node_from_children(
 			AstNodeName::STATEMENT,
 			alt,
-			NULL
-		);
-		statement->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_compound_statement(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& compound_statement)
 {
@@ -5399,7 +5461,10 @@ static inline ParserExitCode parse_compound_statement(
 			tokens->get_form())) {
 
 			AstNode* block_item_list;
-			if (parse_block_item_list(sym, tokens, block_item_list)
+			if (parse_block_item_list(
+					sym, 
+					tokens, 
+					block_item_list)
 				== ParserExitCode::SUCCESS) {
 				stack[si++] = block_item_list;
 			}
@@ -5411,12 +5476,11 @@ static inline ParserExitCode parse_compound_statement(
 		}
 	}
 	if (should_generate) {
-		compound_statement = new AstNode(
+		compound_statement = construct_node_from_children(
 			AstNodeName::COMPOUND_STATEMENT,
 			AstNodeAlt::COMPOUND_STATEMENT_1,
-			NULL
-		);
-		compound_statement->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
@@ -5429,7 +5493,7 @@ static inline ParserExitCode parse_compound_statement(
 }
 
 static inline ParserExitCode parse_block_item_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& block_item_list)
 {
@@ -5500,7 +5564,7 @@ static inline ParserExitCode parse_block_item_list(
 }
 
 static inline ParserExitCode parse_block_item(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& block_item)
 {
@@ -5557,26 +5621,23 @@ static inline ParserExitCode parse_block_item(
 		}
 	}
 	if (should_generate) {
-		block_item = new AstNode(
+		block_item = construct_node_from_children(
 			AstNodeName::BLOCK_ITEM,
 			alt,
-			NULL
-		);
-		block_item->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 
 	return exitcode;
 }
 
 static inline ParserExitCode parse_expression_statement(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& expression_statement)
 {
@@ -5611,26 +5672,23 @@ static inline ParserExitCode parse_expression_statement(
 		should_generate = true;
 	}
 	if (should_generate) {
-		expression_statement = new AstNode(
+		expression_statement = construct_node_from_children(
 			AstNodeName::EXPRESSION_STATEMENT,
 			AstNodeAlt::EXPRESSION_STATEMENT_1,
-			NULL
-		);
-		expression_statement->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 
 	return exitcode;
 }
 
 static inline ParserExitCode parse_selection_statement(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& selection_statement)
 {
@@ -5734,25 +5792,22 @@ static inline ParserExitCode parse_selection_statement(
 		}
 	}
 	if (should_generate) {
-		selection_statement = new AstNode(
+		selection_statement = construct_node_from_children(
 			AstNodeName::SELECTION_STATEMENT,
 			alt,
-			NULL
-		);
-		selection_statement->add_children(stack, si);
+			stack, 
+			si);
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 	}
 
 	return exitcode;
 }
 
 static inline ParserExitCode parse_iteration_statement(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& iteration_statement)
 {
@@ -5989,26 +6044,23 @@ static inline ParserExitCode parse_iteration_statement(
 		break;
 	}
 	if (should_generate) {
-		iteration_statement = new AstNode(
+		iteration_statement = construct_node_from_children(
 			AstNodeName::ITERATION_STATEMENT,
 			alt,
-			NULL
-		);
-		iteration_statement->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 		exitcode = ParserExitCode::FAIL;
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_jump_statement(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& jump_statement)
 {
@@ -6102,31 +6154,28 @@ static inline ParserExitCode parse_jump_statement(
 		}
 	}
 	if (should_generate) {
-		jump_statement = new AstNode(
+		jump_statement = construct_node_from_children(
 			AstNodeName::JUMP_STATEMENT,
 			alt,
-			NULL
-		);
-		jump_statement->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 		exitcode = ParserExitCode::FAIL;
 	}
 	return exitcode;
 }
 
-static inline ParserExitCode parse_translation_unit_statement(
-	SymbolTable*& sym,
+static inline ParserExitCode parse_translation_unit(
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& translation_unit)
 {
 	if (DEBUG_PARSER_SHOW_ATTEMPTS) {
-		parser_report_attempt("parse_translation_unit_statement", tokens);
+		parser_report_attempt("parse_translation_unit", tokens);
 	}
 	ParserExitCode exitcode = ParserExitCode::FAIL;
 
@@ -6143,10 +6192,10 @@ static inline ParserExitCode parse_translation_unit_statement(
 		case START:
 		{
 			AstNode* external_declaration;
-			if (parse_external_declaration_statement(
-				sym,
-				tokens,
-				external_declaration)
+			if (parse_external_declaration(
+					sym,
+					tokens,
+					external_declaration)
 				== ParserExitCode::SUCCESS) {
 
 				translation_unit = new AstNode(
@@ -6169,7 +6218,7 @@ static inline ParserExitCode parse_translation_unit_statement(
 				break;
 			}
 			AstNode* external_declaration;
-			if ((parse_external_declaration_statement(
+			if ((parse_external_declaration(
 				sym,
 				tokens,
 				external_declaration))
@@ -6201,7 +6250,7 @@ static inline ParserExitCode parse_translation_unit_statement(
 }
 
 static inline ParserExitCode parse_function_definition(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& function_definition)
 {
@@ -6215,7 +6264,10 @@ static inline ParserExitCode parse_function_definition(
 	bool should_generate = false;
 
 	AstNode* declaration_specifiers;
-	if (parse_declaration_specifiers(sym, tokens, declaration_specifiers)
+	if (parse_declaration_specifiers(
+			sym,
+			tokens, 
+			declaration_specifiers)
 		== ParserExitCode::SUCCESS) {
 		stack[si++] = declaration_specifiers;
 
@@ -6230,7 +6282,10 @@ static inline ParserExitCode parse_function_definition(
 				tokens->get_form())) {
 
 				AstNode* compound_statement;
-				if (parse_compound_statement(sym, tokens, compound_statement)
+				if (parse_compound_statement(
+						sym, 
+						tokens, 
+						compound_statement)
 					== ParserExitCode::SUCCESS) {
 					stack[si++] = compound_statement;
 					should_generate = true;
@@ -6243,9 +6298,9 @@ static inline ParserExitCode parse_function_definition(
 
 				AstNode* declaration_list;
 				if (parse_declaration_list(
-					sym,
-					tokens,
-					declaration_list)
+						sym,
+						tokens,
+						declaration_list)
 					== ParserExitCode::SUCCESS) {
 					stack[si++] = declaration_list;
 				}
@@ -6253,26 +6308,23 @@ static inline ParserExitCode parse_function_definition(
 		}
 	}
 	if (should_generate) {
-		function_definition = new AstNode(
+		function_definition = construct_node_from_children(
 			AstNodeName::FUNCTION_DEFINITION,
 			AstNodeAlt::FUNCTION_DEFINITION_1,
-			NULL
-		);
-		function_definition->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 		exitcode = ParserExitCode::FAIL;
 	}
 	return exitcode;
 }
 
 static inline ParserExitCode parse_declaration_list(
-	SymbolTable*& sym,
+	SymbolTable* const& sym,
 	Token*& tokens,
 	AstNode*& declaration_list)
 {
@@ -6378,8 +6430,8 @@ static inline ParserExitCode parse_external_declaration(
 
 		AstNode* function_definition;
 		if (parse_function_definition(
-			sym,
-			tokens,
+				sym,
+				tokens,
 			function_definition)
 			== ParserExitCode::SUCCESS) {
 
@@ -6391,9 +6443,9 @@ static inline ParserExitCode parse_external_declaration(
 			tokens = backtrack_ptr;
 			AstNode* declaration;
 			if (parse_declaration(
-				sym,
-				tokens,
-				declaration)
+					sym,
+					tokens,
+					declaration)
 				== ParserExitCode::SUCCESS) {
 				stack[si++] = declaration;
 				alt = AstNodeAlt::EXTERNAL_DECLARATION_2;
@@ -6419,19 +6471,16 @@ static inline ParserExitCode parse_external_declaration(
 		}
 	}
 	if (should_generate) {
-		external_declaration = new AstNode(
+		external_declaration = construct_node_from_children(
 			AstNodeName::EXTERNAL_DECLARATION,
 			alt,
-			NULL
-		);
-		external_declaration->add_children(stack, si);
+			stack,
+			si);
 		exitcode = ParserExitCode::SUCCESS;
 	}
 	else {
 		/* Free unused ast nodes generated. */
-		while (si) {
-			delete stack[--si];
-		}
+		free_stack(stack, si);
 		exitcode = ParserExitCode::FAIL;
 	}
 	return exitcode;

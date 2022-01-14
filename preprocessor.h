@@ -43,7 +43,7 @@ enum class PreprocessorExitCode {
 * @param lexeme_start The end of the slice.
 * @return Returns the constructed lexeme.
 **/
-static inline   const char* construct_lexeme(
+static inline const char* construct_lexeme(
 	const char* const& lexeme_start,
 	const char* const& lexeme_end)
 {
@@ -63,7 +63,7 @@ static inline   const char* construct_lexeme(
 **/
 static inline  PreprocessorExitCode preprocess_header_name(
 	const char*& input,
-	const FileLocationDescriptor& fld,
+	FileLocationDescriptor const& fld,
 	PreprocessingToken*& header_name)
 {
 	enum PreprocessingState {
@@ -208,9 +208,9 @@ static inline  PreprocessorExitCode preprocess_header_name(
 * @param fld The input's file location descriptor.
 * @param identifier_name The produced identifier_name pptoken.
 **/
-static inline  PreprocessorExitCode preprocess_identifier_name(
+static inline PreprocessorExitCode preprocess_identifier_name(
 	const char*& input,
-	const FileLocationDescriptor& fld,
+	FileLocationDescriptor const& fld,
 	PreprocessingToken*& identifier_name)
 {
 	PreprocessorExitCode exitcode
@@ -363,7 +363,7 @@ static inline  PreprocessorExitCode preprocess_identifier_name(
 **/
 static inline  PreprocessorExitCode preprocess_pp_number(
 	const char*& input,
-	const FileLocationDescriptor& fld,
+	FileLocationDescriptor const& fld,
 	PreprocessingToken*& pp_number)
 {
 	const char* lexeme_start = input;
@@ -515,9 +515,10 @@ static inline  PreprocessorExitCode preprocess_pp_number(
 * @param character_constant The reference to where to place
 *        the produced character_constant pptoken.
 **/
-static inline  PreprocessorExitCode preprocess_character_constant(
+static inline  
+PreprocessorExitCode preprocess_character_constant(
 	const char*& input,
-	const FileLocationDescriptor& fld,
+	FileLocationDescriptor const& fld,
 	PreprocessingToken*& identifier_output)
 {
 	const char* lexeme_start = input;
@@ -664,9 +665,9 @@ static inline  PreprocessorExitCode preprocess_character_constant(
 * @param string_literal The reference to where to place
 *        the produced string-literal pptoken.
 **/
-static inline  PreprocessorExitCode preprocess_string_literal(
+static inline PreprocessorExitCode preprocess_string_literal(
 	const char*& input,
-	const FileLocationDescriptor& fld,
+	FileLocationDescriptor const& fld,
 	PreprocessingToken*& string_literal)
 {
 	const char* lexeme_start = input;
@@ -806,7 +807,7 @@ static inline  PreprocessorExitCode preprocess_string_literal(
 **/
 static inline  PreprocessorExitCode preprocess_punctuator(
 	const char*& input,
-	const FileLocationDescriptor& fld,
+	FileLocationDescriptor const& fld,
 	PreprocessingToken*& punctuator)
 {
 	const char* lexeme_start = input;
@@ -1084,9 +1085,9 @@ static inline  PreprocessorExitCode preprocess_punctuator(
 * @param punctuator The reference to where to place
 *					the produced pptokens.
 **/
-static inline  PreprocessorExitCode preprocess(
+static inline PreprocessorExitCode preprocess(
 	const char*& input,
-	const FileLocationDescriptor& fld,
+	FileLocationDescriptor const& fld,
 	PreprocessingToken*& identifier_output)
 {
 	enum LexingState {

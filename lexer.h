@@ -19,6 +19,13 @@ enum class LexerExitCode {
 
 #define DEBUG_ENABLE_LEXER_REPORT 1
 
+#define is_oct_digit(c) (c >= '0' && c <= '8')
+#define is_dec_digit(c) (c >= '0' && c <= '9')
+#define is_hex_digit(c) is_dec_digit(c)
+#define is_hex_letter(c) (c >= 'a' && c <= 'f')			\
+						 || (c >= 'A' && c <= 'F')
+
+
 #define lexer_report_failure( s, f, l )					\
 	if (DEBUG_ENABLE_LEXER_REPORT) {					\
 		cout << "lexer.cpp:" s ":"						\
@@ -42,7 +49,7 @@ enum class LexerExitCode {
 	}
 
 static inline LexerExitCode lex_keyword(
-	const PreprocessingToken& pp_token,
+	PreprocessingToken* const& pp_token,
 	Token*& identifier_output)
 {
 	enum LexingState {
@@ -106,7 +113,7 @@ static inline LexerExitCode lex_keyword(
 	LexingState state = LexingState::START;
 	LexerExitCode exitcode = LexerExitCode::FAILURE;
 
-	const char* lexeme = pp_token.get_lexeme();
+	const char* lexeme = pp_token->get_lexeme();
 	const char* chr = lexeme;
 
 	TokenForm form = TokenForm::SIMPLE;
@@ -1012,7 +1019,7 @@ static inline LexerExitCode lex_keyword(
 }
 
 static inline LexerExitCode lex_identifier(
-	const PreprocessingToken& pp_token,
+	PreprocessingToken* const& pp_token,
 	Token*& identifier_output)
 {
 	enum LexingState {
@@ -1028,7 +1035,7 @@ static inline LexerExitCode lex_identifier(
 	LexingState state = LexingState::START;
 	LexerExitCode exitcode = LexerExitCode::FAILURE;
 
-	const char* lexeme = pp_token.get_lexeme();
+	const char* lexeme = pp_token->get_lexeme();
 	const char* chr = lexeme;
 
 	TokenForm form = TokenForm::SIMPLE;
@@ -1185,7 +1192,7 @@ static inline LexerExitCode lex_identifier(
 }
 
 static inline LexerExitCode lex_constant(
-	const PreprocessingToken& pp_token,
+	PreprocessingToken* const& pp_token,
 	Token*& identifier_output)
 {
 	enum LexingState {
@@ -1224,7 +1231,7 @@ static inline LexerExitCode lex_constant(
 	LexingState state = LexingState::START;
 	LexerExitCode exitcode = LexerExitCode::FAILURE;
 
-	const char* lexeme = pp_token.get_lexeme();
+	const char* lexeme = pp_token->get_lexeme();
 	const char* chr = lexeme;
 
 	TokenForm form = TokenForm::SIMPLE;
@@ -1238,347 +1245,515 @@ static inline LexerExitCode lex_constant(
 
 		switch (state) {
 
-		case START:
+			case START:
 
-			switch (*chr) {
+				switch (*chr) {
 
-			case '1': case '2': case '3':
-			case '4': case '5': case '6':
-			case '7': case '8': case '9':
-				chr++;
-				state = DIGIT_SEQUENCE;
-				continue;
+				case '1': case '2': case '3':
+				case '4': case '5': case '6':
+				case '7': case '8': case '9':
+					chr++;
+					state = DIGIT_SEQUENCE;
+					continue;
 
-			case '.':
-			{
-				chr++;
-				bool found_digit_sequence = false;
-				while (true) {
-					switch (*chr) {
-					case '0':
-					case '1': case '2': case '3':
-					case '4': case '5': case '6':
-					case '7': case '8': case '9':
-						found_digit_sequence = true;
-						chr++;
-						continue;
-					default:
+				case '.':
+				{
+					chr++;
+					bool found_digit_sequence = false;
+					while (true) {
+						switch (*chr) {
+						case '0':
+						case '1': case '2': case '3':
+						case '4': case '5': case '6':
+						case '7': case '8': case '9':
+							found_digit_sequence = true;
+							chr++;
+							continue;
+						default:
+							break;
+						}
 						break;
+					}
+					if (found_digit_sequence) {
+						state = FRACTIONAL_CONSTANT;
+						continue;
 					}
 					break;
 				}
-				if (found_digit_sequence) {
-					state = FRACTIONAL_CONSTANT;
-					continue;
-				}
-				break;
-			}
 
-			case '0':
-				chr++;
-				if (*chr == 'x' || *chr == 'X') {
+				case '0':
 					chr++;
-					state = HEXADECIMAL_PREFIX;
-				}
-				else {
-					while (*chr >= '0' && *chr <= '7') {
+					if (*chr == 'x' 
+						|| *chr == 'X') {
 						chr++;
-					}
-					if (*chr == '\0') {
-						state = OCTAL_CONSTANT;
+						state = HEXADECIMAL_PREFIX;
 					}
 					else {
-						while (*chr >= '0'
-							&& *chr <= '9') {
+						while (is_oct_digit(*chr)) {
 							chr++;
 						}
-						if (*chr == '.'
-							|| *chr == 'p'
-							|| *chr == 'P'
-							|| *chr == 'e'
-							|| *chr == 'E') {
-							state = DIGIT_SEQUENCE;
+						if (*chr == '\0') {
+							state = OCTAL_CONSTANT;
 						}
 						else {
-							state = END_FAIL;
-						}
-					}
-				}
-				continue;
-
-			case 'L':
-				chr++; /* L may preclude '\' */
-			case '\'':
-			{
-				if (*chr == '\'') {
-					state = END_FAIL;
-					continue;
-				}
-
-				chr++;
-				while (true) {
-
-					switch (*chr) {
-
-					case '\\':
-						chr++;
-						switch (*chr) {
-
-						case '\'':
-						case '\"':
-						case '?':
-						case '\\':
-						case 'a':
-						case 'b':
-						case 'f':
-						case 'n':
-						case 'r':
-						case 't':
-						case 'v':
-							chr++;
-							continue;
-
-						case 'x':
-						{
-							bool found_hex = false;
-							while ((*chr >= '0' && *chr <= '9')
-								&& (*chr >= 'a' && *chr <= 'f')
-								&& (*chr >= 'A' && *chr <= 'F')) {
+							while (is_dec_digit(*chr)) {
 								chr++;
-								found_hex = true;
 							}
-							if (found_hex) {
-								chr++;
-								if (*chr == NULL) {
-									chr++;
-									state = CHARACTER_CONSTANT;
-								}
-								else {
-									state = END_FAIL;
-								}
+							if (*chr == '.'
+								|| *chr == 'p'
+								|| *chr == 'P'
+								|| *chr == 'e'
+								|| *chr == 'E') {
+								state = DIGIT_SEQUENCE;
 							}
 							else {
 								state = END_FAIL;
 							}
-							continue;
 						}
+					}
+					continue;
 
-						case '0':
-						case '1': case '2': case '3':
-						case '4': case '5': case '6':
-						case '7':
-						{
+				case 'L':
+					chr++; /* L may preclude '\' */
+				case '\'':
+				{
+					if (*chr == '\'') {
+						state = END_FAIL;
+						continue;
+					}
+
+					chr++;
+					while (true) {
+
+						switch (*chr) {
+
+						case '\\':
 							chr++;
-							int num_encountered = 1;
+							switch (*chr) {
 
-							while (!(*chr >= '0'
-								&& *chr <= '7')) {
+							case '\'':
+							case '\"':
+							case '?':
+							case '\\':
+							case 'a':
+							case 'b':
+							case 'f':
+							case 'n':
+							case 'r':
+							case 't':
+							case 'v':
 								chr++;
-								num_encountered++;
+								continue;
+
+							case 'x':
+							{
+								bool found_hex = false;
+								while (is_dec_digit(*chr)
+									   || is_hex_letter(*chr)) {
+									chr++;
+									found_hex = true;
+								}
+								if (found_hex) {
+									chr++;
+									if (*chr == NULL) {
+										chr++;
+										state = CHARACTER_CONSTANT;
+									}
+									else {
+										state = END_FAIL;
+									}
+								}
+								else {
+									state = END_FAIL;
+								}
+								continue;
 							}
 
-							if (num_encountered >= 3) {
-								state = END_FAIL;
+							case '0':
+							case '1': case '2': case '3':
+							case '4': case '5': case '6':
+							case '7':
+							{
+								chr++;
+								int num_encountered = 1;
+
+								while (!is_oct_digit(*chr)) {
+									chr++;
+									num_encountered++;
+								}
+
+								if (num_encountered >= 3) {
+									state = END_FAIL;
+								}
+								break;
 							}
+
+							default:
+								break;
+							}
+							continue;
+
+						case '\n':
+							state = END_FAIL;
 							break;
-						}
+
+						case '\'':
+							chr++;
+							state = CHARACTER_CONSTANT;
+							break;
 
 						default:
-							break;
+							chr++;
+							continue;
 						}
-						continue;
-
-					case '\n':
-						state = END_FAIL;
 						break;
+					}
+					/* Intentional runover. */
+					continue;
+				}
+				}
 
-					case '\'':
-						chr++;
-						state = CHARACTER_CONSTANT;
-						break;
+			case CHARACTER_CONSTANT:
+				form = TokenForm::CHARACTER_CONSTANT;
+				state = END_SUCCESS;
+				continue;
 
-					default:
+			case DECIMAL_CONSTANT:
+				base = 10;
+				state = INTEGER_CONSTANT;
+				continue;
+
+			case OCTAL_CONSTANT:
+				base = 8;
+				state = INTEGER_CONSTANT;
+				continue;
+
+			case HEXADECIMAL_CONSTANT:
+				base = 16;
+				state = INTEGER_CONSTANT;
+				continue;
+
+			case INTEGER_CONSTANT: {
+
+				bool u = false;
+				bool l = false;
+				bool ll = false;
+
+				switch (*chr) {
+
+				case 'u':
+				case 'U':
+					if (!u) {
+						u = true;
 						chr++;
 						continue;
 					}
-					break;
-				}
-				/* Intentional runover. */
-				continue;
-			}
-			}
+					else {
+						break;
+					}
 
-		case CHARACTER_CONSTANT:
-			form = TokenForm::CHARACTER_CONSTANT;
-			state = END_SUCCESS;
-			continue;
+				case 'l':
+				case 'L':
+					if (!l) {
+						l = true;
+						chr++;
+						continue;
+					}
+					else if (!ll) {
+						ll = true;
+						chr++;
+						continue;
+					}
+					else {
+						break;
+					}
 
-		case DECIMAL_CONSTANT:
-			base = 10;
-			state = INTEGER_CONSTANT;
-			continue;
-
-		case OCTAL_CONSTANT:
-			base = 8;
-			state = INTEGER_CONSTANT;
-			continue;
-
-		case HEXADECIMAL_CONSTANT:
-			base = 16;
-			state = INTEGER_CONSTANT;
-			continue;
-
-		case INTEGER_CONSTANT: {
-
-			bool u = false;
-			bool l = false;
-			bool ll = false;
-
-			switch (*chr) {
-
-			case 'u':
-			case 'U':
-				if (!u) {
-					u = true;
-					chr++;
+				case '\0': {
+					uintmax_t val = strtoimax(
+						lexeme,
+						NULL,
+						base);
+					state = END_SUCCESS;
+					form = TokenForm::INTEGER_CONSTANT;
+					tvalue.intvalue = val;
 					continue;
 				}
-				else {
+
+				default:
 					break;
 				}
-
-			case 'l':
-			case 'L':
-				if (!l) {
-					l = true;
-					chr++;
-					continue;
-				}
-				else if (!ll) {
-					ll = true;
-					chr++;
-					continue;
-				}
-				else {
-					break;
-				}
-
-			case '\0': {
-				uintmax_t val = strtoimax(
-					lexeme,
-					NULL,
-					base);
-				state = END_SUCCESS;
-				form = TokenForm::INTEGER_CONSTANT;
-				tvalue.intvalue = val;
+				state = END_FAIL;
 				continue;
 			}
 
-			default:
-				break;
-			}
-			state = END_FAIL;
-			continue;
-		}
-
-		case DIGIT_SEQUENCE:
-		{
-			switch (*chr) {
-
-			case '0':
-			case '1': case '2': case '3':
-			case '4': case '5': case '6':
-			case '7': case '8': case '9':
-				chr++;
-				continue;
-
-			case '.':
-				chr++;
-				state = FRACTIONAL_CONSTANT;
-				continue;
-
-			case 'e':
-			case 'E':
+			case DIGIT_SEQUENCE:
 			{
-				chr++;
+				switch (*chr) {
 
-				if (*chr != '+' && *chr != '-') {
-					state = FLOATING_CONSTANT;
+				case '0':
+				case '1': case '2': case '3':
+				case '4': case '5': case '6':
+				case '7': case '8': case '9':
+					chr++;
 					continue;
-				}
-				chr++;
 
-				bool found_digit_sequence = false;
+				case '.':
+					chr++;
+					state = FRACTIONAL_CONSTANT;
+					continue;
+
+				case 'e':
+				case 'E':
+				{
+					chr++;
+
+					if (*chr != '+' 
+						&& *chr != '-') {
+						state = FLOATING_CONSTANT;
+						continue;
+					}
+					chr++;
+
+					bool found_digit_sequence = false;
+					while (true) {
+						switch (*chr) {
+						case '0':
+						case '1': case '2': case '3':
+						case '4': case '5': case '6':
+						case '7': case '8': case '9':
+							chr++;
+							found_digit_sequence = true;
+							continue;
+						default:
+							break;
+						}
+						break;
+					}
+					if (found_digit_sequence) {
+						switch (*chr) {
+						case 'f': case 'F':
+						case 'l': case 'L':
+							chr++;
+							break;
+						default:
+							break;
+						}
+						if (*chr == NULL) {
+							state = FLOATING_CONSTANT;
+						}
+						else {
+							state = END_FAIL;
+						}
+						continue;
+					}
+				}
+
+				case 'u':
+				case 'U':
+				case 'l':
+				case 'L':
+				case '\0':
+					state = DECIMAL_CONSTANT;
+					continue;
+
+				default:
+					break;
+				}
+				state = END_FAIL;
+				continue;
+			}
+
+			case HEXADECIMAL_DIGIT_SEQUENCE:
+			{
+				switch (*chr) {
+
+				case '0':
+				case '1': case '2': case '3':
+				case '4': case '5': case '6':
+				case '7': case '8': case '9':
+					chr++;
+					continue;
+
+				case '.':
+					chr++;
+					state = HEXADECIMAL_FRACTIONAL_CONSTANT;
+					continue;
+
+				case 'p':
+				case 'P':
+				{
+					chr++;
+
+					if (*chr != '+' && *chr != '-') {
+						state = HEXADECIMAL_FLOATING_CONSTANT;
+						continue;
+					}
+					chr++;
+
+					bool found_digit_sequence = false;
+					while (true) {
+						switch (*chr) {
+						case '0':
+						case '1': case '2': case '3':
+						case '4': case '5': case '6':
+						case '7': case '8': case '9':
+							chr++;
+							found_digit_sequence = true;
+							continue;
+						default:
+							break;
+						}
+						break;
+					}
+					if (found_digit_sequence) {
+						switch (*chr) {
+						case 'f': case 'F':
+						case 'l': case 'L':
+							chr++;
+							break;
+						default:
+							break;
+						}
+						if (chr == NULL) {
+							state = HEXADECIMAL_FLOATING_CONSTANT;
+						}
+						else {
+							state = END_FAIL;
+						}
+						continue;
+					}
+				}
+
+				case 'u':
+				case 'U':
+				case 'l':
+				case 'L':
+				case '\0':
+					state = HEXADECIMAL_CONSTANT;
+					continue;
+
+				default:
+					break;
+				}
+				state = END_FAIL;
+				continue;
+			}
+
+			case HEXADECIMAL_PREFIX:
+			{
+				bool encountered_digit = false;
 				while (true) {
 					switch (*chr) {
 					case '0':
 					case '1': case '2': case '3':
 					case '4': case '5': case '6':
 					case '7': case '8': case '9':
+					case 'a': case 'b': case 'c':
+					case 'd': case 'e': case 'f':
+					case 'A': case 'B': case 'C':
+					case 'D': case 'E': case 'F':
+						encountered_digit = true;
 						chr++;
-						found_digit_sequence = true;
 						continue;
 					default:
 						break;
 					}
 					break;
 				}
-				if (found_digit_sequence) {
-					switch (*chr) {
-					case 'f': case 'F':
-					case 'l': case 'L':
-						chr++;
-						break;
-					default:
-						break;
-					}
-					if (*chr == NULL) {
-						state = FLOATING_CONSTANT;
-					}
-					else {
-						state = END_FAIL;
-					}
+				if (!encountered_digit) {
+					state = state = END_FAIL;
 					continue;
 				}
+
+				switch (*chr) {
+
+				case '.':
+					chr++;
+					state = HEXADECIMAL_FRACTIONAL_CONSTANT;
+					continue;
+
+				case 'p':
+				case 'P':
+					state = HEXADECIMAL_FRACTIONAL_CONSTANT;
+					continue;
+
+				case '\0':
+					state = HEXADECIMAL_CONSTANT;
+					continue;
+
+				default:
+					break;
+				}
+				state = END_FAIL;
+				continue;
 			}
 
-			case 'u':
-			case 'U':
-			case 'l':
-			case 'L':
-			case '\0':
-				state = DECIMAL_CONSTANT;
-				continue;
-
-			default:
-				break;
-			}
-			state = END_FAIL;
-			continue;
-		}
-
-		case HEXADECIMAL_DIGIT_SEQUENCE:
-		{
-			switch (*chr) {
-
-			case '0':
-			case '1': case '2': case '3':
-			case '4': case '5': case '6':
-			case '7': case '8': case '9':
-				chr++;
-				continue;
-
-			case '.':
-				chr++;
-				state = HEXADECIMAL_FRACTIONAL_CONSTANT;
-				continue;
-
-			case 'p':
-			case 'P':
+			case FRACTIONAL_CONSTANT:
 			{
+				if (*chr == NULL) {
+					state = DECIMAL_FLOATING_CONSTANT;
+					continue;
+
+				}
+
+				if (*chr != 'e' 
+					&& *chr != 'E') {
+
+					bool found_digit_sequence = false;
+					while (true) {
+						if (is_dec_digit(*chr)) {
+							found_digit_sequence = true;
+							chr++;
+							continue;
+						}
+						break;
+					}
+					if (found_digit_sequence) {
+						continue;
+					}
+				}
+				else {
+					chr++;
+				}
+
+				if (*chr != '+' 
+					&& *chr != '-') {
+					state = DECIMAL_FLOATING_CONSTANT;
+					continue;
+				}
+				else {
+					chr++;
+				}
+
+
+				bool found_digit_sequence = false;
+				while (true) {
+					if (is_dec_digit(*chr)) {
+						chr++;
+						found_digit_sequence = true;
+						continue;
+					}
+					break;
+				}
+				if (found_digit_sequence) {
+					state = DECIMAL_FLOATING_CONSTANT;
+					continue;
+				}
+				state = END_FAIL;
+				continue;
+			}
+
+			case HEXADECIMAL_FRACTIONAL_CONSTANT:
+			{
+				if (*chr != 'p' 
+					&& *chr != 'P') {
+					state = HEXADECIMAL_FLOATING_CONSTANT;
+					continue;
+				}
 				chr++;
 
-				if (*chr != '+' && *chr != '-') {
+				if (*chr != '+' 
+					&& *chr != '-') {
 					state = HEXADECIMAL_FLOATING_CONSTANT;
 					continue;
 				}
@@ -1586,262 +1761,93 @@ static inline LexerExitCode lex_constant(
 
 				bool found_digit_sequence = false;
 				while (true) {
-					switch (*chr) {
-					case '0':
-					case '1': case '2': case '3':
-					case '4': case '5': case '6':
-					case '7': case '8': case '9':
+					if (is_dec_digit(*chr)) {
 						chr++;
 						found_digit_sequence = true;
-						continue;
-					default:
-						break;
-					}
-					break;
-				}
-				if (found_digit_sequence) {
-					switch (*chr) {
-					case 'f': case 'F':
-					case 'l': case 'L':
-						chr++;
-						break;
-					default:
-						break;
-					}
-					if (chr == NULL) {
-						state = HEXADECIMAL_FLOATING_CONSTANT;
-					}
-					else {
-						state = END_FAIL;
-					}
-					continue;
-				}
-			}
-
-			case 'u':
-			case 'U':
-			case 'l':
-			case 'L':
-			case '\0':
-				state = HEXADECIMAL_CONSTANT;
-				continue;
-
-			default:
-				break;
-			}
-			state = END_FAIL;
-			continue;
-		}
-
-		case HEXADECIMAL_PREFIX:
-		{
-			bool encountered_digit = false;
-			while (true) {
-				switch (*chr) {
-				case '0':
-				case '1': case '2': case '3':
-				case '4': case '5': case '6':
-				case '7': case '8': case '9':
-				case 'a': case 'b': case 'c':
-				case 'd': case 'e': case 'f':
-				case 'A': case 'B': case 'C':
-				case 'D': case 'E': case 'F':
-					encountered_digit = true;
-					chr++;
-					continue;
-				default:
-					break;
-				}
-				break;
-			}
-			if (!encountered_digit) {
-				state = state = END_FAIL;
-				continue;
-			}
-
-			switch (*chr) {
-
-			case '.':
-				chr++;
-				state = HEXADECIMAL_FRACTIONAL_CONSTANT;
-				continue;
-
-			case 'p':
-			case 'P':
-				state = HEXADECIMAL_FRACTIONAL_CONSTANT;
-				continue;
-
-			case '\0':
-				state = HEXADECIMAL_CONSTANT;
-				continue;
-
-			default:
-				break;
-			}
-			state = END_FAIL;
-			continue;
-		}
-
-		case FRACTIONAL_CONSTANT:
-		{
-			if (*chr == NULL) {
-				state = DECIMAL_FLOATING_CONSTANT;
-				continue;
-
-			}
-
-			if (*chr != 'e' && *chr != 'E') {
-
-				bool found_digit_sequence = false;
-				while (true) {
-					if (*chr >= '0' && *chr <= '9') {
-						found_digit_sequence = true;
-						chr++;
 						continue;
 					}
 					break;
 				}
 				if (found_digit_sequence) {
+					state = HEXADECIMAL_FLOATING_CONSTANT;
 					continue;
 				}
-			}
-			else {
-				chr++;
-			}
-
-			if (*chr != '+' && *chr != '-') {
-				state = DECIMAL_FLOATING_CONSTANT;
-				continue;
-			}
-			else {
-				chr++;
-			}
-
-
-			bool found_digit_sequence = false;
-			while (true) {
-				if (*chr >= '0' && *chr <= '9') {
-					chr++;
-					found_digit_sequence = true;
-					continue;
-				}
-				break;
-			}
-			if (found_digit_sequence) {
-				state = DECIMAL_FLOATING_CONSTANT;
-				continue;
-			}
-			state = END_FAIL;
-			continue;
-		}
-
-		case HEXADECIMAL_FRACTIONAL_CONSTANT:
-		{
-			if (*chr != 'p' && *chr != 'P') {
-				state = HEXADECIMAL_FLOATING_CONSTANT;
-				continue;
-			}
-			chr++;
-
-			if (*chr != '+' && *chr != '-') {
-				state = HEXADECIMAL_FLOATING_CONSTANT;
-				continue;
-			}
-			chr++;
-
-			bool found_digit_sequence = false;
-			while (true) {
-				switch (*chr) {
-				case '0':
-				case '1': case '2': case '3':
-				case '4': case '5': case '6':
-				case '7': case '8': case '9':
-					chr++;
-					found_digit_sequence = true;
-					continue;
-				}
-				break;
-			}
-			if (found_digit_sequence) {
-				state = HEXADECIMAL_FLOATING_CONSTANT;
-				continue;
-			}
-			state = END_FAIL;
-			continue;
-		}
-
-		case END_FAIL:
-		{
-			lexer_report_failure(
-				"lex_constant",
-				form,
-				lexeme);
-
-			*identifier_output = Token(
-				TokenName::ERROR,
-				form,
-				tvalue,
-				lexeme);
-
-			exitcode = LexerExitCode::FAILURE;
-			conclusive = true;
-			break;
-		}
-
-		case FLOATING_CONSTANT:
-		{
-			if (*chr == 'f'
-				|| *chr == 'F'
-				|| *chr == 'l'
-				|| *chr == 'L') {
-				chr++;
-			}
-			if (*chr != NULL) {
 				state = END_FAIL;
 				continue;
 			}
 
-			long double val = strtold(
-				lexeme,
-				NULL);
+			case END_FAIL:
+			{
+				lexer_report_failure(
+					"lex_constant",
+					form,
+					lexeme);
 
-			state = END_SUCCESS;
-			form = TokenForm::FLOATING_CONSTANT;
-			tvalue.floatvalue = val;
-			continue;
-		}
+				*identifier_output = Token(
+					TokenName::ERROR,
+					form,
+					tvalue,
+					lexeme);
 
-		case DECIMAL_FLOATING_CONSTANT:
-			base = 10;
-			state = FLOATING_CONSTANT;
-			continue;
+				exitcode = LexerExitCode::FAILURE;
+				conclusive = true;
+				break;
+			}
 
-		case HEXADECIMAL_FLOATING_CONSTANT:
-			base = 16;
-			state = FLOATING_CONSTANT;
-			continue;
+			case FLOATING_CONSTANT:
+			{
+				if (*chr == 'f'
+					|| *chr == 'F'
+					|| *chr == 'l'
+					|| *chr == 'L') {
+					chr++;
+				}
+				if (*chr != NULL) {
+					state = END_FAIL;
+					continue;
+				}
+
+				long double val = strtold(
+					lexeme,
+					NULL);
+
+				state = END_SUCCESS;
+				form = TokenForm::FLOATING_CONSTANT;
+				tvalue.floatvalue = val;
+				continue;
+			}
+
+			case DECIMAL_FLOATING_CONSTANT:
+				base = 10;
+				state = FLOATING_CONSTANT;
+				continue;
+
+			case HEXADECIMAL_FLOATING_CONSTANT:
+				base = 16;
+				state = FLOATING_CONSTANT;
+				continue;
 
 
-		case END_SUCCESS:
-		{
-			lexer_report_success(
-				"lex_constant",
-				form,
-				lexeme);
+			case END_SUCCESS:
+			{
+				lexer_report_success(
+					"lex_constant",
+					form,
+					lexeme);
 
-			*identifier_output++ = Token(
-				TokenName::CONSTANT,
-				form,
-				tvalue,
-				lexeme);
+				*identifier_output++ = Token(
+					TokenName::CONSTANT,
+					form,
+					tvalue,
+					lexeme);
 
-			exitcode = LexerExitCode::SUCCESS;
-			conclusive = true;
-			break;
-		}
+				exitcode = LexerExitCode::SUCCESS;
+				conclusive = true;
+				break;
+			}
 
-		default:
-			break;
+			default:
+				break;
 		}
 	}
 	return exitcode;
@@ -1849,12 +1855,12 @@ static inline LexerExitCode lex_constant(
 }
 
 static inline LexerExitCode lex_string_literal(
-	const PreprocessingToken& pp_token,
+	PreprocessingToken* const& pp_token,
 	Token*& identifier_output)
 {
 	LexerExitCode exitcode = LexerExitCode::FAILURE;
 
-	const char* lexeme = pp_token.get_lexeme();
+	const char* lexeme = pp_token->get_lexeme();
 	const char* chr = lexeme;
 
 	TokenForm form = TokenForm::SIMPLE;
@@ -1899,9 +1905,8 @@ static inline LexerExitCode lex_string_literal(
 				case 'x':
 				{
 					bool found_hex = false;
-					while ((*chr >= '0' && *chr <= '9')
-						&& (*chr >= 'a' && *chr <= 'f')
-						&& (*chr >= 'A' && *chr <= 'F')) {
+					while (is_dec_digit(*chr)
+						&& is_hex_letter(*chr)) {
 						chr++;
 						found_hex = true;
 					}
@@ -1930,8 +1935,7 @@ static inline LexerExitCode lex_string_literal(
 					chr++;
 					int num_encountered = 1;
 
-					while (!(*chr >= '0'
-						&& *chr <= '7')) {
+					while (!is_oct_digit(*chr)) {
 						chr++;
 						num_encountered++;
 					}
@@ -1993,12 +1997,12 @@ static inline LexerExitCode lex_string_literal(
 }
 
 static inline LexerExitCode lex_punctuator(
-	const PreprocessingToken& pp_token,
+	PreprocessingToken* const& pp_token,
 	Token*& identifier_output)
 {
 	LexerExitCode exitcode = LexerExitCode::FAILURE;
 
-	const char* lexeme = pp_token.get_lexeme();
+	const char* lexeme = pp_token->get_lexeme();
 	const char* chr = lexeme;
 
 	TokenForm form = TokenForm::SIMPLE;
@@ -2070,15 +2074,15 @@ static inline LexerExitCode lex_punctuator(
 		break;
 
 	case '.':
-		if (*chr == '.' && *(chr + 1) == '.' && *(chr + 2) == NULL) {
+		if (*chr == '.' 
+			&& *(chr + 1) == '.' 
+			&& *(chr + 2) == NULL) {
 			form = TokenForm::TRIPLE_DOT;
 			found_punctuator = true;
-		}
-		else if (*chr == NULL) {
+		} else if (*chr == NULL) {
 			form = TokenForm::DOT;
 			found_punctuator = true;
-		}
-		else {
+		} else {
 			found_punctuator = false;
 		}
 		break;
@@ -2088,11 +2092,13 @@ static inline LexerExitCode lex_punctuator(
 			form = TokenForm::AMPERSAND;
 			found_punctuator = true;
 		}
-		else if (*chr == '&' && *(chr + 1) == NULL) {
+		else if (*chr == '&' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::DOUBLE_AMPERSAND;
 			found_punctuator = true;
 		}
-		else if (*chr == '=' && *(chr + 1) == NULL) {
+		else if (*chr == '=' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::AMPERSAND_EQUAL;
 			found_punctuator = true;
 		}
@@ -2103,18 +2109,21 @@ static inline LexerExitCode lex_punctuator(
 			form = TokenForm::ASTERIX;
 			found_punctuator = true;
 		}
-		else if (*chr == '=' && *(chr + 1) == NULL) {
+		else if (*chr == '=' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::MULTIPLY_EQUAL;
 			found_punctuator = true;
 		}
 		break;
 
 	case '+':
-		if (*chr == '+' && *(chr + 1) == NULL) {
+		if (*chr == '+' 
+			&& *(chr + 1) == NULL) {
 			form = TokenForm::INCREMENT;
 			found_punctuator = true;
 		}
-		else if (*chr == '=' && *(chr + 1) == NULL) {
+		else if (*chr == '=' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::PLUS_EQUALS;
 			found_punctuator = true;
 		}
@@ -2128,15 +2137,18 @@ static inline LexerExitCode lex_punctuator(
 		break;
 
 	case '-':
-		if (*chr == '-' && *(chr + 1) == NULL) {
+		if (*chr == '-' 
+			&& *(chr + 1) == NULL) {
 			form = TokenForm::DECREMENT;
 			found_punctuator = true;
 		}
-		else if (*chr == '>' && *(chr + 1) == NULL) {
+		else if (*chr == '>' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::RIGHT_ARROW;
 			found_punctuator = true;
 		}
-		else if (*chr == '=' && *(chr + 1) == NULL) {
+		else if (*chr == '=' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::MINUS_EQUALS;
 			found_punctuator = true;
 		}
@@ -2164,7 +2176,8 @@ static inline LexerExitCode lex_punctuator(
 			form = TokenForm::EXCLAMATION_MARK;
 			found_punctuator = true;
 		}
-		else if (*chr == '=' && *(chr + 1) == NULL) {
+		else if (*chr == '=' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::NOT_EQUAL;
 			found_punctuator = true;
 		}
@@ -2174,7 +2187,8 @@ static inline LexerExitCode lex_punctuator(
 		break;
 
 	case '/':
-		if (*chr == '=' && *(chr + 1) == NULL) {
+		if (*chr == '=' 
+			&& *(chr + 1) == NULL) {
 			form = TokenForm::DIVIDE_EQUALS;
 			found_punctuator = true;
 		}
@@ -2185,7 +2199,8 @@ static inline LexerExitCode lex_punctuator(
 		break;
 
 	case '#':
-		if (*chr == '#' && *(chr + 1) == NULL) {
+		if (*chr == '#' 
+			&& *(chr + 1) == NULL) {
 			form = TokenForm::DOUBLE_HASHTAG;
 			found_punctuator = true;
 		}
@@ -2203,11 +2218,13 @@ static inline LexerExitCode lex_punctuator(
 			form = TokenForm::MODULO;
 			found_punctuator = true;
 		}
-		else if (*chr == '>' && *(chr + 1) == NULL) {
+		else if (*chr == '>' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::ANTIQUATED_CLOSE_CURLY_BRACKET;
 			found_punctuator = true;
 		}
-		else if (*chr == '=' && *(chr + 1) == NULL) {
+		else if (*chr == '=' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::MODULO_EQUALS;
 			found_punctuator = true;
 		}
@@ -2218,8 +2235,8 @@ static inline LexerExitCode lex_punctuator(
 				found_punctuator = true;
 			}
 			else if (*chr == '%'
-				&& *(chr + 1) == ':'
-				&& *(chr + 2) == NULL) {
+				     && *(chr + 1) == ':'
+				     && *(chr + 2) == NULL) {
 				form = TokenForm::ANTIQUATED_DOUBLE_HASHTAG;
 				found_punctuator = true;
 			}
@@ -2231,7 +2248,8 @@ static inline LexerExitCode lex_punctuator(
 
 	case '<':
 		if (*chr == '<') {
-			if (*(chr + 1) == '=' && *(chr + 2) == NULL) {
+			if (*(chr + 1) == '=' 
+				&& *(chr + 2) == NULL) {
 				form = TokenForm::LEFT_SHIFT_EQUALS;
 				found_punctuator = true;
 			}
@@ -2243,15 +2261,18 @@ static inline LexerExitCode lex_punctuator(
 				found_punctuator = false;
 			}
 		}
-		else if (*chr == '=' && *(chr + 1) == NULL) {
+		else if (*chr == '='
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::LESS_THAN_EQUAL;
 			found_punctuator = true;
 		}
-		else if (*chr == ':' && *(chr + 1) == NULL) {
+		else if (*chr == ':' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::ANTIQUATED_OPEN_SQUARE_BRACKET;
 			found_punctuator = true;
 		}
-		else if (*chr == '%' && *(chr + 1) == NULL) {
+		else if (*chr == '%' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::ANTIQUATED_OPEN_CURLY_BRACKET;
 			found_punctuator = true;
 		}
@@ -2266,7 +2287,8 @@ static inline LexerExitCode lex_punctuator(
 
 	case '>':
 		if (*chr == '>') {
-			if (*(chr + 1) == '=' && *(chr + 2) == NULL) {
+			if (*(chr + 1) == '=' 
+				&& *(chr + 2) == NULL) {
 				form = TokenForm::RIGHT_SHIFT_EQUALS;
 				found_punctuator = true;
 			}
@@ -2278,7 +2300,8 @@ static inline LexerExitCode lex_punctuator(
 				found_punctuator = false;
 			}
 		}
-		else if (*chr == '=' && *(chr + 1) == NULL) {
+		else if (*chr == '=' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::GREATER_THAN_EQUAL;
 			found_punctuator = true;
 		}
@@ -2310,11 +2333,13 @@ static inline LexerExitCode lex_punctuator(
 			form = TokenForm::OR;
 			found_punctuator = true;
 		}
-		else if (*chr == '|' && *(chr + 1) == NULL) {
+		else if (*chr == '|' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::DOUBLE_OR;
 			found_punctuator = true;
 		}
-		else if (*chr == '=' && *(chr + 1) == NULL) {
+		else if (*chr == '=' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::OR_EQUAL;
 			found_punctuator = true;
 		}
@@ -2334,7 +2359,8 @@ static inline LexerExitCode lex_punctuator(
 		break;
 
 	case ':':
-		if (*chr == '>' && *(chr + 1) == NULL) {
+		if (*chr == '>' 
+			&& *(chr + 1) == NULL) {
 			form = TokenForm::ANTIQUATED_CLOSE_SQUARE_BRACKET;
 			found_punctuator = true;
 		}
@@ -2359,7 +2385,8 @@ static inline LexerExitCode lex_punctuator(
 			form = TokenForm::ASSIGN;
 			found_punctuator = true;
 		}
-		else if (*chr == '=' && *(chr + 1) == NULL) {
+		else if (*chr == '=' 
+			     && *(chr + 1) == NULL) {
 			form = TokenForm::EQUAL;
 			found_punctuator = true;
 		}
@@ -2414,7 +2441,6 @@ static inline LexerExitCode lex_punctuator(
 	return exitcode;
 }
 
-
 static inline LexerExitCode lex(
 	PreprocessingToken*& pp_tokens,
 	Token*& identifier_output,
@@ -2433,12 +2459,12 @@ static inline LexerExitCode lex(
 		case PreprocessingTokenName::IDENTIFIER:
 		{
 			LexerExitCode found_kw
-				= lex_keyword(*ppt, identifier_output);
+				= lex_keyword(ppt, identifier_output);
 
 			if (found_kw != LexerExitCode::SUCCESS) {
 
 				LexerExitCode found_id
-					= lex_identifier(*ppt, identifier_output);
+					= lex_identifier(ppt, identifier_output);
 
 				if (found_id != LexerExitCode::SUCCESS) {
 					terminate_unsuccesfully = true;
@@ -2451,7 +2477,7 @@ static inline LexerExitCode lex(
 		case PreprocessingTokenName::PP_NUMBER:
 		{
 			LexerExitCode found_cnst
-				= lex_constant(*ppt, identifier_output);
+				= lex_constant(ppt, identifier_output);
 
 			if (found_cnst != LexerExitCode::SUCCESS) {
 				terminate_unsuccesfully = true;
@@ -2462,7 +2488,7 @@ static inline LexerExitCode lex(
 		case PreprocessingTokenName::STRING_LITERAL:
 		{
 			LexerExitCode found_string_literal
-				= lex_string_literal(*ppt, identifier_output);
+				= lex_string_literal(ppt, identifier_output);
 
 			if (found_string_literal != LexerExitCode::SUCCESS) {
 				terminate_unsuccesfully = true;
@@ -2473,7 +2499,7 @@ static inline LexerExitCode lex(
 		case PreprocessingTokenName::PUNCTUATOR:
 		{
 			LexerExitCode found_punctuator
-				= lex_punctuator(*ppt, identifier_output);
+				= lex_punctuator(ppt, identifier_output);
 
 			if (found_punctuator != LexerExitCode::SUCCESS) {
 				terminate_unsuccesfully = true;
