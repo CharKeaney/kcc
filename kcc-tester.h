@@ -6,9 +6,11 @@
 #include "preprocessor-tester.h"
 #include "parser-tester.h"
 
- inline void kcc_run_tests() 
+#define TEST_OUTPUT_STR_LEN 1 << 16
+
+ static inline void kcc_run_tests() 
 {
-	char output[1 << 16];
+	char output[TEST_OUTPUT_STR_LEN];
 	char* o = output;
 
 	print_to_output("<-> KCC-Tests\n", o);
@@ -19,8 +21,8 @@
 	TestResult lex_results[NUM_LEX_TESTS];
 	TestResult lex_result = test_lex(lex_results, o, 1);
 
-	TestResult parser_results[NUM_PARSER_TESTS];
-	TestResult parser_result = test_parser(parser_results, o, 1);
+	// TestResult parser_results[NUM_PARSER_TESTS];
+	// TestResult parser_result = test_parser(parser_results, o, 1);
 	
 	*o++ = NULL;
 	cout << output;

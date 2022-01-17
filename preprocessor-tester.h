@@ -116,10 +116,12 @@ static inline TestResult test_pp_identifier(
 		PreprocessingToken* ppt_ptr = &ppt;
 
 		const char* lexeme = ltc->lexeme;
+		const char** lexeme_produced = NULL;
 		const char* lptr = lexeme;
 
 		preprocess_identifier_name(
 			lptr,
+			lexeme_produced,
 			FileLocationDescriptor(), 
 			ppt_ptr);
 
@@ -190,11 +192,13 @@ static inline TestResult test_pp_number(
 		PreprocessingToken ppt;
 		PreprocessingToken* ppt_ptr = &ppt;
 
-		const char* lexeme = ltc->lexeme;
+		const char* lexeme = ltc->lexeme;		
+		const char** lexeme_produced = NULL;
 		const char* lptr = lexeme;
 
 		preprocess_pp_number(
 			lptr,
+			lexeme_produced,
 			FileLocationDescriptor(),
 			ppt_ptr);
 
@@ -249,11 +253,12 @@ static inline TestResult test_character_constant(
 		PreprocessingToken* ppt_ptr = &ppt;
 
 		const char* lexeme = ltc->lexeme;
+		const char** lexeme_produced = NULL;
 		const char* lptr = lexeme;
-
 
 		preprocess_character_constant(
 			lptr,
+			lexeme_produced,
 			FileLocationDescriptor(),
 			ppt_ptr);
 
@@ -307,10 +312,12 @@ static inline TestResult test_string_literal(
 		PreprocessingToken* ppt_ptr = &ppt;
 
 		const char* lexeme = ltc->lexeme;
+		const char** lexeme_produced = NULL;
 		const char* lptr = lexeme;
 
 		preprocess_string_literal(
 			lptr,
+			lexeme_produced,
 			FileLocationDescriptor(),
 			ppt_ptr);
 
@@ -410,10 +417,12 @@ static inline TestResult test_punctuator(
 		PreprocessingToken* ppt_ptr = &ppt;
 
 		const char* lexeme = ltc->lexeme;
+		const char** lexeme_produced = NULL;
 		const char* lptr = lexeme;
 
 		preprocess_punctuator(
 			lptr,
+			lexeme_produced,
 			FileLocationDescriptor(),
 			ppt_ptr);
 

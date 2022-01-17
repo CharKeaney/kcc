@@ -6,6 +6,16 @@
 #include "ast-node.h"
 #include "semantics.h"
 
+#define DEBUG_SEMANTIC_ANNOTATOR_SHOW_VISIT 1
+
+#define report_visit(m)							\
+	if (DEBUG_SEMANTIC_ANNOTATOR_SHOW_VISIT) {	\
+		cout << "semantic-annotator.h:"			\
+			 << m								\
+			 << ": visiting..."					\
+			 << endl;							\
+	}											\
+
 typedef enum class SemanticAnnotatorExitCode {
 	SUCCESS,
 	FAIL
@@ -42,110 +52,70 @@ static inline SemanticAnnotatorExitCode construct_unatrributed_annotated_ast(
 	AnnotatedAstNode* const& anno_ast_node);
 
 static inline SemanticAnnotatorExitCode visit_primary_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_argument_expression_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_postfix_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_type_name_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_unary_operator_1(
 	AnnotatedAstNode* const& node);
 
 static inline SemanticAnnotatorExitCode visit_cast_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_unary_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_multiplicative_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_additive_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_shift_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_relational_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_equality_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_and_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_exclusive_or_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_inclusive_or_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_logical_and_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_logical_or_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_assignment_operator_1(
 	AnnotatedAstNode* const& node);
 
 static inline SemanticAnnotatorExitCode visit_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_conditional_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_assignment_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_constant_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_declaration_3(
 	AnnotatedAstNode* const& node,
@@ -156,9 +126,7 @@ static inline SemanticAnnotatorExitCode visit_declaration_2(
 	Type*& const declaration_specifier_type);
 
 static inline SemanticAnnotatorExitCode visit_declaration_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& declaration_scope);
 
 static inline SemanticAnnotatorExitCode visit_storage_class_specifier_1(
@@ -180,9 +148,7 @@ static inline SemanticAnnotatorExitCode visit_init_declarator_2(
 	AnnotatedAstNode* const& node);
 
 static inline SemanticAnnotatorExitCode visit_init_declarator_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& declaration_scope,
+	AnnotatedAstNode* const& node,	SymbolTable* const& declaration_scope,
 	Type*& const declaration_specifier_type,
 	SymbolTable* const& file);
 
@@ -190,9 +156,7 @@ static inline SemanticAnnotatorExitCode visit_init_declarator_list_2(
 	AnnotatedAstNode* const& node);
 
 static inline SemanticAnnotatorExitCode visit_init_declarator_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& declaration_scope,
 	Type*& const declaration_specifier_type);
 
@@ -211,29 +175,23 @@ static inline SemanticAnnotatorExitCode visit_struct_or_union_1(
 static inline SemanticAnnotatorExitCode visit_struct_declaration_list_1(
 	AnnotatedAstNode* const& node,
 	SymbolTable* const& file,
-	SymbolTable* const& declaration_scope,
-	StackDescriptor* const& stack_descriptor);
+	SymbolTable* const& declaration_scope);
 
 static inline SemanticAnnotatorExitCode visit_struct_declaration_1(
 	AnnotatedAstNode* const& node,
 	SymbolTable* const& file,
-	SymbolTable* const& declaration_scope,
-	StackDescriptor* const& stack_descriptor);
+	SymbolTable* const& declaration_scope);
 
 static inline SemanticAnnotatorExitCode visit_specifier_qualifier_list_1(
 	AnnotatedAstNode* const& node);
 
 static inline SemanticAnnotatorExitCode visit_struct_declarator_list_1(
 	AnnotatedAstNode* const& node,
-	SymbolTable* const& declaration_scope,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	SymbolTable* const& declaration_scope,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_struct_declarator_1(
 	AnnotatedAstNode* const& node,
-	SymbolTable* const& declaration_scope,
-	StackDescriptor* const& stack_descriptor,
-	Type*& const declaration_specifier_type,
+	SymbolTable* const& declaration_scope,	Type*& const declaration_specifier_type,
 	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_enumerator_1(
@@ -254,9 +212,7 @@ static inline SemanticAnnotatorExitCode visit_declarator_2(
 	const char* const& symbol);
 
 static inline SemanticAnnotatorExitCode visit_declarator_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& declaration_scope,
 	SymbolTable* const& parameter_type_list_scope,
 	Type* const& declaration_specifier_type);
@@ -270,9 +226,7 @@ static inline SemanticAnnotatorExitCode visit_direct_declarator_1(
 	AnnotatedAstNode* const& node,
 	SymbolTable* const& file,
 	SymbolTable* const& declaration_scope,
-	SymbolTable* const& parameter_type_list_scope,
-	StackDescriptor* const& stack_descriptor,
-	Type* const& declaration_specifier_type);
+	SymbolTable* const& parameter_type_list_scope,	Type* const& declaration_specifier_type);
 
 static inline SemanticAnnotatorExitCode visit_pointer_1(
 	AnnotatedAstNode* const& node);
@@ -281,120 +235,78 @@ static inline SemanticAnnotatorExitCode visit_type_qualifier_list_1(
 	AnnotatedAstNode* const& node);
 
 static inline SemanticAnnotatorExitCode visit_parameter_type_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& function_scope);
 
 static inline SemanticAnnotatorExitCode visit_parameter_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& function_scope);
 
 static inline SemanticAnnotatorExitCode visit_parameter_declaration_2(
 	AnnotatedAstNode* const& node);
 
 static inline SemanticAnnotatorExitCode visit_parameter_declaration_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& function_scope,
+	AnnotatedAstNode* const& node,	SymbolTable* const& function_scope,
 	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_identifier_list_1(
 	AnnotatedAstNode* const& node);
 
 static inline SemanticAnnotatorExitCode visit_abstract_declarator_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_direct_abstract_declarator_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_initializer_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_initializer_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_designation_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_designator_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_designator_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_labeled_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_compound_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_block_item_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& block_scope);
 
 static inline SemanticAnnotatorExitCode visit_block_item_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& block_scope);
 
 static inline SemanticAnnotatorExitCode visit_expression_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_selection_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_iteration_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_jump_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_translation_unit_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_external_declaration_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_function_definition_3(
 	AnnotatedAstNode* const& node,
@@ -408,20 +320,15 @@ static inline SemanticAnnotatorExitCode visit_function_definition_2(
 	const char* const& symbol);
 
 static inline SemanticAnnotatorExitCode visit_function_definition_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file);
+	AnnotatedAstNode* const& node,	SymbolTable* const& file);
 
 static inline SemanticAnnotatorExitCode visit_declaration_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& declaration_scope);
 
 static inline bool annotate(
 	AstNode* node,
-	AnnotatedAstNode*& anno_node,
-	StackDescriptor* const& stack_descriptor);
+	AnnotatedAstNode*& anno_node);
 
 /* static inline function definitions. */
 
@@ -618,43 +525,43 @@ static inline SemanticAnnotatorExitCode get_init_declarator_type(
 
 		switch (current->get_alt()) {
 
-		case AstNodeAlt::INIT_DECLARATOR_1:
-			current = current->get_child();
-			break;
-
-		case AstNodeAlt::DECLARATOR_1:
-			if (current->get_child()->get_name() == AstNodeName::POINTER) {
-				Type* higher_init_declarator_type = new Type();
-				higher_init_declarator_type->derived_or_basic
-					= DerivedOrBasic::DERIVED;
-				higher_init_declarator_type->derived_type_name
-					= DerivedType::POINTER;
-				higher_init_declarator_type->t
-					= init_declarator_type;
-				init_declarator_type = higher_init_declarator_type;
-				current = current->get_child()->get_sibling();
-			}
-			else {
+			case AstNodeAlt::INIT_DECLARATOR_1:
 				current = current->get_child();
-			}
-			break;
+				break;
 
-		case AstNodeAlt::DIRECT_DECLARATOR_2:
-		case AstNodeAlt::DIRECT_DECLARATOR_3:
-		case AstNodeAlt::DIRECT_DECLARATOR_4:
-		case AstNodeAlt::DIRECT_DECLARATOR_5:
-		case AstNodeAlt::DIRECT_DECLARATOR_6:
-		case AstNodeAlt::DIRECT_DECLARATOR_7:
-		case AstNodeAlt::DIRECT_DECLARATOR_8:
-			current = current->get_child();
-			break;
+			case AstNodeAlt::DECLARATOR_1:
+				if (current->get_child()->get_name() 
+					== AstNodeName::POINTER) {
+					Type* higher_init_declarator_type = new Type();
+					higher_init_declarator_type->derived_or_basic
+						= DerivedOrBasic::DERIVED;
+					higher_init_declarator_type->derived_type_name
+						= DerivedType::POINTER;
+					higher_init_declarator_type->t
+						= init_declarator_type;
+					init_declarator_type = higher_init_declarator_type;
+					current = current->get_child()->get_sibling();
+				} else {
+					current = current->get_child();
+				}
+				break;
 
-		case AstNodeAlt::TERMINAL:
-			concluded = true;
-			break;
+			case AstNodeAlt::DIRECT_DECLARATOR_2:
+			case AstNodeAlt::DIRECT_DECLARATOR_3:
+			case AstNodeAlt::DIRECT_DECLARATOR_4:
+			case AstNodeAlt::DIRECT_DECLARATOR_5:
+			case AstNodeAlt::DIRECT_DECLARATOR_6:
+			case AstNodeAlt::DIRECT_DECLARATOR_7:
+			case AstNodeAlt::DIRECT_DECLARATOR_8:
+				current = current->get_child();
+				break;
 
-		default:
-			break;
+			case AstNodeAlt::TERMINAL:
+				concluded = true;
+				break;
+
+			default:
+				break;
 
 		}
 	}
@@ -859,54 +766,55 @@ static inline SemanticAnnotatorExitCode get_function_symbol(
 
 		switch (current->get_alt()) {
 
-		case AstNodeAlt::FUNCTION_DEFINITION_1:
-			current = current->get_child()->get_sibling();
-			continue;
-
-		case AstNodeAlt::DECLARATOR_1:
-			if (current->get_child()->get_name()
-				== AstNodeName::POINTER) {
+			case AstNodeAlt::FUNCTION_DEFINITION_1:
 				current = current->get_child()->get_sibling();
-			}
-			else {
+				continue;
+
+			case AstNodeAlt::DECLARATOR_1:
+				if (current->get_child()->get_name()
+					== AstNodeName::POINTER) {
+					current = current->get_child()->get_sibling();
+				}
+				else {
+					current = current->get_child();
+				}
+				continue;
+
+			case AstNodeAlt::DIRECT_DECLARATOR_1:
+			{
 				current = current->get_child();
+				continue;
 			}
-			continue;
 
-		case AstNodeAlt::DIRECT_DECLARATOR_1:
-		{
-			current = current->get_child();
-			continue;
-		}
+			case AstNodeAlt::DIRECT_DECLARATOR_2:
+			{
+				current = current->get_child();
+				continue;
+			}
 
-		case AstNodeAlt::DIRECT_DECLARATOR_2:
-		{
-			current = current->get_child();
-			continue;
-		}
+			case AstNodeAlt::DIRECT_DECLARATOR_3:
+			case AstNodeAlt::DIRECT_DECLARATOR_4:
+			case AstNodeAlt::DIRECT_DECLARATOR_5:
+			case AstNodeAlt::DIRECT_DECLARATOR_6:
+			case AstNodeAlt::DIRECT_DECLARATOR_7:
+			case AstNodeAlt::DIRECT_DECLARATOR_8:
+			{
+				current = current->get_child();
+				continue;
+			}
 
-		case AstNodeAlt::DIRECT_DECLARATOR_3:
-		case AstNodeAlt::DIRECT_DECLARATOR_4:
-		case AstNodeAlt::DIRECT_DECLARATOR_5:
-		case AstNodeAlt::DIRECT_DECLARATOR_6:
-		case AstNodeAlt::DIRECT_DECLARATOR_7:
-		case AstNodeAlt::DIRECT_DECLARATOR_8:
-		{
-			current = current->get_child();
-			continue;
-		}
+			case AstNodeAlt::TERMINAL:
+			{
+				lexeme = current->get_terminal()->get_lexeme();
+				exitcode = SemanticAnnotatorExitCode::SUCCESS;
+				concluded = true;
+				break;
+			}
 
-		case AstNodeAlt::TERMINAL:
-		{
-			lexeme = current->get_terminal()->get_lexeme();
-			exitcode = SemanticAnnotatorExitCode::SUCCESS;
-			concluded = true;
-			break;
-		}
+			default:
+				concluded = true;
+				break;
 
-		default:
-			concluded = true;
-			break;
 		}
 	}
 	return exitcode;
@@ -937,12 +845,13 @@ static inline SemanticAnnotatorExitCode construct_unatrributed_annotated_ast(
 }
 
 static inline SemanticAnnotatorExitCode visit_primary_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file) 
+	AnnotatedAstNode* const& node,	SymbolTable* const& file) 
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("primary_expression");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::PRIMARY_EXPRESSION_1:
@@ -961,16 +870,52 @@ static inline SemanticAnnotatorExitCode visit_primary_expression_1(
 				    ->get_terminal()
 				    ->get_val();
 
-			const char* const& symbol 
+			const char* symbol 
 				= node->get_child()
 				      ->get_terminal()
 				      ->get_lexeme();
+			node->set_symbol(symbol);
 
 			if (!file->get_entry(symbol)) {
 				file->add_entry(symbol);
 				file->get_entry(symbol)->value = val.intvalue;
 				file->get_entry(symbol)->is_literal = true;
-			}
+				
+				switch (node->get_child()->get_terminal()->get_form()) {
+
+					case TokenForm::FLOATING_CONSTANT:
+					{
+						Type* t = new Type();
+						t->derived_or_basic = DerivedOrBasic::BASIC;
+						t->basic = BasicType::FLOAT;
+						file->get_entry(symbol)->type = t;
+						break;
+					}
+
+					case TokenForm::INTEGER_CONSTANT:
+					{
+						Type* t = new Type();
+						t->derived_or_basic = DerivedOrBasic::BASIC;
+						t->basic = BasicType::SIGNED_INT;
+						file->get_entry(symbol)->type = t;
+						break;
+					}
+
+					case TokenForm::CHARACTER_CONSTANT:
+					{
+						Type* t = new Type();
+						t->derived_or_basic = DerivedOrBasic::BASIC;
+						t->basic = BasicType::SIGNED_CHAR;
+						file->get_entry(symbol)->type = t;
+						break;
+					}
+
+					default:
+						break;
+
+				}
+			}						
+			file->get_entry(symbol)->scope = Scope::GLOBAL;
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
 		}
@@ -983,6 +928,10 @@ static inline SemanticAnnotatorExitCode visit_primary_expression_1(
 
 		case AstNodeAlt::PRIMARY_EXPRESSION_4:
 		{
+			AnnotatedAstNode* expression = node->get_child();
+			visit_expression_1(
+				expression,
+				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
 		}
@@ -996,194 +945,184 @@ static inline SemanticAnnotatorExitCode visit_primary_expression_1(
 
 
 static inline SemanticAnnotatorExitCode visit_argument_expression_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_argument_expression_list_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::ARGUMENT_EXPRESSION_LIST_1:
-	{
-		AnnotatedAstNode* assignment_expression
-			= node->get_child();
-		visit_assignment_expression_1(
-			assignment_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::ARGUMENT_EXPRESSION_LIST_1:
+		{
+			AnnotatedAstNode* assignment_expression
+				= node->get_child();
+			visit_assignment_expression_1(
+				assignment_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::ARGUMENT_EXPRESSION_LIST_2:
-	{
-		AnnotatedAstNode* argument_expression_list
-			= node->get_child();
-		AnnotatedAstNode* assignment_expression
-			= argument_expression_list->get_sibling();
-		visit_argument_expression_list_1(
-			argument_expression_list,
-			stack_descriptor,
-			file);
-		visit_assignment_expression_1(
-			assignment_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::ARGUMENT_EXPRESSION_LIST_2:
+		{
+			AnnotatedAstNode* argument_expression_list
+				= node->get_child();
+			AnnotatedAstNode* assignment_expression
+				= argument_expression_list->get_sibling();
+			visit_argument_expression_list_1(
+				argument_expression_list,
+				file);
+			visit_assignment_expression_1(
+				assignment_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
+
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_postfix_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_postfix_expression_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::POSTFIX_EXPRESSION_1:
-	{
-		AnnotatedAstNode* primary_expression
-			= node->get_child();
-		visit_primary_expression_1(
-			primary_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::POSTFIX_EXPRESSION_1:
+		{
+			AnnotatedAstNode* primary_expression
+				= node->get_child();
+			visit_primary_expression_1(
+				primary_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::POSTFIX_EXPRESSION_2:
-	{
-		AnnotatedAstNode* postfix_expression
-			= node->get_child();
-		AnnotatedAstNode* expression
-			= postfix_expression->get_sibling();
-		visit_postfix_expression_1(
-			postfix_expression,
-			stack_descriptor,
-			file);
-		visit_expression_1(
-			expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::POSTFIX_EXPRESSION_2:
+		{
+			AnnotatedAstNode* postfix_expression
+				= node->get_child();
+			AnnotatedAstNode* expression
+				= postfix_expression->get_sibling();
+			visit_postfix_expression_1(
+				postfix_expression,
+				file);
+			visit_expression_1(
+				expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::POSTFIX_EXPRESSION_3:
-	{
-		AnnotatedAstNode* postfix_expression
-			= node->get_child();
-		AnnotatedAstNode* argument_expression_list
-			= postfix_expression->get_sibling();
-		visit_postfix_expression_1(
-			postfix_expression,
-			stack_descriptor,
-			file);
-		visit_argument_expression_list_1(
-			argument_expression_list,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::POSTFIX_EXPRESSION_4:
-	case AstNodeAlt::POSTFIX_EXPRESSION_5:
-	{
-		AnnotatedAstNode* postfix_expression
-			= node->get_child();
-		AnnotatedAstNode* argument_expression_list
-			= postfix_expression->get_sibling();
-		visit_postfix_expression_1(
-			postfix_expression,
-			stack_descriptor,
-			file);
-		if (argument_expression_list) {
+		case AstNodeAlt::POSTFIX_EXPRESSION_3:
+		{
+			AnnotatedAstNode* postfix_expression
+				= node->get_child();
+			AnnotatedAstNode* argument_expression_list
+				= postfix_expression->get_sibling();
+			visit_postfix_expression_1(
+				postfix_expression,
+				file);
 			visit_argument_expression_list_1(
 				argument_expression_list,
-				stack_descriptor,
 				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::POSTFIX_EXPRESSION_6:
-	case AstNodeAlt::POSTFIX_EXPRESSION_7:
-	{
-		AnnotatedAstNode* postfix_expression
-			= node->get_child();
-		visit_postfix_expression_1(
-			postfix_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::POSTFIX_EXPRESSION_4:
+		case AstNodeAlt::POSTFIX_EXPRESSION_5:
+		{
+			AnnotatedAstNode* postfix_expression
+				= node->get_child();
+			AnnotatedAstNode* argument_expression_list
+				= postfix_expression->get_sibling();
+			visit_postfix_expression_1(
+				postfix_expression,
+				file);
+			if (argument_expression_list) {
+				visit_argument_expression_list_1(
+					argument_expression_list,
+					file);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::POSTFIX_EXPRESSION_8:
-	case AstNodeAlt::POSTFIX_EXPRESSION_9:
-	{
-		AnnotatedAstNode* type_name
-			= node->get_child();
-		AnnotatedAstNode* initializer_list
-			= type_name->get_sibling();
-		visit_type_name_1(
-			type_name,
-			stack_descriptor,
-			file);
-		visit_initializer_list_1(
-			initializer_list,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::POSTFIX_EXPRESSION_6:
+		case AstNodeAlt::POSTFIX_EXPRESSION_7:
+		{
+			AnnotatedAstNode* postfix_expression
+				= node->get_child();
+			visit_postfix_expression_1(
+				postfix_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		case AstNodeAlt::POSTFIX_EXPRESSION_8:
+		case AstNodeAlt::POSTFIX_EXPRESSION_9:
+		{
+			AnnotatedAstNode* type_name
+				= node->get_child();
+			AnnotatedAstNode* initializer_list
+				= type_name->get_sibling();
+			visit_type_name_1(
+				type_name,
+				file);
+			visit_initializer_list_1(
+				initializer_list,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_type_name_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_type_name_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::TYPE_NAME_1:
-	{
-		AnnotatedAstNode* specifier_qualifier_list
-			= node->get_child();
-		AnnotatedAstNode* abstract_declarator
-			= specifier_qualifier_list->get_sibling();
-		visit_specifier_qualifier_list_1(
-			specifier_qualifier_list);
-		if (abstract_declarator) {
-			visit_abstract_declarator_1(
-				abstract_declarator,
-				stack_descriptor,
-				file);
+		case AstNodeAlt::TYPE_NAME_1:
+		{
+			AnnotatedAstNode* specifier_qualifier_list
+				= node->get_child();
+			AnnotatedAstNode* abstract_declarator
+				= specifier_qualifier_list->get_sibling();
+			visit_specifier_qualifier_list_1(
+				specifier_qualifier_list);
+			if (abstract_declarator) {
+				visit_abstract_declarator_1(
+					abstract_declarator,
+					file);
+			}
+			break;
 		}
-		break;
-	}
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
@@ -1194,92 +1133,94 @@ static inline SemanticAnnotatorExitCode visit_unary_operator_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_unary_operator_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::UNARY_OPERATOR_1:
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
+		case AstNodeAlt::UNARY_OPERATOR_1:
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 
-	case AstNodeAlt::UNARY_OPERATOR_2:
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
+		case AstNodeAlt::UNARY_OPERATOR_2:
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 
-	case AstNodeAlt::UNARY_OPERATOR_3:
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
+		case AstNodeAlt::UNARY_OPERATOR_3:
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 
-	case AstNodeAlt::UNARY_OPERATOR_4:
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
+		case AstNodeAlt::UNARY_OPERATOR_4:
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 
-	case AstNodeAlt::UNARY_OPERATOR_5:
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;;
+		case AstNodeAlt::UNARY_OPERATOR_5:
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;;
 
-	case AstNodeAlt::UNARY_OPERATOR_6:
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
+		case AstNodeAlt::UNARY_OPERATOR_6:
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_cast_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_cast_expression_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::CAST_EXPRESSION_1:
-	{
-		AnnotatedAstNode* unary_expression
-			= node->get_child();
-		visit_unary_expression_1(
-			unary_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::CAST_EXPRESSION_1:
+		{
+			AnnotatedAstNode* unary_expression
+				= node->get_child();
+			visit_unary_expression_1(
+				unary_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::CAST_EXPRESSION_2:
-	{
-		AnnotatedAstNode* type_name
-			= node->get_child();
-		AnnotatedAstNode* cast_expression
-			= type_name->get_sibling();
-		visit_type_name_1(
-			type_name,
-			stack_descriptor,
-			file);
-		visit_cast_expression_1(
-			cast_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::CAST_EXPRESSION_2:
+		{
+			AnnotatedAstNode* type_name
+				= node->get_child();
+			AnnotatedAstNode* cast_expression
+				= type_name->get_sibling();
+			visit_type_name_1(
+				type_name,
+				file);
+			visit_cast_expression_1(
+				cast_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_unary_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_unary_expression_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::UNARY_EXPRESSION_1:
@@ -1288,7 +1229,6 @@ static inline SemanticAnnotatorExitCode visit_unary_expression_1(
 			= node->get_child();
 		visit_postfix_expression_1(
 			postfix_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1301,7 +1241,6 @@ static inline SemanticAnnotatorExitCode visit_unary_expression_1(
 			= node->get_child();
 		visit_unary_expression_1(
 			unary_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1317,7 +1256,6 @@ static inline SemanticAnnotatorExitCode visit_unary_expression_1(
 			unary_operator);
 		visit_cast_expression_1(
 			cast_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1329,7 +1267,6 @@ static inline SemanticAnnotatorExitCode visit_unary_expression_1(
 			= node->get_child();
 		visit_unary_expression_1(
 			unary_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1341,7 +1278,6 @@ static inline SemanticAnnotatorExitCode visit_unary_expression_1(
 			= node->get_child();
 		visit_type_name_1(
 			type_name,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1355,12 +1291,13 @@ static inline SemanticAnnotatorExitCode visit_unary_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_multiplicative_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_multiplicative_expression_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::MULTIPLICATIVE_EXPRESSION_1:
@@ -1369,7 +1306,6 @@ static inline SemanticAnnotatorExitCode visit_multiplicative_expression_1(
 				= node->get_child();
 			visit_cast_expression_1(
 				cast_expression,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -1385,11 +1321,9 @@ static inline SemanticAnnotatorExitCode visit_multiplicative_expression_1(
 				= multiplicative_expression->get_sibling();
 			visit_multiplicative_expression_1(
 				multiplicative_expression,
-				stack_descriptor,
 				file);
 			visit_cast_expression_1(
 				cast_expression,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -1403,12 +1337,13 @@ static inline SemanticAnnotatorExitCode visit_multiplicative_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_additive_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_additive_expression_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::ADDITIVE_EXPRESSION_1:
@@ -1417,7 +1352,6 @@ static inline SemanticAnnotatorExitCode visit_additive_expression_1(
 			= node->get_child();
 		visit_multiplicative_expression_1(
 			multiplicative_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1432,11 +1366,9 @@ static inline SemanticAnnotatorExitCode visit_additive_expression_1(
 			= additive_expression->get_sibling();
 		visit_additive_expression_1(
 			additive_expression,
-			stack_descriptor,
 			file);
 		visit_multiplicative_expression_1(
 			multiplicative_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1450,12 +1382,13 @@ static inline SemanticAnnotatorExitCode visit_additive_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_shift_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_shift_expression_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::SHIFT_EXPRESSION_1:
@@ -1464,7 +1397,6 @@ static inline SemanticAnnotatorExitCode visit_shift_expression_1(
 			= node->get_child();
 		visit_additive_expression_1(
 			additive_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1479,11 +1411,9 @@ static inline SemanticAnnotatorExitCode visit_shift_expression_1(
 			= shift_expression->get_sibling();
 		visit_shift_expression_1(
 			shift_expression,
-			stack_descriptor,
 			file);
 		visit_additive_expression_1(
 			additive_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1497,12 +1427,13 @@ static inline SemanticAnnotatorExitCode visit_shift_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_relational_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_relational_expression_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::RELATIONAL_EXPRESSION_1:
@@ -1511,7 +1442,6 @@ static inline SemanticAnnotatorExitCode visit_relational_expression_1(
 			= node->get_child();
 		visit_shift_expression_1(
 			shift_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1528,11 +1458,9 @@ static inline SemanticAnnotatorExitCode visit_relational_expression_1(
 			= relational_expression->get_sibling();
 		visit_relational_expression_1(
 			relational_expression,
-			stack_descriptor,
 			file);
 		visit_shift_expression_1(
 			shift_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1546,12 +1474,13 @@ static inline SemanticAnnotatorExitCode visit_relational_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_equality_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_equality_expression_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::EQUALITY_EXPRESSION_1:
@@ -1560,7 +1489,6 @@ static inline SemanticAnnotatorExitCode visit_equality_expression_1(
 			= node->get_child();
 		visit_relational_expression_1(
 			relational_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1575,11 +1503,9 @@ static inline SemanticAnnotatorExitCode visit_equality_expression_1(
 			= equality_expression->get_sibling();
 		visit_equality_expression_1(
 			equality_expression,
-			stack_descriptor,
 			file);
 		visit_relational_expression_1(
 			relational_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1593,12 +1519,13 @@ static inline SemanticAnnotatorExitCode visit_equality_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_and_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_and_expression_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::AND_EXPRESSION_1:
@@ -1607,7 +1534,6 @@ static inline SemanticAnnotatorExitCode visit_and_expression_1(
 			= node->get_child();
 		visit_equality_expression_1(
 			equality_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1621,11 +1547,9 @@ static inline SemanticAnnotatorExitCode visit_and_expression_1(
 			= and_expression->get_sibling();
 		visit_and_expression_1(
 			and_expression,
-			stack_descriptor,
 			file);
 		visit_equality_expression_1(
 			equality_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1639,12 +1563,13 @@ static inline SemanticAnnotatorExitCode visit_and_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_exclusive_or_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_exclusive_or_expression_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::EXCLUSIVE_OR_EXPRESSION_1:
@@ -1653,7 +1578,6 @@ static inline SemanticAnnotatorExitCode visit_exclusive_or_expression_1(
 				= node->get_child();
 			visit_and_expression_1(
 				and_expression,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -1667,7 +1591,6 @@ static inline SemanticAnnotatorExitCode visit_exclusive_or_expression_1(
 				= exclusive_or_expression->get_sibling();
 			visit_and_expression_1(
 				and_expression,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -1681,12 +1604,13 @@ static inline SemanticAnnotatorExitCode visit_exclusive_or_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_inclusive_or_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_inclusive_or_expression_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::INCLUSIVE_OR_EXPRESSION_1:
@@ -1695,7 +1619,6 @@ static inline SemanticAnnotatorExitCode visit_inclusive_or_expression_1(
 				= node->get_child();
 			visit_exclusive_or_expression_1(
 				exclusive_or_expression,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -1709,11 +1632,9 @@ static inline SemanticAnnotatorExitCode visit_inclusive_or_expression_1(
 				= inclusive_or_expression->get_sibling();
 			visit_inclusive_or_expression_1(
 				inclusive_or_expression,
-				stack_descriptor,
 				file);
 			visit_exclusive_or_expression_1(
 				exclusive_or_expression,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -1727,12 +1648,13 @@ static inline SemanticAnnotatorExitCode visit_inclusive_or_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_logical_and_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_logical_and_expression_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::LOGICAL_AND_EXPRESSION_1:
@@ -1741,7 +1663,6 @@ static inline SemanticAnnotatorExitCode visit_logical_and_expression_1(
 				= node->get_child();
 			visit_inclusive_or_expression_1(
 				inclusive_or_expression,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -1755,7 +1676,6 @@ static inline SemanticAnnotatorExitCode visit_logical_and_expression_1(
 				= logical_and_expression->get_sibling();
 			visit_logical_and_expression_1(
 				logical_and_expression,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -1769,12 +1689,13 @@ static inline SemanticAnnotatorExitCode visit_logical_and_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_logical_or_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_logical_or_expression_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::LOGICAL_OR_EXPRESSION_1:
@@ -1783,7 +1704,6 @@ static inline SemanticAnnotatorExitCode visit_logical_or_expression_1(
 			= node->get_child();
 		visit_logical_and_expression_1(
 			logical_and_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1797,11 +1717,9 @@ static inline SemanticAnnotatorExitCode visit_logical_or_expression_1(
 			= logical_or_expression->get_sibling();
 		visit_logical_or_expression_1(
 			logical_or_expression,
-			stack_descriptor,
 			file);
 		visit_logical_and_expression_1(
 			logical_and_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1819,6 +1737,9 @@ static inline SemanticAnnotatorExitCode visit_assignment_operator_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_assignment_operator_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::ASSIGNMENT_OPERATOR_1:
@@ -1843,12 +1764,13 @@ static inline SemanticAnnotatorExitCode visit_assignment_operator_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_expression_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::EXPRESSION_1:
@@ -1857,7 +1779,6 @@ static inline SemanticAnnotatorExitCode visit_expression_1(
 				= node->get_child();
 			visit_assignment_expression_1(
 				assignment_expression,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -1871,11 +1792,9 @@ static inline SemanticAnnotatorExitCode visit_expression_1(
 				= expression->get_sibling();
 			visit_expression_1(
 				expression,
-				stack_descriptor,
 				file);
 			visit_assignment_expression_1(
 				assignment_expression,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -1889,12 +1808,13 @@ static inline SemanticAnnotatorExitCode visit_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_conditional_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_conditional_expression_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::CONDITIONAL_EXPRESSION_1:
@@ -1903,7 +1823,6 @@ static inline SemanticAnnotatorExitCode visit_conditional_expression_1(
 			= node->get_child();
 		visit_logical_or_expression_1(
 			logical_or_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1919,15 +1838,12 @@ static inline SemanticAnnotatorExitCode visit_conditional_expression_1(
 			= expression->get_sibling();
 		visit_logical_or_expression_1(
 			logical_or_expression,
-			stack_descriptor,
 			file);
 		visit_expression_1(
 			expression,
-			stack_descriptor,
 			file);
 		visit_conditional_expression_1(
 			conditional_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -1941,78 +1857,76 @@ static inline SemanticAnnotatorExitCode visit_conditional_expression_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_assignment_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_assignment_expression_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::ASSIGNMENT_EXPRESSION_1:
-	{
-		AnnotatedAstNode* conditional_expression
-			= node->get_child();
-		visit_conditional_expression_1(
-			conditional_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::ASSIGNMENT_EXPRESSION_1:
+		{
+			AnnotatedAstNode* conditional_expression
+				= node->get_child();
+			visit_conditional_expression_1(
+				conditional_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::ASSIGNMENT_EXPRESSION_2:
-	{
-		AnnotatedAstNode* unary_expression
-			= node->get_child();
-		AnnotatedAstNode* assignment_operator
-			= unary_expression->get_sibling();
-		AnnotatedAstNode* assignment_expression
-			= assignment_operator->get_sibling();
-		visit_unary_expression_1(
-			unary_expression,
-			stack_descriptor,
-			file);
-		visit_assignment_operator_1(
-			assignment_operator);
-		visit_assignment_expression_1(
-			assignment_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::ASSIGNMENT_EXPRESSION_2:
+		{
+			AnnotatedAstNode* unary_expression
+				= node->get_child();
+			AnnotatedAstNode* assignment_operator
+				= unary_expression->get_sibling();
+			AnnotatedAstNode* assignment_expression
+				= assignment_operator->get_sibling();
+			visit_unary_expression_1(
+				unary_expression,
+				file);
+			visit_assignment_operator_1(
+				assignment_operator);
+			visit_assignment_expression_1(
+				assignment_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_constant_expression_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_constant_expression_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::CONSTANT_EXPRESSION_1:
-	{
-		AnnotatedAstNode* conditional_expression
-			= node->get_child();
-		visit_conditional_expression_1(
-			conditional_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::CONSTANT_EXPRESSION_1:
+		{
+			AnnotatedAstNode* conditional_expression
+				= node->get_child();
+			visit_conditional_expression_1(
+				conditional_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
@@ -2024,6 +1938,8 @@ static inline SemanticAnnotatorExitCode visit_declaration_3(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_declaration_3");
 
 	for (const char** s = init_declarator_symbols;
 		*s != NULL;
@@ -2058,17 +1974,19 @@ static inline SemanticAnnotatorExitCode visit_declaration_2(
 	AnnotatedAstNode* const& node,
 	Type*& const declaration_specifier_type)
 {
+	report_visit("visit_declaration_2");
+
 	node->set_type(declaration_specifier_type);
 }
 
 static inline SemanticAnnotatorExitCode visit_declaration_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& declaration_scope)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_declaration_1");
 
 	switch (node->get_alt()) {
 
@@ -2085,7 +2003,6 @@ static inline SemanticAnnotatorExitCode visit_declaration_1(
 			if (init_declarator_list) {
 				visit_init_declarator_list_1(
 					init_declarator_list,
-					stack_descriptor,
 					file,
 					declaration_scope,
 					declaration_specifiers_type);
@@ -2106,40 +2023,43 @@ static inline SemanticAnnotatorExitCode visit_storage_class_specifier_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_storage_class_specifier_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::STORAGE_CLASS_SPECIFIER_1:
-	{
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::STORAGE_CLASS_SPECIFIER_1:
+		{
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::STORAGE_CLASS_SPECIFIER_2:
-	{
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::STORAGE_CLASS_SPECIFIER_2:
+		{
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::STORAGE_CLASS_SPECIFIER_3:
-	{
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::STORAGE_CLASS_SPECIFIER_3:
+		{
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::STORAGE_CLASS_SPECIFIER_4:
-	{
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::STORAGE_CLASS_SPECIFIER_4:
+		{
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::STORAGE_CLASS_SPECIFIER_5:
-	{
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::STORAGE_CLASS_SPECIFIER_5:
+		{
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
@@ -2150,6 +2070,9 @@ static inline SemanticAnnotatorExitCode visit_type_specifier_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_type_specifier_1");
+
 	Type *type = new Type();
 	type->derived_or_basic = DerivedOrBasic::BASIC;
 	switch (node->get_alt()) {
@@ -2271,6 +2194,9 @@ static inline SemanticAnnotatorExitCode visit_function_specifier_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_function_specifier_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::DECLARATION_SPECIFIERS_1:
@@ -2309,79 +2235,82 @@ static inline SemanticAnnotatorExitCode visit_declaration_specifiers_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_declaration_specifiers_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::DECLARATION_SPECIFIERS_1:
-	{
-		AnnotatedAstNode* storage_class_specifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= storage_class_specifier->get_sibling();
-		visit_storage_class_specifier_1(
-			storage_class_specifier);
-		if (declaration_specifiers) {
-			visit_declaration_specifiers_1(
-				declaration_specifiers);
-			node->set_type(declaration_specifiers->get_type());
-		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::DECLARATION_SPECIFIERS_2:
-	{
-		AnnotatedAstNode* type_specifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= type_specifier->get_sibling();
-		visit_type_specifier_1(
-			type_specifier);
-		if (declaration_specifiers) {
-			visit_declaration_specifiers_1(
-				declaration_specifiers);
-		}
-		node->set_type(type_specifier->get_type());
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::DECLARATION_SPECIFIERS_3:
-	{
-		AnnotatedAstNode* type_qualifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= type_qualifier->get_sibling();
-		visit_type_qualifier_1(
-			type_qualifier);
-		if (declaration_specifiers) {
-			visit_declaration_specifiers_1(
-				declaration_specifiers);		
-			node->set_type(declaration_specifiers->get_type());
+		case AstNodeAlt::DECLARATION_SPECIFIERS_1:
+		{
+			AnnotatedAstNode* storage_class_specifier
+				= node->get_child();
+			AnnotatedAstNode* declaration_specifiers
+				= storage_class_specifier->get_sibling();
+			visit_storage_class_specifier_1(
+				storage_class_specifier);
+			if (declaration_specifiers) {
+				visit_declaration_specifiers_1(
+					declaration_specifiers);
+				node->set_type(declaration_specifiers->get_type());
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
 
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::DECLARATION_SPECIFIERS_4:
-	{
-		AnnotatedAstNode* function_specifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= function_specifier->get_sibling();
-		visit_function_specifier_1(
-			function_specifier);
-		if (declaration_specifiers) {
-			visit_declaration_specifiers_1(
-				declaration_specifiers);
-			node->set_type(declaration_specifiers->get_type());
+		case AstNodeAlt::DECLARATION_SPECIFIERS_2:
+		{
+			AnnotatedAstNode* type_specifier
+				= node->get_child();
+			AnnotatedAstNode* declaration_specifiers
+				= type_specifier->get_sibling();
+			visit_type_specifier_1(
+				type_specifier);
+			if (declaration_specifiers) {
+				visit_declaration_specifiers_1(
+					declaration_specifiers);
+			}
+			node->set_type(type_specifier->get_type());
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		case AstNodeAlt::DECLARATION_SPECIFIERS_3:
+		{
+			AnnotatedAstNode* type_qualifier
+				= node->get_child();
+			AnnotatedAstNode* declaration_specifiers
+				= type_qualifier->get_sibling();
+			visit_type_qualifier_1(
+				type_qualifier);
+			if (declaration_specifiers) {
+				visit_declaration_specifiers_1(
+					declaration_specifiers);		
+				node->set_type(declaration_specifiers->get_type());
+			}
+
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		case AstNodeAlt::DECLARATION_SPECIFIERS_4:
+		{
+			AnnotatedAstNode* function_specifier
+				= node->get_child();
+			AnnotatedAstNode* declaration_specifiers
+				= function_specifier->get_sibling();
+			visit_function_specifier_1(
+				function_specifier);
+			if (declaration_specifiers) {
+				visit_declaration_specifiers_1(
+					declaration_specifiers);
+				node->set_type(declaration_specifiers->get_type());
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
 
 	}
 	return exitcode;
@@ -2392,74 +2321,77 @@ static inline SemanticAnnotatorExitCode visit_declaration_specifiers_list_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_declaration_specifiers_list_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::DECLARATION_SPECIFIERS_1:
-	{
-		AnnotatedAstNode* storage_class_specifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifers
-			= storage_class_specifier->get_sibling();
-		visit_storage_class_specifier_1(
-			storage_class_specifier);
-		if (declaration_specifers) {
-			visit_declaration_specifiers_1(
-				declaration_specifers);
+		case AstNodeAlt::DECLARATION_SPECIFIERS_1:
+		{
+			AnnotatedAstNode* storage_class_specifier
+				= node->get_child();
+			AnnotatedAstNode* declaration_specifers
+				= storage_class_specifier->get_sibling();
+			visit_storage_class_specifier_1(
+				storage_class_specifier);
+			if (declaration_specifers) {
+				visit_declaration_specifiers_1(
+					declaration_specifers);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DECLARATION_SPECIFIERS_2:
-	{
-		AnnotatedAstNode* type_specifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= type_specifier->get_sibling();
-		visit_type_specifier_1(
-			type_specifier);
-		if (declaration_specifiers) {
-			visit_declaration_specifiers_1(
-				declaration_specifiers);
+		case AstNodeAlt::DECLARATION_SPECIFIERS_2:
+		{
+			AnnotatedAstNode* type_specifier
+				= node->get_child();
+			AnnotatedAstNode* declaration_specifiers
+				= type_specifier->get_sibling();
+			visit_type_specifier_1(
+				type_specifier);
+			if (declaration_specifiers) {
+				visit_declaration_specifiers_1(
+					declaration_specifiers);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DECLARATION_SPECIFIERS_3:
-	{
-		AnnotatedAstNode* type_qualifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= type_qualifier->get_sibling();
-		visit_type_qualifier_1(
-			type_qualifier);
-		if (declaration_specifiers) {
-			visit_declaration_specifiers_1(
-				declaration_specifiers);
+		case AstNodeAlt::DECLARATION_SPECIFIERS_3:
+		{
+			AnnotatedAstNode* type_qualifier
+				= node->get_child();
+			AnnotatedAstNode* declaration_specifiers
+				= type_qualifier->get_sibling();
+			visit_type_qualifier_1(
+				type_qualifier);
+			if (declaration_specifiers) {
+				visit_declaration_specifiers_1(
+					declaration_specifiers);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DECLARATION_SPECIFIERS_4:
-	{
-		AnnotatedAstNode* function_specifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= function_specifier->get_sibling();
-		visit_function_specifier_1(
-			function_specifier);
-		if (declaration_specifiers) {
-			visit_declaration_specifiers_1(
-				declaration_specifiers);
+		case AstNodeAlt::DECLARATION_SPECIFIERS_4:
+		{
+			AnnotatedAstNode* function_specifier
+				= node->get_child();
+			AnnotatedAstNode* declaration_specifiers
+				= function_specifier->get_sibling();
+			visit_function_specifier_1(
+				function_specifier);
+			if (declaration_specifiers) {
+				visit_declaration_specifiers_1(
+					declaration_specifiers);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
@@ -2470,6 +2402,9 @@ static inline SemanticAnnotatorExitCode visit_init_declarator_2(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_init_declarator_2");
+
 	switch (node->get_parent()->get_name()) {
 
 	case AstNodeName::INIT_DECLARATOR_LIST:
@@ -2485,54 +2420,52 @@ static inline SemanticAnnotatorExitCode visit_init_declarator_2(
 }
 
 static inline SemanticAnnotatorExitCode visit_init_declarator_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& declaration_scope,
+	AnnotatedAstNode* const& node,	SymbolTable* const& declaration_scope,
 	Type*& const declaration_specifier_type,
 	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_init_declarator_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::INIT_DECLARATOR_1:
-	{
-		AnnotatedAstNode* declarator
-			= node->get_child();
-		visit_declarator_1(
-			declarator,
-			stack_descriptor,
-			file,
-			declaration_scope,
-			declaration_scope,
-			declaration_specifier_type);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::INIT_DECLARATOR_1:
+		{
+			AnnotatedAstNode* declarator
+				= node->get_child();
+			visit_declarator_1(
+				declarator,
+				file,
+				declaration_scope,
+				declaration_scope,
+				declaration_specifier_type);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::INIT_DECLARATOR_2:
-	{
-		AnnotatedAstNode* declarator
-			= node->get_child();
-		AnnotatedAstNode* initializer
-			= declarator->get_sibling();
-		visit_declarator_1(
-			declarator,
-			stack_descriptor,
-			file,
-			declaration_scope,
-			declaration_scope,
-			declaration_specifier_type);
-		visit_initializer_1(
-			initializer,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::INIT_DECLARATOR_2:
+		{
+			AnnotatedAstNode* declarator
+				= node->get_child();
+			AnnotatedAstNode* initializer
+				= declarator->get_sibling();
+			visit_declarator_1(
+				declarator,
+				file,
+				declaration_scope,
+				declaration_scope,
+				declaration_specifier_type);
+			visit_initializer_1(
+				initializer,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
@@ -2543,34 +2476,38 @@ static inline SemanticAnnotatorExitCode visit_init_declarator_list_2(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_init_declarator_2");
+
 	switch (node->get_parent()->get_name()) {
 
-	case AstNodeName::INIT_DECLARATOR_LIST:
-		//visit_init_declarator_list_2();
-		//TODO;
-		break;
+		case AstNodeName::INIT_DECLARATOR_LIST:
+			//visit_init_declarator_list_2();
+			//TODO;
+			break;
 
-	case AstNodeName::DECLARATION:
-		//visit_declaration_2();
-		//TODO;
-		break;
+		case AstNodeName::DECLARATION:
+			//visit_declaration_2();
+			//TODO;
+			break;
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_init_declarator_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& declaration_scope,
 	Type*& const declaration_specifier_type)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_init_declarator_list_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::INIT_DECLARATOR_LIST_1:
@@ -2579,7 +2516,6 @@ static inline SemanticAnnotatorExitCode visit_init_declarator_list_1(
 			= node->get_child();
 		visit_init_declarator_1(
 			init_declarator,
-			stack_descriptor,
 			declaration_scope,
 			declaration_specifier_type,
 			file);
@@ -2595,13 +2531,11 @@ static inline SemanticAnnotatorExitCode visit_init_declarator_list_1(
 			= init_declarator_list->get_sibling();
 		visit_init_declarator_list_1(
 			init_declarator_list,
-			stack_descriptor,
 			file,
 			declaration_scope,
 			declaration_specifier_type);
 		visit_init_declarator_1(
 			init_declarator,
-			stack_descriptor,
 			declaration_scope,
 			declaration_specifier_type,
 			file);
@@ -2621,6 +2555,9 @@ static inline SemanticAnnotatorExitCode visit_enum_specifier_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_enum_specifier_1");
+
 	switch (node->get_alt()) {
 		//todo
 	case AstNodeAlt::TYPE_SPECIFIER_1:
@@ -2709,6 +2646,9 @@ static inline SemanticAnnotatorExitCode visit_typedef_name_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_typedef_name_1");
+
 	switch (node->get_alt()) {
 		//todo
 	case AstNodeAlt::TYPE_SPECIFIER_1:
@@ -2797,6 +2737,9 @@ static inline SemanticAnnotatorExitCode visit_struct_or_union_specifier_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_struct_or_union_specifier_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::STRUCT_OR_UNION_SPECIFIER_1:
@@ -2823,6 +2766,9 @@ static inline SemanticAnnotatorExitCode visit_struct_or_union_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_struct_or_union_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::STRUCT_OR_UNION_1:
@@ -2840,11 +2786,13 @@ static inline SemanticAnnotatorExitCode visit_struct_or_union_1(
 static inline SemanticAnnotatorExitCode visit_struct_declaration_list_1(
 	AnnotatedAstNode* const& node,
 	SymbolTable* const& file,
-	SymbolTable* const& declaration_scope,
-	StackDescriptor* const& stack_descriptor)
+	SymbolTable* const& declaration_scope)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_struct_declaration_list_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::STRUCT_DECLARATION_LIST_1:
@@ -2854,8 +2802,7 @@ static inline SemanticAnnotatorExitCode visit_struct_declaration_list_1(
 		visit_struct_declaration_1(
 			struct_declaration,
 			file,
-			declaration_scope,
-			stack_descriptor);
+			declaration_scope);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
 	}
@@ -2869,13 +2816,11 @@ static inline SemanticAnnotatorExitCode visit_struct_declaration_list_1(
 		visit_struct_declaration_list_1(
 			struct_declaration_list,
 			file,
-			declaration_scope,
-			stack_descriptor);
+			declaration_scope);
 		visit_struct_declaration_1(
 			struct_declaration,
 			file,
-			declaration_scope,
-			stack_descriptor);
+			declaration_scope);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
 	}
@@ -2890,11 +2835,13 @@ static inline SemanticAnnotatorExitCode visit_struct_declaration_list_1(
 static inline SemanticAnnotatorExitCode visit_struct_declaration_1(
 	AnnotatedAstNode* const& node,
 	SymbolTable* const& file,
-	SymbolTable* const& declaration_scope,
-	StackDescriptor* const& stack_descriptor)
+	SymbolTable* const& declaration_scope)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_struct_declaration_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::STRUCT_DECLARATION_1:
@@ -2908,7 +2855,6 @@ static inline SemanticAnnotatorExitCode visit_struct_declaration_1(
 		visit_struct_declarator_list_1(
 			struct_declarator_list,
 			declaration_scope,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -2926,6 +2872,9 @@ static inline SemanticAnnotatorExitCode visit_specifier_qualifier_list_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_specifier_qualifier_list_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::SPECIFIER_QUALIFIER_LIST_1:
@@ -2936,7 +2885,7 @@ static inline SemanticAnnotatorExitCode visit_specifier_qualifier_list_1(
 			= type_specifier->get_sibling();
 		visit_type_specifier_1(
 			type_specifier);
-		if (type_specifier) {
+		if (specifier_qualifier_list) {
 			visit_specifier_qualifier_list_1(
 				specifier_qualifier_list);
 		}
@@ -2969,12 +2918,13 @@ static inline SemanticAnnotatorExitCode visit_specifier_qualifier_list_1(
 
 static inline SemanticAnnotatorExitCode visit_struct_declarator_list_1(
 	AnnotatedAstNode* const& node,
-	SymbolTable* const& declaration_scope,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	SymbolTable* const& declaration_scope,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_struct_declarator_list_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::STRUCT_DECLARATOR_LIST_1:
@@ -2985,7 +2935,6 @@ static inline SemanticAnnotatorExitCode visit_struct_declarator_list_1(
 		visit_struct_declarator_1(
 			struct_declarator,
 			declaration_scope,
-			stack_descriptor,
 			type,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
@@ -3002,12 +2951,10 @@ static inline SemanticAnnotatorExitCode visit_struct_declarator_list_1(
 		visit_struct_declarator_list_1(
 			struct_declarator_list,
 			declaration_scope,
-			stack_descriptor,
 			file);
 		visit_struct_declarator_1(
 			struct_declarator,
 			declaration_scope,
-			stack_descriptor,
 			type,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
@@ -3023,14 +2970,14 @@ static inline SemanticAnnotatorExitCode visit_struct_declarator_list_1(
 
 static inline SemanticAnnotatorExitCode visit_struct_declarator_1(
 	AnnotatedAstNode* const& node,
-	SymbolTable* const& declaration_scope,
-	StackDescriptor* const& stack_descriptor,
-	Type*& const declaration_specifier_type,
+	SymbolTable* const& declaration_scope,	Type*& const declaration_specifier_type,
 	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
 
+	report_visit("visit_struct_declarator_1");
+	
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::STRUCT_DECLARATOR_LIST_1:
@@ -3039,7 +2986,6 @@ static inline SemanticAnnotatorExitCode visit_struct_declarator_1(
 			= node->get_child();
 		visit_declarator_1(
 			declarator,
-			stack_descriptor,
 			file,
 			declaration_scope,
 			declaration_scope,
@@ -3062,7 +3008,6 @@ static inline SemanticAnnotatorExitCode visit_struct_declarator_1(
 		if (declarator) {
 			visit_declarator_1(
 				declarator,
-				stack_descriptor,
 				file,
 				declaration_scope,
 				declaration_scope,
@@ -3070,7 +3015,6 @@ static inline SemanticAnnotatorExitCode visit_struct_declarator_1(
 		}
 		visit_constant_expression_1(
 			constant_expression,
-			stack_descriptor,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
 		break;
@@ -3089,6 +3033,9 @@ static inline SemanticAnnotatorExitCode visit_enumerator_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_enumerator_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::ENUMERATOR_LIST_1:
@@ -3127,6 +3074,9 @@ static inline SemanticAnnotatorExitCode visit_enumerator_list_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_enumerator_list_1");
+	
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::ENUMERATOR_LIST_1:
@@ -3165,6 +3115,9 @@ static inline SemanticAnnotatorExitCode visit_enumeration_specifier_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_enumeration_specifier_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::ENUM_SPECIFIER_1:
@@ -3203,28 +3156,31 @@ static inline SemanticAnnotatorExitCode visit_type_qualifier_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_type_qualifier_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::TYPE_QUALIFIER_1:
-	{
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::TYPE_QUALIFIER_1:
+		{
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::TYPE_QUALIFIER_2:
-	{
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::TYPE_QUALIFIER_2:
+		{
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::TYPE_QUALIFIER_3:
-	{
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::TYPE_QUALIFIER_3:
+		{
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
@@ -3237,6 +3193,9 @@ static inline SemanticAnnotatorExitCode visit_declarator_2(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_declarator_2");
+
 	switch (node->get_parent()->get_name()) {
 
 		case AstNodeName::INIT_DECLARATOR:
@@ -3273,15 +3232,16 @@ static inline SemanticAnnotatorExitCode visit_declarator_2(
 }
 
 static inline SemanticAnnotatorExitCode visit_declarator_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& declaration_scope,
 	SymbolTable* const& parameter_type_list_scope,
 	Type* const& declaration_specifier_type)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_declarator_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::DECLARATOR_1:
@@ -3309,7 +3269,6 @@ static inline SemanticAnnotatorExitCode visit_declarator_1(
 				file,
 				declaration_scope,
 				parameter_type_list_scope,
-				stack_descriptor,
 				used_type);
 			node->set_symbol(direct_declarator->get_symbol());
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
@@ -3362,6 +3321,9 @@ static inline SemanticAnnotatorExitCode visit_direct_declarator_2(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_direct_declarator_2");
+
 	switch (node->get_parent()->get_name()) {
 
 		case AstNodeName::DIRECT_DECLARATOR:
@@ -3388,231 +3350,221 @@ static inline SemanticAnnotatorExitCode visit_direct_declarator_1(
 	AnnotatedAstNode* const& node,
 	SymbolTable* const& file,
 	SymbolTable* const& declaration_scope,
-	SymbolTable* const& parameter_type_list_scope,
-	StackDescriptor* const& stack_descriptor,
-	Type* const& declaration_specifier_type)
+	SymbolTable* const& parameter_type_list_scope,	Type* const& declaration_specifier_type)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_direct_declarator_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::DIRECT_DECLARATOR_1:
-	{
-		AnnotatedAstNode* identifier
-			= node->get_child();
-		Token* identifier_terminal
-			= identifier->get_terminal();
-		const char* identifier_lexeme
-			= identifier_terminal->get_lexeme();
-		declaration_scope->add_entry(
-			identifier_lexeme);
-		SymbolTableEntry* e 
-			= declaration_scope->get_entry(identifier_lexeme);
-		e->type = declaration_specifier_type;
-		visit_direct_declarator_2(
-			node,
-			declaration_scope,
-			identifier_lexeme);
-		node->set_symbol(identifier_lexeme);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::DIRECT_DECLARATOR_2:
-	{
-		AnnotatedAstNode* declarator
-			= node->get_child();
-		visit_declarator_1(
-			declarator,
-			stack_descriptor,
-			file,
-			declaration_scope,
-			declaration_scope,
-			declaration_specifier_type);
-		node->set_symbol(declarator->get_symbol());
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::DIRECT_DECLARATOR_3:
-	{
-		AnnotatedAstNode* direct_declarator
-			= node->get_child();
-		AnnotatedAstNode* type_qualifier_list
-			= direct_declarator->get_sibling()
-			? (direct_declarator->get_sibling()->get_name()
-				== AstNodeName::TYPE_QUALIFIER_LIST
-				? direct_declarator->get_sibling()
-				: NULL)
-			: NULL;
-		AnnotatedAstNode* assignment_expression
-			= type_qualifier_list
-			? type_qualifier_list->get_sibling()
-			: direct_declarator->get_sibling();
-		visit_direct_declarator_1(
-			direct_declarator,
-			file,
-			declaration_scope,
-			declaration_scope,
-			stack_descriptor,
-			declaration_specifier_type);
-		if (type_qualifier_list) {
-			visit_type_qualifier_list_1(
-				type_qualifier_list);
+		case AstNodeAlt::DIRECT_DECLARATOR_1:
+		{
+			AnnotatedAstNode* identifier
+				= node->get_child();
+			Token* identifier_terminal
+				= identifier->get_terminal();
+			const char* identifier_lexeme
+				= identifier_terminal->get_lexeme();
+			declaration_scope->add_entry(
+				identifier_lexeme);
+			SymbolTableEntry* e 
+				= declaration_scope->get_entry(identifier_lexeme);
+			e->type = declaration_specifier_type;
+			visit_direct_declarator_2(
+				node,
+				declaration_scope,
+				identifier_lexeme);
+			node->set_symbol(identifier_lexeme);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		if (assignment_expression) {
+
+		case AstNodeAlt::DIRECT_DECLARATOR_2:
+		{
+			AnnotatedAstNode* declarator
+				= node->get_child();
+			visit_declarator_1(
+				declarator,
+				file,
+				declaration_scope,
+				declaration_scope,
+				declaration_specifier_type);
+			node->set_symbol(declarator->get_symbol());
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		case AstNodeAlt::DIRECT_DECLARATOR_3:
+		{
+			AnnotatedAstNode* direct_declarator
+				= node->get_child();
+			AnnotatedAstNode* type_qualifier_list
+				= direct_declarator->get_sibling()
+				? (direct_declarator->get_sibling()->get_name()
+					== AstNodeName::TYPE_QUALIFIER_LIST
+					? direct_declarator->get_sibling()
+					: NULL)
+				: NULL;
+			AnnotatedAstNode* assignment_expression
+				= type_qualifier_list
+				? type_qualifier_list->get_sibling()
+				: direct_declarator->get_sibling();
+			visit_direct_declarator_1(
+				direct_declarator,
+				file,
+				declaration_scope,
+				declaration_scope,
+				declaration_specifier_type);
+			if (type_qualifier_list) {
+				visit_type_qualifier_list_1(
+					type_qualifier_list);
+			}
+			if (assignment_expression) {
+				visit_assignment_expression_1(
+					assignment_expression,
+					file);
+			}
+			node->set_symbol(direct_declarator->get_symbol());
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		case AstNodeAlt::DIRECT_DECLARATOR_4:
+		{
+			AnnotatedAstNode* direct_declarator
+				= node->get_child();
+			AnnotatedAstNode* type_qualifier_list
+				= direct_declarator->get_sibling()
+				? (direct_declarator->get_sibling()->get_name()
+					== AstNodeName::TYPE_QUALIFIER_LIST
+					? direct_declarator->get_sibling()
+					: NULL)
+				: NULL;
+			AnnotatedAstNode* assignment_expression
+				= type_qualifier_list
+				? type_qualifier_list->get_sibling()
+				: direct_declarator->get_sibling();
+			visit_direct_declarator_1(
+				direct_declarator,
+				file,
+				declaration_scope,
+				declaration_scope,
+				declaration_specifier_type);
+			if (type_qualifier_list) {
+				visit_type_qualifier_list_1(
+					type_qualifier_list);
+			}
 			visit_assignment_expression_1(
 				assignment_expression,
-				stack_descriptor,
 				file);
+			node->set_symbol(direct_declarator->get_symbol());
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		node->set_symbol(direct_declarator->get_symbol());
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DIRECT_DECLARATOR_4:
-	{
-		AnnotatedAstNode* direct_declarator
-			= node->get_child();
-		AnnotatedAstNode* type_qualifier_list
-			= direct_declarator->get_sibling()
-			? (direct_declarator->get_sibling()->get_name()
-				== AstNodeName::TYPE_QUALIFIER_LIST
-				? direct_declarator->get_sibling()
-				: NULL)
-			: NULL;
-		AnnotatedAstNode* assignment_expression
-			= type_qualifier_list
-			? type_qualifier_list->get_sibling()
-			: direct_declarator->get_sibling();
-		visit_direct_declarator_1(
-			direct_declarator,
-			file,
-			declaration_scope,
-			declaration_scope,
-			stack_descriptor,
-			declaration_specifier_type);
-		if (type_qualifier_list) {
+		case AstNodeAlt::DIRECT_DECLARATOR_5:
+		{
+			AnnotatedAstNode* direct_declarator
+				= node->get_child();
+			AnnotatedAstNode* type_qualifier_list
+				= direct_declarator->get_sibling()
+				? (direct_declarator->get_sibling()->get_name()
+					== AstNodeName::TYPE_QUALIFIER_LIST
+					? direct_declarator->get_sibling()
+					: NULL)
+				: NULL;
+			AnnotatedAstNode* assignment_expression
+				= type_qualifier_list
+				? type_qualifier_list->get_sibling()
+				: direct_declarator->get_sibling();
+			visit_direct_declarator_1(
+				direct_declarator,
+				file,
+				declaration_scope,
+				declaration_scope,
+				declaration_specifier_type);
 			visit_type_qualifier_list_1(
 				type_qualifier_list);
+			visit_assignment_expression_1(
+				assignment_expression,
+				file);
+			node->set_symbol(direct_declarator->get_symbol());
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		visit_assignment_expression_1(
-			assignment_expression,
-			stack_descriptor,
-			file);
-		node->set_symbol(direct_declarator->get_symbol());
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DIRECT_DECLARATOR_5:
-	{
-		AnnotatedAstNode* direct_declarator
-			= node->get_child();
-		AnnotatedAstNode* type_qualifier_list
-			= direct_declarator->get_sibling()
-			? (direct_declarator->get_sibling()->get_name()
-				== AstNodeName::TYPE_QUALIFIER_LIST
-				? direct_declarator->get_sibling()
-				: NULL)
-			: NULL;
-		AnnotatedAstNode* assignment_expression
-			= type_qualifier_list
-			? type_qualifier_list->get_sibling()
-			: direct_declarator->get_sibling();
-		visit_direct_declarator_1(
-			direct_declarator,
-			file,
-			declaration_scope,
-			declaration_scope,
-			stack_descriptor,
-			declaration_specifier_type);
-		visit_type_qualifier_list_1(
-			type_qualifier_list);
-		visit_assignment_expression_1(
-			assignment_expression,
-			stack_descriptor,
-			file);
-		node->set_symbol(direct_declarator->get_symbol());
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::DIRECT_DECLARATOR_6:
-	{
-		AnnotatedAstNode* direct_declarator
-			= node->get_child();
-		AnnotatedAstNode* type_qualifier_list
-			= direct_declarator->get_sibling()
-			? (direct_declarator->get_sibling()->get_name()
-				== AstNodeName::TYPE_QUALIFIER_LIST
-				? direct_declarator->get_sibling()
-				: NULL)
-			: NULL;
-		visit_direct_declarator_1(
-			direct_declarator,
-			file,
-			declaration_scope,
-			declaration_scope,
-			stack_descriptor,
-			declaration_specifier_type);
-		if (type_qualifier_list) {
-			visit_type_qualifier_list_1(
-				type_qualifier_list);
+		case AstNodeAlt::DIRECT_DECLARATOR_6:
+		{
+			AnnotatedAstNode* direct_declarator
+				= node->get_child();
+			AnnotatedAstNode* type_qualifier_list
+				= direct_declarator->get_sibling()
+				? (direct_declarator->get_sibling()->get_name()
+					== AstNodeName::TYPE_QUALIFIER_LIST
+					? direct_declarator->get_sibling()
+					: NULL)
+				: NULL;
+			visit_direct_declarator_1(
+				direct_declarator,
+				file,
+				declaration_scope,
+				declaration_scope,
+				declaration_specifier_type);
+			if (type_qualifier_list) {
+				visit_type_qualifier_list_1(
+					type_qualifier_list);
+			}
+			node->set_symbol(direct_declarator->get_symbol());
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		node->set_symbol(direct_declarator->get_symbol());
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DIRECT_DECLARATOR_7:
-	{
-		AnnotatedAstNode* direct_declarator
-			= node->get_child();
-		AnnotatedAstNode* parameter_type_list
-			= direct_declarator->get_sibling();
-		visit_direct_declarator_1(
-			direct_declarator,
-			file,
-			declaration_scope,
-			declaration_scope,
-			stack_descriptor,
-			declaration_specifier_type);
-		visit_parameter_type_list_1(
-			parameter_type_list,
-			stack_descriptor,
-			file,
-			parameter_type_list_scope);
-		node->set_symbol(direct_declarator->get_symbol());
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::DIRECT_DECLARATOR_8:
-	{
-		AnnotatedAstNode* direct_declarator
-			= node->get_child();
-		AnnotatedAstNode* identifier_list
-			= direct_declarator->get_sibling();
-		visit_direct_declarator_1(
-			direct_declarator,
-			file,
-			declaration_scope,
-			declaration_scope,
-			stack_descriptor,
-			declaration_specifier_type);
-		if (identifier_list) {
-			visit_identifier_list_1(
-				identifier_list);
+		case AstNodeAlt::DIRECT_DECLARATOR_7:
+		{
+			AnnotatedAstNode* direct_declarator
+				= node->get_child();
+			AnnotatedAstNode* parameter_type_list
+				= direct_declarator->get_sibling();
+			visit_direct_declarator_1(
+				direct_declarator,
+				file,
+				declaration_scope,
+				declaration_scope,
+				declaration_specifier_type);
+			visit_parameter_type_list_1(
+				parameter_type_list,
+				file,
+				parameter_type_list_scope);
+			node->set_symbol(direct_declarator->get_symbol());
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		node->set_symbol(direct_declarator->get_symbol());
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		case AstNodeAlt::DIRECT_DECLARATOR_8:
+		{
+			AnnotatedAstNode* direct_declarator
+				= node->get_child();
+			AnnotatedAstNode* identifier_list
+				= direct_declarator->get_sibling();
+			visit_direct_declarator_1(
+				direct_declarator,
+				file,
+				declaration_scope,
+				declaration_scope,
+				declaration_specifier_type);
+			if (identifier_list) {
+				visit_identifier_list_1(
+					identifier_list);
+			}
+			node->set_symbol(direct_declarator->get_symbol());
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
 
 	}
 	return exitcode;
@@ -3623,41 +3575,44 @@ static inline SemanticAnnotatorExitCode visit_pointer_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_pointer_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::POINTER_1:
-	{
-		AnnotatedAstNode* type_qualifier_list
-			= node->get_child();
-		if (type_qualifier_list) {
-			visit_type_qualifier_list_1(
-				type_qualifier_list);
+		case AstNodeAlt::POINTER_1:
+		{
+			AnnotatedAstNode* type_qualifier_list
+				= node->get_child();
+			if (type_qualifier_list) {
+				visit_type_qualifier_list_1(
+					type_qualifier_list);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::POINTER_2:
-	{
-		AnnotatedAstNode* type_qualifier_list
-			= node->get_child()->get_name()
-			== AstNodeName::POINTER
-			? node->get_child()
-			: NULL;
-		AnnotatedAstNode* pointer
-			= type_qualifier_list
-			? node->get_child()
-			: NULL;
-		if (type_qualifier_list) {
-			visit_type_qualifier_list_1(
-				type_qualifier_list);
+		case AstNodeAlt::POINTER_2:
+		{
+			AnnotatedAstNode* type_qualifier_list
+				= node->get_child()->get_name()
+				== AstNodeName::POINTER
+				? node->get_child()
+				: NULL;
+			AnnotatedAstNode* pointer
+				= type_qualifier_list
+				? node->get_child()
+				: NULL;
+			if (type_qualifier_list) {
+				visit_type_qualifier_list_1(
+					type_qualifier_list);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
@@ -3667,79 +3622,83 @@ static inline SemanticAnnotatorExitCode visit_type_qualifier_list_1(
 	AnnotatedAstNode* const& node)
 {
 	SemanticAnnotatorExitCode exitcode
-		= SemanticAnnotatorExitCode::FAIL;
+		= SemanticAnnotatorExitCode::FAIL;	
+	
+	report_visit("visit_type_qualifier_list_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::TYPE_QUALIFIER_LIST_1:
-	{
-		AnnotatedAstNode* type_qualifier
-			= node->get_child();
-		visit_type_qualifier_1(
-			type_qualifier);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::TYPE_QUALIFIER_LIST_1:
+		{
+			AnnotatedAstNode* type_qualifier
+				= node->get_child();
+			visit_type_qualifier_1(
+				type_qualifier);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::TYPE_QUALIFIER_LIST_2:
-	{
-		AnnotatedAstNode* type_qualifier_list
-			= node->get_child();
-		AnnotatedAstNode* type_qualifier
-			= type_qualifier_list->get_sibling();
-		visit_type_qualifier_list_1(
-			type_qualifier_list);
-		visit_type_qualifier_1(
-			type_qualifier);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::TYPE_QUALIFIER_LIST_2:
+		{
+			AnnotatedAstNode* type_qualifier_list
+				= node->get_child();
+			AnnotatedAstNode* type_qualifier
+				= type_qualifier_list->get_sibling();
+			visit_type_qualifier_list_1(
+				type_qualifier_list);
+			visit_type_qualifier_1(
+				type_qualifier);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_parameter_type_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file, 
+	AnnotatedAstNode* const& node,	SymbolTable* const& file, 
 	SymbolTable* const& function_scope)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_parameter_type_list_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::PARAMETER_TYPE_LIST_1:
-	case AstNodeAlt::PARAMETER_TYPE_LIST_2:
-	{
-		AnnotatedAstNode* parameter_list
-			= node->get_child();
-		visit_parameter_list_1(
-			parameter_list,
-			stack_descriptor,
-			file,
-			function_scope);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::PARAMETER_TYPE_LIST_1:
+		case AstNodeAlt::PARAMETER_TYPE_LIST_2:
+		{
+			AnnotatedAstNode* parameter_list
+				= node->get_child();
+			visit_parameter_list_1(
+				parameter_list,
+				file,
+				function_scope);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_parameter_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& function_scope)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_parameter_list_1");
+
 	switch (node->get_alt()) {
 
 	case AstNodeAlt::PARAMETER_LIST_1:
@@ -3748,7 +3707,6 @@ static inline SemanticAnnotatorExitCode visit_parameter_list_1(
 			= node->get_child();
 		visit_parameter_declaration_1(
 			parameter_declaration,
-			stack_descriptor,
 			function_scope,
 			file);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
@@ -3763,12 +3721,10 @@ static inline SemanticAnnotatorExitCode visit_parameter_list_1(
 			= parameter_list->get_child();
 		visit_parameter_list_1(
 			parameter_list,
-			stack_descriptor,
 			file,
 			function_scope);
 		visit_parameter_declaration_1(
 			parameter_declaration,
-			stack_descriptor,
 			file,
 			function_scope);
 		exitcode = SemanticAnnotatorExitCode::SUCCESS;
@@ -3787,6 +3743,8 @@ static inline SemanticAnnotatorExitCode visit_parameter_declaration_2(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_parameter_declaration_2");
 
 	AnnotatedAstNode* declaration_specifiers
 		= node->get_child();
@@ -3817,73 +3775,71 @@ static inline SemanticAnnotatorExitCode visit_parameter_declaration_2(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::PARAMETER_DECLARATION_1:
-		break;
+		case AstNodeAlt::PARAMETER_DECLARATION_1:
+			break;
 
-	case AstNodeAlt::PARAMETER_DECLARATION_2:
-		break;
+		case AstNodeAlt::PARAMETER_DECLARATION_2:
+			break;
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_parameter_declaration_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& function_scope,
+	AnnotatedAstNode* const& node,	SymbolTable* const& function_scope,
 	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
 
+	report_visit("visit_parameter_declaration_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::PARAMETER_DECLARATION_1:
-	{
-		AnnotatedAstNode* declaration_specifiers
-			= node->get_child();
-		AnnotatedAstNode* declarator
-			= declaration_specifiers->get_sibling();
-		visit_declaration_specifiers_1(
-			declaration_specifiers);
-		Type* declaration_specifiers_type
-			= declaration_specifiers->get_type();
-		visit_declarator_1(
-			declarator,
-			stack_descriptor,
-			file,
-			function_scope,
-			function_scope,
-			declaration_specifiers_type);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::PARAMETER_DECLARATION_2:
-	{
-		AnnotatedAstNode* declaration_specifiers
-			= node->get_child();
-		AnnotatedAstNode* abstract_declarator
-			= declaration_specifiers->get_sibling()
-			  ? declaration_specifiers->get_sibling()
-			  : NULL;
-		visit_declaration_specifiers_1(
-			declaration_specifiers);
-		if (abstract_declarator) {
-			visit_abstract_declarator_1(
-				abstract_declarator,
-				stack_descriptor,
-				file);
+		case AstNodeAlt::PARAMETER_DECLARATION_1:
+		{
+			AnnotatedAstNode* declaration_specifiers
+				= node->get_child();
+			AnnotatedAstNode* declarator
+				= declaration_specifiers->get_sibling();
+			visit_declaration_specifiers_1(
+				declaration_specifiers);
+			Type* declaration_specifiers_type
+				= declaration_specifiers->get_type();
+			visit_declarator_1(
+				declarator,
+				file,
+				function_scope,
+				function_scope,
+				declaration_specifiers_type);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		case AstNodeAlt::PARAMETER_DECLARATION_2:
+		{
+			AnnotatedAstNode* declaration_specifiers
+				= node->get_child();
+			AnnotatedAstNode* abstract_declarator
+				= declaration_specifiers->get_sibling()
+				  ? declaration_specifiers->get_sibling()
+				  : NULL;
+			visit_declaration_specifiers_1(
+				declaration_specifiers);
+			if (abstract_declarator) {
+				visit_abstract_declarator_1(
+					abstract_declarator,
+					file);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
 
 	}
 	return exitcode;
@@ -3894,618 +3850,603 @@ static inline SemanticAnnotatorExitCode visit_identifier_list_1(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_identifier_list_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::IDENTIFIER_LIST_1:
-	{
-		AnnotatedAstNode* identifier
-			= node->get_child();
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::IDENTIFIER_LIST_1:
+		{
+			AnnotatedAstNode* identifier
+				= node->get_child();
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::IDENTIFIER_LIST_2:
-	{
-		AnnotatedAstNode* identifier_list
-			= node->get_child();
-		AnnotatedAstNode* identifier
-			= identifier_list->get_sibling();
-		visit_identifier_list_1(
-			identifier_list);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::IDENTIFIER_LIST_2:
+		{
+			AnnotatedAstNode* identifier_list
+				= node->get_child();
+			AnnotatedAstNode* identifier
+				= identifier_list->get_sibling();
+			visit_identifier_list_1(
+				identifier_list);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_abstract_declarator_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_abstract_declarator_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::ABSTRACT_DECLARATOR_1:
-	{
-		AnnotatedAstNode* pointer
-			= node->get_child();
-		visit_pointer_1(
-			pointer);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::ABSTRACT_DECLARATOR_2:
-	{
-		AnnotatedAstNode* pointer
-			= node->get_child()->get_name() == AstNodeName::POINTER
-			  ? node->get_child()
-			  : NULL;
-		AnnotatedAstNode* direct_abstract_declarator
-			= pointer
-			  ? pointer->get_sibling()
-			  : node->get_child();
-		if (pointer) {
-			visit_pointer_1(
-				pointer);
+		case AstNodeAlt::ABSTRACT_DECLARATOR_1:
+		{
+			AnnotatedAstNode* pointer
+				= node->get_child();
+			if (pointer) {
+				visit_pointer_1(
+					pointer);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		visit_direct_abstract_declarator_1(
-			direct_abstract_declarator,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		case AstNodeAlt::ABSTRACT_DECLARATOR_2:
+		{
+			AnnotatedAstNode* pointer
+				= node->get_child()->get_name() == AstNodeName::POINTER
+				  ? node->get_child()
+				  : NULL;
+			AnnotatedAstNode* direct_abstract_declarator
+				= pointer
+				  ? pointer->get_sibling()
+				  : node->get_child();
+			if (pointer) {
+				visit_pointer_1(
+					pointer);
+			}
+			visit_direct_abstract_declarator_1(
+				direct_abstract_declarator,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_direct_abstract_declarator_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_direct_abstract_declarator_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_1:
-	{
-		AnnotatedAstNode* abstract_declarator
-			= node->get_child();
-		visit_abstract_declarator_1(
-			abstract_declarator,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_2:
-	{
-		AnnotatedAstNode* direct_abstract_declarator
-			= (node->get_child()->get_name()
-				== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
-			? node->get_child()
-			: NULL;
-		AnnotatedAstNode* type_qualifier_list
-			= direct_abstract_declarator->get_sibling();
-		visit_direct_abstract_declarator_1(
-			direct_abstract_declarator,
-			stack_descriptor,
-			file);
-		if (type_qualifier_list) {
-			visit_type_qualifier_list_1(
-				type_qualifier_list);
+		case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_1:
+		{
+			AnnotatedAstNode* abstract_declarator
+				= node->get_child();
+			visit_abstract_declarator_1(
+				abstract_declarator,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_3:
-	{
-		AnnotatedAstNode* direct_abstract_declarator
-			= (node->get_child()->get_name()
-				== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
-			? node->get_child()
-			: NULL;
-		AnnotatedAstNode* type_qualifier_list
-			= direct_abstract_declarator
-			? (((direct_abstract_declarator->get_child()->get_name()
-				== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
-				? direct_abstract_declarator->get_sibling()
-				: NULL))
-			: node->get_child();
-		AnnotatedAstNode* assignment_expression
-			= (node->get_child()->get_name()
-				== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
-			? node->get_child()
-			: NULL;
-		if (direct_abstract_declarator) {
+		case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_2:
+		{
+			AnnotatedAstNode* direct_abstract_declarator
+				= (node->get_child()->get_name()
+					== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
+				? node->get_child()
+				: NULL;
+			AnnotatedAstNode* type_qualifier_list
+				= direct_abstract_declarator->get_sibling();
 			visit_direct_abstract_declarator_1(
 				direct_abstract_declarator,
-				stack_descriptor,
 				file);
+			if (type_qualifier_list) {
+				visit_type_qualifier_list_1(
+					type_qualifier_list);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		if (type_qualifier_list) {
-			visit_type_qualifier_list_1(
-				type_qualifier_list);
-		}
-		visit_assignment_expression_1(
-			assignment_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_4:
-	{
-		AnnotatedAstNode* direct_abstract_declarator
-			= node->get_child();
-		AnnotatedAstNode* type_qualifier_list
-			= direct_abstract_declarator
-			? direct_abstract_declarator->get_sibling()
-			: node->get_child();
-		AnnotatedAstNode* assignment_expression
-			= type_qualifier_list->get_sibling();
-		if (direct_abstract_declarator) {
-			visit_direct_abstract_declarator_1(
-				direct_abstract_declarator,
-				stack_descriptor,
-				file);
-		}
-		visit_type_qualifier_list_1(
-			type_qualifier_list);
-		if (assignment_expression) {
+		case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_3:
+		{
+			AnnotatedAstNode* direct_abstract_declarator
+				= (node->get_child()->get_name()
+					== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
+				? node->get_child()
+				: NULL;
+			AnnotatedAstNode* type_qualifier_list
+				= direct_abstract_declarator
+				? (((direct_abstract_declarator->get_child()->get_name()
+					== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
+					? direct_abstract_declarator->get_sibling()
+					: NULL))
+				: node->get_child();
+			AnnotatedAstNode* assignment_expression
+				= (node->get_child()->get_name()
+					== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
+				? node->get_child()
+				: NULL;
+			if (direct_abstract_declarator) {
+				visit_direct_abstract_declarator_1(
+					direct_abstract_declarator,
+					file);
+			}
+			if (type_qualifier_list) {
+				visit_type_qualifier_list_1(
+					type_qualifier_list);
+			}
 			visit_assignment_expression_1(
 				assignment_expression,
-				stack_descriptor,
 				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_5:
-	{
-		AnnotatedAstNode* direct_abstract_declarator
-			= (node->get_child()->get_name()
-				== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
-			? node->get_child()
-			: NULL;
-		if (direct_abstract_declarator) {
+		case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_4:
+		{
+			AnnotatedAstNode* direct_abstract_declarator
+				= node->get_child();
+			AnnotatedAstNode* type_qualifier_list
+				= direct_abstract_declarator
+				? direct_abstract_declarator->get_sibling()
+				: node->get_child();
+			AnnotatedAstNode* assignment_expression
+				= type_qualifier_list->get_sibling();
+			if (direct_abstract_declarator) {
+				visit_direct_abstract_declarator_1(
+					direct_abstract_declarator,
+					file);
+			}
+			visit_type_qualifier_list_1(
+				type_qualifier_list);
+			if (assignment_expression) {
+				visit_assignment_expression_1(
+					assignment_expression,
+					file);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_5:
+		{
+			AnnotatedAstNode* direct_abstract_declarator
+				= (node->get_child()->get_name()
+					== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
+				? node->get_child()
+				: NULL;
+			if (direct_abstract_declarator) {
+				visit_direct_abstract_declarator_1(
+					direct_abstract_declarator,
+					file);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_6:
+		{
+			AnnotatedAstNode* direct_abstract_declarator
+				= (node->get_child()->get_name()
+					== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
+				? node->get_child()
+				: NULL;
+			AnnotatedAstNode* parameter_type_list
+				= direct_abstract_declarator
+				? direct_abstract_declarator->get_sibling()
+				: (node->get_child()
+					? node->get_child()
+					: NULL);
 			visit_direct_abstract_declarator_1(
 				direct_abstract_declarator,
-				stack_descriptor,
 				file);
+			SymbolTable* new_scope = new SymbolTable();
+			if (parameter_type_list) {
+				visit_parameter_type_list_1(
+					parameter_type_list,
+					file,
+					new_scope);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_6:
-	{
-		AnnotatedAstNode* direct_abstract_declarator
-			= (node->get_child()->get_name()
-				== AstNodeName::DIRECT_ABSTRACT_DECLARATOR)
-			? node->get_child()
-			: NULL;
-		AnnotatedAstNode* parameter_type_list
-			= direct_abstract_declarator
-			? direct_abstract_declarator->get_sibling()
-			: (node->get_child()
-				? node->get_child()
-				: NULL);
-		visit_direct_abstract_declarator_1(
-			direct_abstract_declarator,
-			stack_descriptor,
-			file);
-		SymbolTable* new_scope = new SymbolTable();
-		if (parameter_type_list) {
-			visit_parameter_type_list_1(
-				parameter_type_list,
-				stack_descriptor,
-				file,
-				new_scope);
-		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_initializer_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_initializer_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::INITIALIZER_1:
-	{
-		AnnotatedAstNode* assignment_expression
-			= node->get_child();
-		visit_assignment_expression_1(
-			assignment_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::INITIALIZER_1:
+		{
+			AnnotatedAstNode* assignment_expression
+				= node->get_child();
+			visit_assignment_expression_1(
+				assignment_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::INITIALIZER_2:
-	case AstNodeAlt::INITIALIZER_3:
-	{
-		AnnotatedAstNode* initializer_list;
-		visit_initializer_list_1(
-			initializer_list,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-	default:
-		break;
+		case AstNodeAlt::INITIALIZER_2:
+		case AstNodeAlt::INITIALIZER_3:
+		{
+			AnnotatedAstNode* initializer_list;
+			visit_initializer_list_1(
+				initializer_list,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_initializer_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+	
+	report_visit("visit_initializer_list_1");
+	
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::INITIALIZER_LIST_1:
-	{
-		AnnotatedAstNode* designation
-			= (node->get_child()->get_name()
-				== AstNodeName::DESIGNATION)
-			? node->get_child()
-			: NULL;
-		AnnotatedAstNode* initializer
-			= designation
-			? designation->get_sibling()
-			: node->get_child();
-		if (designation) {
-			visit_designation_1(
-				designation,
-				stack_descriptor,
+		case AstNodeAlt::INITIALIZER_LIST_1:
+		{
+			AnnotatedAstNode* designation
+				= (node->get_child()->get_name()
+					== AstNodeName::DESIGNATION)
+				? node->get_child()
+				: NULL;
+			AnnotatedAstNode* initializer
+				= designation
+				? designation->get_sibling()
+				: node->get_child();
+			if (designation) {
+				visit_designation_1(
+					designation,
+					file);
+			}
+			visit_initializer_1(
+				initializer,
 				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		visit_initializer_1(
-			initializer,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::INITIALIZER_LIST_2:
-	{
-		AnnotatedAstNode* initializer_list
-			= node->get_child();
-		AnnotatedAstNode* designation
-			= (initializer_list->get_sibling()->get_name()
-				== AstNodeName::DESIGNATION)
-			? initializer_list->get_sibling()
-			: NULL;
-		AnnotatedAstNode* initializer
-			= designation
-			? designation->get_sibling()
-			: initializer_list->get_sibling();
-		visit_initializer_list_1(
-			initializer_list,
-			stack_descriptor,
-			file);
-		if (designation) {
-			visit_designation_1(
-				designation,
-				stack_descriptor,
+		case AstNodeAlt::INITIALIZER_LIST_2:
+		{
+			AnnotatedAstNode* initializer_list
+				= node->get_child();
+			AnnotatedAstNode* designation
+				= (initializer_list->get_sibling()->get_name()
+					== AstNodeName::DESIGNATION)
+				? initializer_list->get_sibling()
+				: NULL;
+			AnnotatedAstNode* initializer
+				= designation
+				? designation->get_sibling()
+				: initializer_list->get_sibling();
+			visit_initializer_list_1(
+				initializer_list,
 				file);
+			if (designation) {
+				visit_designation_1(
+					designation,
+					file);
+			}
+			visit_initializer_1(
+				initializer,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		visit_initializer_1(
-			initializer,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_designation_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_designation_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::DESIGNATION_1:
-	{
-		AnnotatedAstNode* designator_list
-			= node->get_child();
-		visit_designator_list_1(
-			designator_list,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::DESIGNATION_1:
+		{
+			AnnotatedAstNode* designator_list
+				= node->get_child();
+			visit_designator_list_1(
+				designator_list,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_designator_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_designation_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::DESIGNATOR_LIST_1:
-	{
-		AnnotatedAstNode* designator
-			= node->get_child();
-		visit_designator_1(
-			designator,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::DESIGNATOR_LIST_1:
+		{
+			AnnotatedAstNode* designator
+				= node->get_child();
+			visit_designator_1(
+				designator,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::DESIGNATOR_LIST_2:
-	{
-		AnnotatedAstNode* designator_list
-			= node->get_child();
-		AnnotatedAstNode* designator
-			= designator_list->get_sibling();
-		visit_designator_list_1(
-			designator_list,
-			stack_descriptor,
-			file);
-		visit_designator_1(
-			designator,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-	default:
-		break;
+		case AstNodeAlt::DESIGNATOR_LIST_2:
+		{
+			AnnotatedAstNode* designator_list
+				= node->get_child();
+			AnnotatedAstNode* designator
+				= designator_list->get_sibling();
+			visit_designator_list_1(
+				designator_list,
+				file);
+			visit_designator_1(
+				designator,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_designator_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_designator_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::DESIGNATOR_1:
-	{
-		AnnotatedAstNode* constant_expression
-			= node->get_child();
-		visit_constant_expression_1(
-			constant_expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::DESIGNATOR_1:
+		{
+			AnnotatedAstNode* constant_expression
+				= node->get_child();
+			visit_constant_expression_1(
+				constant_expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::DESIGNATOR_2:
-	{
-		AnnotatedAstNode* identifier
-			= node->get_child();
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::DESIGNATOR_2:
+		{
+			AnnotatedAstNode* identifier
+				= node->get_child();
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_labeled_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_labeled_statement_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::LABELED_STATEMENT_1:
-	{
-		AnnotatedAstNode* identifier
-			= node->get_child();
-		AnnotatedAstNode* statement
-			= identifier->get_sibling();
-		visit_statement_1(
-			statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::LABELED_STATEMENT_1:
+		{
+			AnnotatedAstNode* identifier
+				= node->get_child();
+			AnnotatedAstNode* statement
+				= identifier->get_sibling();
+			visit_statement_1(
+				statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::LABELED_STATEMENT_2:
-	{
-		AnnotatedAstNode* constant_expression
-			= node->get_child();
-		AnnotatedAstNode* statement
-			= constant_expression->get_sibling();
-		visit_constant_expression_1(
-			constant_expression,
-			stack_descriptor,
-			file);
-		visit_statement_1(
-			statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::LABELED_STATEMENT_2:
+		{
+			AnnotatedAstNode* constant_expression
+				= node->get_child();
+			AnnotatedAstNode* statement
+				= constant_expression->get_sibling();
+			visit_constant_expression_1(
+				constant_expression,
+				file);
+			visit_statement_1(
+				statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::LABELED_STATEMENT_3:
-	{
-		AnnotatedAstNode* statement
-			= node->get_child();
-		visit_statement_1(
-			statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::LABELED_STATEMENT_3:
+		{
+			AnnotatedAstNode* statement
+				= node->get_child();
+			visit_statement_1(
+				statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_statement_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::STATEMENT_1:
-	{
-		AnnotatedAstNode* labeled_statement
-			= node->get_child();
-		visit_labeled_statement_1(
-			labeled_statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::STATEMENT_1:
+		{
+			AnnotatedAstNode* labeled_statement
+				= node->get_child();
+			visit_labeled_statement_1(
+				labeled_statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::STATEMENT_2:
-	{
-		/*AnnotatedAstNode* compound_statement
-			= node->get_child();
-		visit_compound_statement_1(
-			compound_statement,
-			stack_descriptor);*/
-		//TODO;
-		/*exitcode = SemanticAnnotatorExitCode::SUCCESS;*/
-		break;
-	}
+		case AstNodeAlt::STATEMENT_2:
+		{
+			/*AnnotatedAstNode* compound_statement
+				= node->get_child();
+			visit_compound_statement_1(
+				compound_statement,
+				stack_descriptor);*/
+			//TODO;
+			/*exitcode = SemanticAnnotatorExitCode::SUCCESS;*/
+			break;
+		}
 
-	case AstNodeAlt::STATEMENT_3:
-	{
-		AnnotatedAstNode* expression_statement
-			= node->get_child();
-		visit_expression_statement_1(
-			expression_statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::STATEMENT_3:
+		{
+			AnnotatedAstNode* expression_statement
+				= node->get_child();
+			visit_expression_statement_1(
+				expression_statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::STATEMENT_4:
-	{
-		AnnotatedAstNode* selection_statement
-			= node->get_child();
-		visit_selection_statement_1(
-			selection_statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::STATEMENT_4:
+		{
+			AnnotatedAstNode* selection_statement
+				= node->get_child();
+			visit_selection_statement_1(
+				selection_statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::STATEMENT_5:
-	{
-		AnnotatedAstNode* iteration_statement
-			= node->get_child();
-		visit_iteration_statement_1(
-			iteration_statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::STATEMENT_5:
+		{
+			AnnotatedAstNode* iteration_statement
+				= node->get_child();
+			visit_iteration_statement_1(
+				iteration_statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::STATEMENT_6:
-	{
-		AnnotatedAstNode* jump_statement
-			= node->get_child();
-		visit_jump_statement_1(
-			jump_statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::STATEMENT_6:
+		{
+			AnnotatedAstNode* jump_statement
+				= node->get_child();
+			visit_jump_statement_1(
+				jump_statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_compound_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_compound_statement_1");
 
 	cout << "semantic-annotator.cpp:"
 		<< " entering new scope: block"
@@ -4523,7 +4464,6 @@ static inline SemanticAnnotatorExitCode visit_compound_statement_1(
 			if (block_item_list) {
 				visit_block_item_list_1(
 					block_item_list,
-					stack_descriptor,
 					file,
 					block_scope);
 			}
@@ -4539,63 +4479,62 @@ static inline SemanticAnnotatorExitCode visit_compound_statement_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_block_item_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& block_scope)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_block_item_list_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::BLOCK_ITEM_LIST_1:
-	{
-		AnnotatedAstNode* block_item
-			= node->get_child();
-		visit_block_item_1(
-			block_item,
-			stack_descriptor,
-			file,
-			block_scope);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::BLOCK_ITEM_LIST_1:
+		{
+			AnnotatedAstNode* block_item
+				= node->get_child();
+			visit_block_item_1(
+				block_item,
+				file,
+				block_scope);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::BLOCK_ITEM_LIST_2:
-	{
-		AnnotatedAstNode* block_item_list
-			= node->get_child();
-		AnnotatedAstNode* block_item
-			= block_item_list->get_sibling();
-		visit_block_item_list_1(
-			block_item_list,
-			stack_descriptor,
-			file,
-			block_scope);
-		visit_block_item_1(
-			block_item,
-			stack_descriptor,
-			file,
-			block_scope);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::BLOCK_ITEM_LIST_2:
+		{
+			AnnotatedAstNode* block_item_list
+				= node->get_child();
+			AnnotatedAstNode* block_item
+				= block_item_list->get_sibling();
+			visit_block_item_list_1(
+				block_item_list,
+				file,
+				block_scope);
+			visit_block_item_1(
+				block_item,
+				file,
+				block_scope);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_block_item_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& block_scope)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+	
+	report_visit("visit_block_item_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::BLOCK_ITEM_1:
@@ -4604,7 +4543,6 @@ static inline SemanticAnnotatorExitCode visit_block_item_1(
 				= node->get_child();
 			visit_declaration_1(
 				declaration,
-				stack_descriptor,
 				file,
 				block_scope);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
@@ -4617,7 +4555,6 @@ static inline SemanticAnnotatorExitCode visit_block_item_1(
 				= node->get_child();
 			visit_statement_1(
 				statement,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -4631,12 +4568,13 @@ static inline SemanticAnnotatorExitCode visit_block_item_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_expression_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_expression_statement_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::EXPRESSION_STATEMENT_1:
@@ -4646,7 +4584,6 @@ static inline SemanticAnnotatorExitCode visit_expression_statement_1(
 			if (expression) {
 				visit_expression_1(
 					expression,
-					stack_descriptor,
 					file);
 			}
 			break;
@@ -4660,233 +4597,219 @@ static inline SemanticAnnotatorExitCode visit_expression_statement_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_selection_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_selection_statement_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::SELECTION_STATEMENT_1:
-	case AstNodeAlt::SELECTION_STATEMENT_3:
-	{
-		AnnotatedAstNode* expression
-			= node->get_child();
-		AnnotatedAstNode* statement
-			= expression->get_sibling();
-		visit_expression_1(
-			expression,
-			stack_descriptor,
-			file);
-		visit_statement_1(
-			statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::SELECTION_STATEMENT_1:
+		case AstNodeAlt::SELECTION_STATEMENT_3:
+		{
+			AnnotatedAstNode* expression
+				= node->get_child();
+			AnnotatedAstNode* statement
+				= expression->get_sibling();
+			visit_expression_1(
+				expression,
+				file);
+			visit_statement_1(
+				statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::SELECTION_STATEMENT_2:
-	{
-		AnnotatedAstNode* expression
-			= node->get_child();
-		AnnotatedAstNode* statement1
-			= expression->get_sibling();
-		AnnotatedAstNode* statement2
-			= statement1->get_sibling();
-		visit_expression_1(
-			expression,
-			stack_descriptor,
-			file);
-		visit_statement_1(
-			statement1,
-			stack_descriptor,
-			file);
-		visit_statement_1(
-			statement2,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-	default:
-		break;
+		case AstNodeAlt::SELECTION_STATEMENT_2:
+		{
+			AnnotatedAstNode* expression
+				= node->get_child();
+			AnnotatedAstNode* statement1
+				= expression->get_sibling();
+			AnnotatedAstNode* statement2
+				= statement1->get_sibling();
+			visit_expression_1(
+				expression,
+				file);
+			visit_statement_1(
+				statement1,
+				file);
+			visit_statement_1(
+				statement2,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_iteration_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_iteration_statement_1");
+
 	SymbolTable* scope = new SymbolTable();
 	node->set_symbol_table(scope);
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::ITERATION_STATEMENT_1:
-	{
-		AnnotatedAstNode* expression
-			= node->get_child();
-		AnnotatedAstNode* statement
-			= expression->get_sibling();
-		visit_expression_1(
-			expression,
-			stack_descriptor,
-			file);
-		visit_statement_1(
-			statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::ITERATION_STATEMENT_1:
+		{
+			AnnotatedAstNode* expression
+				= node->get_child();
+			AnnotatedAstNode* statement
+				= expression->get_sibling();
+			visit_expression_1(
+				expression,
+				file);
+			visit_statement_1(
+				statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::ITERATION_STATEMENT_2:
-	{
-		AnnotatedAstNode* statement
-			= node->get_child();
-		AnnotatedAstNode* expression
-			= statement->get_sibling();
-		visit_statement_1(
-			statement,
-			stack_descriptor,
-			file);
-		visit_expression_1(
-			expression,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::ITERATION_STATEMENT_2:
+		{
+			AnnotatedAstNode* statement
+				= node->get_child();
+			AnnotatedAstNode* expression
+				= statement->get_sibling();
+			visit_statement_1(
+				statement,
+				file);
+			visit_expression_1(
+				expression,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::ITERATION_STATEMENT_3:
-/*  case AstNodeAlt::ITERATION_STATEMENT_3_000:
-	case AstNodeAlt::ITERATION_STATEMENT_3_001:
-	case AstNodeAlt::ITERATION_STATEMENT_3_010:
-	case AstNodeAlt::ITERATION_STATEMENT_3_011:
-	case AstNodeAlt::ITERATION_STATEMENT_3_100:
-	case AstNodeAlt::ITERATION_STATEMENT_3_101:
-	case AstNodeAlt::ITERATION_STATEMENT_3_110:
-	case AstNodeAlt::ITERATION_STATEMENT_3_111: */
-	{
-		AnnotatedAstNode* expression1
-			= node->get_child();
-		AnnotatedAstNode* expression2
-			= expression1->get_sibling();
-		AnnotatedAstNode* expression3
-			= expression2->get_sibling();
-		AnnotatedAstNode* statement
-			= expression3->get_sibling();
-		visit_expression_1(
-			expression1,
-			stack_descriptor,
-			file);
-		visit_expression_1(
-			expression2,
-			stack_descriptor,
-			file);
-		visit_expression_1(
-			expression3,
-			stack_descriptor,
-			file);
-		visit_statement_1(
-			statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::ITERATION_STATEMENT_3:
+	/*  case AstNodeAlt::ITERATION_STATEMENT_3_000:
+		case AstNodeAlt::ITERATION_STATEMENT_3_001:
+		case AstNodeAlt::ITERATION_STATEMENT_3_010:
+		case AstNodeAlt::ITERATION_STATEMENT_3_011:
+		case AstNodeAlt::ITERATION_STATEMENT_3_100:
+		case AstNodeAlt::ITERATION_STATEMENT_3_101:
+		case AstNodeAlt::ITERATION_STATEMENT_3_110:
+		case AstNodeAlt::ITERATION_STATEMENT_3_111: */
+		{
+			AnnotatedAstNode* expression1
+				= node->get_child();
+			AnnotatedAstNode* expression2
+				= expression1->get_sibling();
+			AnnotatedAstNode* expression3
+				= expression2->get_sibling();
+			AnnotatedAstNode* statement
+				= expression3->get_sibling();
+			visit_expression_1(
+				expression1,
+				file);
+			visit_expression_1(
+				expression2,
+				file);
+			visit_expression_1(
+				expression3,
+				file);
+			visit_statement_1(
+				statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::ITERATION_STATEMENT_4:
-/* 	case AstNodeAlt::ITERATION_STATEMENT_4_00:
-	case AstNodeAlt::ITERATION_STATEMENT_4_01:
-	case AstNodeAlt::ITERATION_STATEMENT_4_10:
-	case AstNodeAlt::ITERATION_STATEMENT_4_11: */
-	{
-		AnnotatedAstNode* declaration
-			= node->get_child();
-		AnnotatedAstNode* expression1
-			= declaration->get_sibling();
-		AnnotatedAstNode* expression2
-			= expression1->get_sibling();
-		AnnotatedAstNode* statement
-			= expression2->get_sibling();
-		visit_declaration_1(
-			declaration,
-			stack_descriptor,
-			file,
-			scope);
-		visit_expression_1(
-			expression1,
-			stack_descriptor,
-			file);
-		visit_expression_1(
-			expression2,
-			stack_descriptor,
-			file);
-		visit_statement_1(
-			statement,
-			stack_descriptor,
-			file);
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
+		case AstNodeAlt::ITERATION_STATEMENT_4:
+	/* 	case AstNodeAlt::ITERATION_STATEMENT_4_00:
+		case AstNodeAlt::ITERATION_STATEMENT_4_01:
+		case AstNodeAlt::ITERATION_STATEMENT_4_10:
+		case AstNodeAlt::ITERATION_STATEMENT_4_11: */
+		{
+			AnnotatedAstNode* declaration
+				= node->get_child();
+			AnnotatedAstNode* expression1
+				= declaration->get_sibling();
+			AnnotatedAstNode* expression2
+				= expression1->get_sibling();
+			AnnotatedAstNode* statement
+				= expression2->get_sibling();
+			visit_declaration_1(
+				declaration,
+				file,
+				scope);
+			visit_expression_1(
+				expression1,
+				file);
+			visit_expression_1(
+				expression2,
+				file);
+			visit_statement_1(
+				statement,
+				file);
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_jump_statement_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
-		= SemanticAnnotatorExitCode::FAIL;
+		= SemanticAnnotatorExitCode::FAIL;	
+	
+	report_visit("visit_jump_statement_1");
+
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::JUMP_STATEMENT_1:
-	case AstNodeAlt::JUMP_STATEMENT_2:
-	case AstNodeAlt::JUMP_STATEMENT_3:
-	{
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::JUMP_STATEMENT_4:
-	{
-		if (node->get_child()) {
-			visit_expression_1(
-				node->get_child(),
-				stack_descriptor,
-				file);
+		case AstNodeAlt::JUMP_STATEMENT_1:
+		case AstNodeAlt::JUMP_STATEMENT_2:
+		case AstNodeAlt::JUMP_STATEMENT_3:
+		{
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = SemanticAnnotatorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		case AstNodeAlt::JUMP_STATEMENT_4:
+		{
+			if (node->get_child()) {
+				visit_expression_1(
+					node->get_child(),
+					file);
+			}
+			exitcode = SemanticAnnotatorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
 
 	}
 	return exitcode;
 }
 
 static inline SemanticAnnotatorExitCode visit_translation_unit_1(
-	AnnotatedAstNode*& const node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable*& file)
+	AnnotatedAstNode*& const node,	SymbolTable*& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_translation_unit_1");
 
 	cout << "semantic-annotator.cpp:entering new scope: file"
 		 << endl;
@@ -4904,7 +4827,6 @@ static inline SemanticAnnotatorExitCode visit_translation_unit_1(
 				= node->get_child();
 			visit_external_declaration_1(
 				external_declaration,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -4916,7 +4838,6 @@ static inline SemanticAnnotatorExitCode visit_translation_unit_1(
 				= node->get_child();
 			visit_external_declaration_1(
 				external_declaration,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -4930,12 +4851,13 @@ static inline SemanticAnnotatorExitCode visit_translation_unit_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_external_declaration_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_external_declaration_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::EXTERNAL_DECLARATION_1:
@@ -4944,7 +4866,6 @@ static inline SemanticAnnotatorExitCode visit_external_declaration_1(
 				= node->get_child();
 			visit_function_definition_1(
 				function_definition,
-				stack_descriptor,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
 			break;
@@ -4956,7 +4877,6 @@ static inline SemanticAnnotatorExitCode visit_external_declaration_1(
 				= node->get_child();
 			visit_declaration_1(
 				declaration,
-				stack_descriptor,
 				file,
 				file);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
@@ -4970,18 +4890,6 @@ static inline SemanticAnnotatorExitCode visit_external_declaration_1(
 	return exitcode;
 }
 
-static inline SemanticAnnotatorExitCode visit_function_definition_3(
-	AnnotatedAstNode* const& node,
-	const char* const& symbol,
-	SymbolTable* const& file_scope,
-	SymbolTable* const& compound_statement_scope)
-{
-	SemanticAnnotatorExitCode exitcode
-		= SemanticAnnotatorExitCode::FAIL;
-			
-	
-}
-
 static inline SemanticAnnotatorExitCode visit_function_definition_2(
 	AnnotatedAstNode* const& node,
 	SymbolTable* const& file,
@@ -4989,6 +4897,8 @@ static inline SemanticAnnotatorExitCode visit_function_definition_2(
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_function_definition_2");
 
 	cout << "semantic-annotator.cpp:entering new scope: function"
 		<< endl;
@@ -5022,7 +4932,7 @@ static inline SemanticAnnotatorExitCode visit_function_definition_2(
 
 	Type* function_returns = new Type();
 	function_returns->derived_or_basic = DerivedOrBasic::DERIVED;
-	function_returns->derived_type_name = DerivedType::FUNCTION;
+	function_returns->derived_type_name = DerivedType::LOCAL;
 	function_returns->t = declaration_specifier_type;
 	e->type = function_returns;
 
@@ -5030,12 +4940,12 @@ static inline SemanticAnnotatorExitCode visit_function_definition_2(
 }
 
 static inline SemanticAnnotatorExitCode visit_function_definition_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file)
+	AnnotatedAstNode* const& node,	SymbolTable* const& file)
 {
 	SemanticAnnotatorExitCode exitcode
 		= SemanticAnnotatorExitCode::FAIL;
+
+	report_visit("visit_function_definition_1");
 
 	cout << "semantic-annotator.cpp:"
 		<< "entering new scope:"
@@ -5068,7 +4978,6 @@ static inline SemanticAnnotatorExitCode visit_function_definition_1(
 				= declaration_specifiers->get_type();
 			visit_declarator_1(
 				declarator,
-				stack_descriptor,
 				file,
 				file,
 				function,
@@ -5076,14 +4985,15 @@ static inline SemanticAnnotatorExitCode visit_function_definition_1(
 			if (declaration_list) {
 				visit_declaration_list_1(
 					declaration_list,
-					stack_descriptor,
 					file,
 					function);
 			}
 			visit_compound_statement_1(
 				compound_statement,
-				stack_descriptor,
 				file);
+
+			file->get_entry(declarator->get_symbol())->scope
+				= Scope::GLOBAL;
 
 			int number_formal_parameters = 0;
 
@@ -5096,6 +5006,8 @@ static inline SemanticAnnotatorExitCode visit_function_definition_1(
 				number_formal_parameters++;
 				(*e)->base_pointer_offset = base_ptr;
 				base_ptr += sizeof_map[(int)(*e)->type->basic];
+				(*e)->scope = Scope::PARAM;
+				(*e)->function_ptr = file->get_entry(declarator->get_symbol());
 			}
 			file->get_entry(declarator->get_symbol())->number_formal_parameters
 				= number_formal_parameters;
@@ -5107,7 +5019,7 @@ static inline SemanticAnnotatorExitCode visit_function_definition_1(
 			for (SymbolTableEntry** e = var_entries; *e != NULL; e++) {
 				(*e)->base_pointer_offset = base_ptr;
 				base_ptr += sizeof_map[(int)(*e)->type->basic];
-				(*e)->scope = Scope::FUNCTION;
+				(*e)->scope = Scope::LOCAL;
 			}
 			file->get_entry(declarator->get_symbol())->function_frame_size
 				= base_ptr;
@@ -5125,13 +5037,14 @@ static inline SemanticAnnotatorExitCode visit_function_definition_1(
 }
 
 static inline SemanticAnnotatorExitCode visit_declaration_list_1(
-	AnnotatedAstNode* const& node,
-	StackDescriptor* const& stack_descriptor,
-	SymbolTable* const& file,
+	AnnotatedAstNode* const& node,	SymbolTable* const& file,
 	SymbolTable* const& declaration_scope)
 {
 	SemanticAnnotatorExitCode exitcode
-		= SemanticAnnotatorExitCode::FAIL;
+		= SemanticAnnotatorExitCode::FAIL;	
+	
+	report_visit("visit_declaration_list_1");
+
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::DECLARATION_LIST_1:
@@ -5140,7 +5053,6 @@ static inline SemanticAnnotatorExitCode visit_declaration_list_1(
 				= node->get_child();
 			visit_declaration_1(
 				declaration,
-				stack_descriptor,
 				file,
 				declaration_scope);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
@@ -5155,12 +5067,10 @@ static inline SemanticAnnotatorExitCode visit_declaration_list_1(
 				= declaration_list->get_sibling();
 			visit_declaration_list_1(
 				declaration_list,
-				stack_descriptor,
 				file,
 				declaration_scope);
 			visit_declaration_1(
 				declaration,
-				stack_descriptor,
 				file,
 				declaration_scope);
 			exitcode = SemanticAnnotatorExitCode::SUCCESS;
@@ -5176,17 +5086,14 @@ static inline SemanticAnnotatorExitCode visit_declaration_list_1(
 
 static inline bool annotate(
 	AstNode* node,
-	AnnotatedAstNode*& anno_node,
-	StackDescriptor*& stack_descriptor)
+	AnnotatedAstNode*& anno_node)
 {
 	construct_unatrributed_annotated_ast(
 		node, anno_node
 	);
-	stack_descriptor = new StackDescriptor();
 	SymbolTable* file = NULL;
 	visit_translation_unit_1(
 		anno_node,
-		stack_descriptor,
 		file);
 	return true;
 }

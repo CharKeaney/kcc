@@ -71,7 +71,7 @@ static const keyword_test_case test_keyword_table[NUM_LEX_KEYWORD_TESTS] = {
 	{"foradditional", TokenName::ERROR, TokenForm::SIMPLE},
 	{"gotoadditional", TokenName::ERROR, TokenForm::SIMPLE},
 	{"ifadditional", TokenName::ERROR, TokenForm::SIMPLE},
-	{"inlineadditional", TokenName::ERROR, TokenForm::SIMPLE},
+	{"static inlineadditional", TokenName::ERROR, TokenForm::SIMPLE},
 	{"intadditional", TokenName::ERROR, TokenForm::SIMPLE},
 	{"longadditional", TokenName::ERROR, TokenForm::SIMPLE},
 	{"registeradditional", TokenName::ERROR, TokenForm::SIMPLE},
@@ -94,7 +94,7 @@ static const keyword_test_case test_keyword_table[NUM_LEX_KEYWORD_TESTS] = {
 	{"_Imaginaryadditional", TokenName::ERROR, TokenForm::SIMPLE}
 };
 
-inline TestResult test_lex_keyword(
+static inline TestResult test_lex_keyword(
 	TestResult results[NUM_LEX_KEYWORD_TESTS])
 {
 	bool all_tests_passed = true;
@@ -147,7 +147,7 @@ static const identifier_test_case test_identifier_table[NUM_LEX_IDENTIFIER_TESTS
 	{ "invalidbecauseof space", TokenName::ERROR }
 };
 
-inline TestResult test_lex_identifier(
+static inline TestResult test_lex_identifier(
 	TestResult results[NUM_LEX_IDENTIFIER_TESTS])
 {
 	bool all_tests_passed = true;
@@ -239,7 +239,7 @@ static const constant_test_case test_constant_table[NUM_LEX_CONSTANT_TESTS] = {
 	{ "00012349", TokenName::ERROR },
 };
 
-inline TestResult test_lex_constant(
+static inline TestResult test_lex_constant(
 	TestResult results[NUM_LEX_CONSTANT_TESTS])
 {
 	bool all_tests_passed = true;
@@ -295,7 +295,7 @@ static const string_literal_test_case test_string_literal_table[
 	{ "\"\\1679\"", TokenName::STRING_LITERAL },
 };
 
-inline TestResult test_lex_string_literal(
+static inline TestResult test_lex_string_literal(
 	TestResult results[NUM_LEX_STRING_LITERAL_TESTS])
 {
 	bool all_tests_passed = true;
@@ -393,7 +393,7 @@ static const punctuator_test_case test_punctuator_table[NUM_LEX_PUNCTUATOR_TESTS
 	{"%:%:", TokenName::PUNCTUATOR, TokenForm::ANTIQUATED_DOUBLE_HASHTAG},
 };
 
-inline TestResult test_lex_punctuator(
+static inline TestResult test_lex_punctuator(
 	TestResult results[NUM_LEX_PUNCTUATOR_TESTS]) 
 {
 	bool all_tests_passed = true;
@@ -432,7 +432,7 @@ inline TestResult test_lex_punctuator(
 					  + NUM_LEX_STRING_LITERAL_TESTS \
 					  + NUM_LEX_PUNCTUATOR_TESTS
 
-inline TestResult test_lex(
+static inline TestResult test_lex(
 	TestResult results[NUM_LEX_TESTS],
 	char* &output,
 	int indent = 0) 

@@ -2,87 +2,7 @@
 #ifndef DRIVER_CPP
 #define DRIVER_CPP 1
 
-#include "preprocessor.h"
-#include "lexer.h"
-#include "parser.h"
-#include "codegen.h"
-#include "kcc-tester.h"
-#include "semantic-annotator.h"
-
-#define NUM_INPUT_CHARACTERS	 1028
-#define NUM_PREPROCESSING_TOKENS 1028
-#define NUM_ASSEMBLY_TOKENS		 1028
-
-inline void drive(
-	FileLocationDescriptor const& fld,
-   const char*& input) {
-
-	PreprocessingToken* ppts 
-		= new PreprocessingToken[NUM_PREPROCESSING_TOKENS];
-
-	PreprocessingToken* ppts_ptr = ppts;
-		preprocess(input, fld, ppts_ptr);
-
-	int count_pptokens = ppts_ptr - ppts;
-	
-	for (PreprocessingToken* p = ppts;
-		p < ppts + count_pptokens;
-		p++) {
-		p->print();
-		cout << endl;
-	}
-
-	Token* tokens = new Token[count_pptokens + 1];
-	Token* tokens_ptr = tokens;
-	lex(ppts, tokens_ptr, count_pptokens);
-	int count_tokens = tokens_ptr - tokens;
-
-	for (Token* t = tokens;
-		t < tokens + count_tokens;
-		t++) {
-		t->print();
-		cout << endl;
-	}
-
-	AstNode* ast_root = NULL;
- 	parse(tokens, ast_root);
-	if (ast_root != NULL) {
-		ast_root->print();
-	}
-
-	AnnotatedAstNode* anno_ast_root = NULL;
-	StackDescriptor* stack_descriptor = NULL;
-	annotate(ast_root, anno_ast_root, stack_descriptor);
-	if (anno_ast_root != NULL) {
-		anno_ast_root->print();
-	}
-
-	cout << "----- Stack -----" << endl;
-	print_stack(stack_descriptor);
-
-	x86_AssemblyInstruction* instrs 
-		= new x86_AssemblyInstruction[NUM_ASSEMBLY_TOKENS] {};
-	x86_AssemblyInstruction* instrs_ptr
-		= instrs;
-	StackDescriptor stack = {
-		{ 0 },
-		0,
-		0
-	};
-
-	gen(stack_descriptor, anno_ast_root, instrs_ptr);
-	for (x86_AssemblyInstruction* t = instrs;
-		t != instrs_ptr;
-		t++) {
-		t->print();
-	}
-
-	/*
-	delete ppts;
-	delete tokens;
-	delete ast_root;
-	delete instrs;*/
-}
+#include "driver.h"
 
 int main() {
 	//kcc_run_tests();
@@ -111,10 +31,12 @@ int main() {
 			"long i;\n"
 			"float x2, y;\n"
 			"const float threehalfs = 1.5F;\n"
-			//"x2 = number * 0.5F;\n"
-			//"y  = number;\n"
-			"return y;\n"
-			"}\n",
+			"x2 = number * 0.5F;\n"
+			"y  = number;\n"
+			"i  = 0x5f3759df - ( i >> 1 );\n"
+			"y = y * (threehalfs - (x2 * y * y));\n"
+		"return y;\n"
+		"}\n",
 	};
 	drive(fld, input);
 }

@@ -6,7 +6,7 @@
 #include "symbol-table.h"
 #include "parser-lookahead.h"
 
-#define DEBUG_PARSER_SHOW_ATTEMPTS 1
+#define DEBUG_PARSER_SHOW_ATTEMPTS 0
 
 #define parser_report_attempt( s, t )						\
 			cout << "parser.cpp:" s ":"						\
@@ -566,49 +566,49 @@ static inline ParserExitCode parse_unary_operator(
 	if (tokens->get_name() == TokenName::PUNCTUATOR) {
 		switch (tokens->get_form()) {
 
-		case TokenForm::AMPERSAND:
-			stack[si++] = construct_terminal(tokens++);
-			should_generate = true;
-			alt = AstNodeAlt::UNARY_OPERATOR_1;
-			break;
+			case TokenForm::AMPERSAND:
+				stack[si++] = construct_terminal(tokens++);
+				should_generate = true;
+				alt = AstNodeAlt::UNARY_OPERATOR_1;
+				break;
 
-		case TokenForm::ASTERIX:
-			stack[si++] = construct_terminal(tokens++);
-			should_generate = true;
-			alt = AstNodeAlt::UNARY_OPERATOR_2;
-			break;
+			case TokenForm::ASTERIX:
+				stack[si++] = construct_terminal(tokens++);
+				should_generate = true;
+				alt = AstNodeAlt::UNARY_OPERATOR_2;
+				break;
 
-		case TokenForm::PLUS:
-			stack[si++] = construct_terminal(tokens++);
-			should_generate = true;
-			alt = AstNodeAlt::UNARY_OPERATOR_3;
-			break;
+			case TokenForm::PLUS:
+				stack[si++] = construct_terminal(tokens++);
+				should_generate = true;
+				alt = AstNodeAlt::UNARY_OPERATOR_3;
+				break;
 
-		case TokenForm::MINUS:
-			stack[si++] = construct_terminal(tokens++);
-			should_generate = true;
-			alt = AstNodeAlt::UNARY_OPERATOR_4;
-			break;
+			case TokenForm::MINUS:
+				stack[si++] = construct_terminal(tokens++);
+				should_generate = true;
+				alt = AstNodeAlt::UNARY_OPERATOR_4;
+				break;
 
-		case TokenForm::TILDE:
-			stack[si++] = construct_terminal(tokens++);
-			should_generate = true;
-			alt = AstNodeAlt::UNARY_OPERATOR_5;
-			break;
+			case TokenForm::TILDE:
+				stack[si++] = construct_terminal(tokens++);
+				should_generate = true;
+				alt = AstNodeAlt::UNARY_OPERATOR_5;
+				break;
 
-		case TokenForm::EXCLAMATION_MARK:
-			stack[si++] = construct_terminal(tokens++);
-			should_generate = true;
-			alt = AstNodeAlt::UNARY_OPERATOR_6;
-			break;
+			case TokenForm::EXCLAMATION_MARK:
+				stack[si++] = construct_terminal(tokens++);
+				should_generate = true;
+				alt = AstNodeAlt::UNARY_OPERATOR_6;
+				break;
 
-		default:
-			break;
+			default:
+				break;
 		}
 	}
 	if (should_generate) {
 		unary_operator = construct_node_from_children(
-			AstNodeName::UNARY_EXPRESSION,
+			AstNodeName::UNARY_OPERATOR,
 			alt,
 			stack, 
 			si);
@@ -671,8 +671,7 @@ static inline ParserExitCode parse_cast_expression(
 				}
 			}
 		}
-	}
-	else if (lookup(
+	} else if (lookup(
 		first_of_unary_expression,
 		tokens->get_name(),
 		tokens->get_form())) {
@@ -688,6 +687,8 @@ static inline ParserExitCode parse_cast_expression(
 			should_generate = true;
 			alt = AstNodeAlt::CAST_EXPRESSION_1;
 		}
+	} else {
+
 	}
 
 	if (should_generate) {
@@ -872,8 +873,6 @@ static inline ParserExitCode parse_multiplicative_expression(
 			if (parse_cast_expression(sym, tokens, cast_expression)
 				== ParserExitCode::SUCCESS) {
 
-				state = MULTIPLICATIVE_EXPRESSION;
-
 				multiplicative_expression = new AstNode(
 					AstNodeName::MULTIPLICATIVE_EXPRESSION,
 					AstNodeAlt::MULTIPLICATIVE_EXPRESSION_1,
@@ -890,80 +889,80 @@ static inline ParserExitCode parse_multiplicative_expression(
 		{
 			if (tokens->get_name() == TokenName::PUNCTUATOR)
 				switch (tokens->get_form()) {
-				case TokenForm::ASTERIX:
-				{
-					tokens++;
-					AstNode* cast_expression;
-					if (parse_cast_expression(sym, tokens, cast_expression)
-						== ParserExitCode::SUCCESS) {
+					case TokenForm::ASTERIX:
+					{
+						tokens++;
+						AstNode* cast_expression;
+						if (parse_cast_expression(sym, tokens, cast_expression)
+							== ParserExitCode::SUCCESS) {
 
-						AstNode* higher_multiplicative_expression;
-						higher_multiplicative_expression = new AstNode(
-							AstNodeName::MULTIPLICATIVE_EXPRESSION,
-							AstNodeAlt::MULTIPLICATIVE_EXPRESSION_2,
-							NULL
-						);
-						higher_multiplicative_expression->add_child(
-							multiplicative_expression);
-						higher_multiplicative_expression->add_child(
-							cast_expression);
-						multiplicative_expression =
-							higher_multiplicative_expression;
-						continue;
+							AstNode* higher_multiplicative_expression;
+							higher_multiplicative_expression = new AstNode(
+								AstNodeName::MULTIPLICATIVE_EXPRESSION,
+								AstNodeAlt::MULTIPLICATIVE_EXPRESSION_2,
+								NULL
+							);
+							higher_multiplicative_expression->add_child(
+								multiplicative_expression);
+							higher_multiplicative_expression->add_child(
+								cast_expression);
+							multiplicative_expression =
+								higher_multiplicative_expression;
+							continue;
+						}
 					}
-				}
-				break;
-
-				case TokenForm::FORWARD_SLASH:
-				{
-					tokens++;
-					AstNode* cast_expression;
-					if (parse_cast_expression(sym, tokens, cast_expression)
-						== ParserExitCode::SUCCESS) {
-
-						AstNode* higher_multiplicative_expression;
-						higher_multiplicative_expression = new AstNode(
-							AstNodeName::MULTIPLICATIVE_EXPRESSION,
-							AstNodeAlt::MULTIPLICATIVE_EXPRESSION_3,
-							NULL
-						);
-						higher_multiplicative_expression->add_child(
-							multiplicative_expression);
-						higher_multiplicative_expression->add_child(
-							cast_expression);
-						multiplicative_expression =
-							higher_multiplicative_expression;
-						continue;
-					}
-				}
-				break;
-
-				case TokenForm::MODULO:
-				{
-					tokens++;
-					AstNode* cast_expression;
-					if (parse_cast_expression(sym, tokens, cast_expression)
-						== ParserExitCode::SUCCESS) {
-
-						AstNode* higher_multiplicative_expression;
-						higher_multiplicative_expression = new AstNode(
-							AstNodeName::MULTIPLICATIVE_EXPRESSION,
-							AstNodeAlt::MULTIPLICATIVE_EXPRESSION_4,
-							NULL
-						);
-						higher_multiplicative_expression->add_child(
-							multiplicative_expression);
-						higher_multiplicative_expression->add_child(
-							cast_expression);
-						multiplicative_expression =
-							higher_multiplicative_expression;
-						continue;
-					}
-				}
-				break;
-
-				default:
 					break;
+
+					case TokenForm::FORWARD_SLASH:
+					{
+						tokens++;
+						AstNode* cast_expression;
+						if (parse_cast_expression(sym, tokens, cast_expression)
+							== ParserExitCode::SUCCESS) {
+
+							AstNode* higher_multiplicative_expression;
+							higher_multiplicative_expression = new AstNode(
+								AstNodeName::MULTIPLICATIVE_EXPRESSION,
+								AstNodeAlt::MULTIPLICATIVE_EXPRESSION_3,
+								NULL
+							);
+							higher_multiplicative_expression->add_child(
+								multiplicative_expression);
+							higher_multiplicative_expression->add_child(
+								cast_expression);
+							multiplicative_expression =
+								higher_multiplicative_expression;
+							continue;
+						}
+					}
+					break;
+
+					case TokenForm::MODULO:
+					{
+						tokens++;
+						AstNode* cast_expression;
+						if (parse_cast_expression(sym, tokens, cast_expression)
+							== ParserExitCode::SUCCESS) {
+
+							AstNode* higher_multiplicative_expression;
+							higher_multiplicative_expression = new AstNode(
+								AstNodeName::MULTIPLICATIVE_EXPRESSION,
+								AstNodeAlt::MULTIPLICATIVE_EXPRESSION_4,
+								NULL
+							);
+							higher_multiplicative_expression->add_child(
+								multiplicative_expression);
+							higher_multiplicative_expression->add_child(
+								cast_expression);
+							multiplicative_expression =
+								higher_multiplicative_expression;
+							continue;
+						}
+					}
+					break;
+
+					default:
+						break;
 				}
 		}
 		break;

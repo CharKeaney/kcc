@@ -17,7 +17,7 @@ enum class LexerExitCode {
 	FAILURE
 };
 
-#define DEBUG_ENABLE_LEXER_REPORT 1
+#define DEBUG_ENABLE_LEXER_REPORT 0
 
 #define is_oct_digit(c) (c >= '0' && c <= '8')
 #define is_dec_digit(c) (c >= '0' && c <= '9')

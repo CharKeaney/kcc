@@ -8,7 +8,7 @@ using namespace std;
 
 #include "preprocessing-token.h"
 
-#define DEBUG_ENABLE_PREPROCESSOR_REPORT 1
+#define DEBUG_ENABLE_PREPROCESSOR_REPORT 0
 
 #define preprocessor_report_failure( s, f, l )				\
 		if (DEBUG_ENABLE_PREPROCESSOR_REPORT)				\
@@ -62,7 +62,8 @@ static inline const char* construct_lexeme(
 * @param header_name The produced header_name pptoken.
 **/
 static inline  PreprocessorExitCode preprocess_header_name(
-	const char*& input,
+	const char*& input, 
+	const char** &produced_lexema,
 	FileLocationDescriptor const& fld,
 	PreprocessingToken*& header_name)
 {
@@ -209,7 +210,8 @@ static inline  PreprocessorExitCode preprocess_header_name(
 * @param identifier_name The produced identifier_name pptoken.
 **/
 static inline PreprocessorExitCode preprocess_identifier_name(
-	const char*& input,
+	const char*& input, 
+	const char** &produced_lexema,
 	FileLocationDescriptor const& fld,
 	PreprocessingToken*& identifier_name)
 {
@@ -321,6 +323,7 @@ static inline PreprocessorExitCode preprocess_identifier_name(
 	if (preprocessed_identifier) {
 		const char* lexeme
 			= construct_lexeme(lexeme_start, input);
+		*produced_lexema++ = lexeme;
 
 		preprocessor_report_success(
 			"preprocess_identifier_name",
@@ -338,13 +341,14 @@ static inline PreprocessorExitCode preprocess_identifier_name(
 	else {
 		const char* lexeme
 			= construct_lexeme(lexeme_start, input);
+		*produced_lexema++ = lexeme;
 
 		preprocessor_report_failure(
 			"preprocess_identifier_name",
 			form,
 			lexeme);
 
-		*identifier_name++ = PreprocessingToken(
+		*identifier_name = PreprocessingToken(
 			lexeme,
 			PreprocessingTokenName::ERROR,
 			fld,
@@ -362,7 +366,8 @@ static inline PreprocessorExitCode preprocess_identifier_name(
 * @param pp_number The produced pp-number pptoken.
 **/
 static inline  PreprocessorExitCode preprocess_pp_number(
-	const char*& input,
+	const char*& input, 
+	const char** &produced_lexema,
 	FileLocationDescriptor const& fld,
 	PreprocessingToken*& pp_number)
 {
@@ -461,12 +466,12 @@ static inline  PreprocessorExitCode preprocess_pp_number(
 		{
 			const char* lexeme
 				= construct_lexeme(lexeme_start, input);
+			*produced_lexema++ = lexeme;
 
 			preprocessor_report_success(
 				"preprocess_pp_number",
 				form,
 				lexeme);
-
 
 			*pp_number++ = PreprocessingToken(
 				lexeme,
@@ -483,7 +488,7 @@ static inline  PreprocessorExitCode preprocess_pp_number(
 		case END_FAIL:
 			const char* lexeme
 				= construct_lexeme(lexeme_start, input);
-
+			*produced_lexema++ = lexeme;
 
 			preprocessor_report_failure(
 				"preprocess_pp_number",
@@ -515,9 +520,9 @@ static inline  PreprocessorExitCode preprocess_pp_number(
 * @param character_constant The reference to where to place
 *        the produced character_constant pptoken.
 **/
-static inline  
-PreprocessorExitCode preprocess_character_constant(
-	const char*& input,
+static inline PreprocessorExitCode preprocess_character_constant(
+	const char*& input, 
+	const char** &produced_lexema,
 	FileLocationDescriptor const& fld,
 	PreprocessingToken*& identifier_output)
 {
@@ -623,6 +628,7 @@ PreprocessorExitCode preprocess_character_constant(
 	if (found_preprocess) {
 		const char* lexeme
 			= construct_lexeme(lexeme_start, input);
+		*produced_lexema++ = lexeme;
 
 		preprocessor_report_success(
 			"preprocess_header_name",
@@ -639,8 +645,8 @@ PreprocessorExitCode preprocess_character_constant(
 	}
 	else {
 		const char* lexeme
-			= construct_lexeme(lexeme_start, input);
-
+			= construct_lexeme(lexeme_start, input);		
+		*produced_lexema++ = lexeme;
 
 		preprocessor_report_failure(
 			"preprocess_pp_number",
@@ -666,7 +672,8 @@ PreprocessorExitCode preprocess_character_constant(
 *        the produced string-literal pptoken.
 **/
 static inline PreprocessorExitCode preprocess_string_literal(
-	const char*& input,
+	const char*& input, 
+	const char** &produced_lexema,
 	FileLocationDescriptor const& fld,
 	PreprocessingToken*& string_literal)
 {
@@ -763,6 +770,7 @@ static inline PreprocessorExitCode preprocess_string_literal(
 	if (found_preprocess) {
 		const char* lexeme
 			= construct_lexeme(lexeme_start, input);
+		*produced_lexema++ = lexeme;
 
 		preprocessor_report_success(
 			"preprocess_header_name",
@@ -780,7 +788,7 @@ static inline PreprocessorExitCode preprocess_string_literal(
 	else {
 		const char* lexeme
 			= construct_lexeme(lexeme_start, input);
-
+		*produced_lexema++ = lexeme;
 
 		preprocessor_report_failure(
 			"preprocess_pp_number",
@@ -806,7 +814,8 @@ static inline PreprocessorExitCode preprocess_string_literal(
 *        the produced punctuator pptoken.
 **/
 static inline  PreprocessorExitCode preprocess_punctuator(
-	const char*& input,
+	const char*& input, 
+	const char** &produced_lexema,
 	FileLocationDescriptor const& fld,
 	PreprocessingToken*& punctuator)
 {
@@ -1044,6 +1053,7 @@ static inline  PreprocessorExitCode preprocess_punctuator(
 	if (found_punctuator) {
 		const char* lexeme
 			= construct_lexeme(lexeme_start, input);
+		*produced_lexema++ = lexeme;
 
 		preprocessor_report_success(
 			"preprocess_punctuator",
@@ -1061,6 +1071,7 @@ static inline  PreprocessorExitCode preprocess_punctuator(
 	else {
 		const char* lexeme
 			= construct_lexeme(lexeme_start, input);
+		*produced_lexema++ = lexeme;
 
 		preprocessor_report_failure(
 			"preprocess_punctuator",
@@ -1086,7 +1097,8 @@ static inline  PreprocessorExitCode preprocess_punctuator(
 *					the produced pptokens.
 **/
 static inline PreprocessorExitCode preprocess(
-	const char*& input,
+	const char*& input, 
+	const char** &produced_lexema,
 	FileLocationDescriptor const& fld,
 	PreprocessingToken*& identifier_output)
 {
@@ -1128,6 +1140,7 @@ static inline PreprocessorExitCode preprocess(
 		case 'Y': case 'Z':
 			preprocess_identifier_name(
 				input,
+				produced_lexema,
 				fld,
 				identifier_output);
 			break;
@@ -1136,12 +1149,14 @@ static inline PreprocessorExitCode preprocess(
 			if (*(input + 1) == '\"') {
 				preprocess_identifier_name(
 					input,
+					produced_lexema,
 					fld,
 					identifier_output);
 			}
 			else {
 				preprocess_string_literal(
 					input,
+					produced_lexema,
 					fld,
 					identifier_output);
 			}
@@ -1153,6 +1168,7 @@ static inline PreprocessorExitCode preprocess(
 		case '0':
 			preprocess_pp_number(
 				input,
+				produced_lexema,
 				fld,
 				identifier_output);
 			break;
@@ -1160,6 +1176,7 @@ static inline PreprocessorExitCode preprocess(
 		case '\'':
 			preprocess_character_constant(
 				input,
+				produced_lexema,
 				fld,
 				identifier_output);
 			break;
@@ -1167,6 +1184,7 @@ static inline PreprocessorExitCode preprocess(
 		case '\"':
 			preprocess_string_literal(
 				input,
+				produced_lexema,
 				fld,
 				identifier_output);
 			break;
@@ -1190,6 +1208,7 @@ static inline PreprocessorExitCode preprocess(
 			else {
 				preprocess_punctuator(
 					input,
+					produced_lexema,
 					fld,
 					identifier_output);
 			}
@@ -1207,6 +1226,7 @@ static inline PreprocessorExitCode preprocess(
 		case '*':
 			preprocess_punctuator(
 				input,
+				produced_lexema,
 				fld,
 				identifier_output);
 			break;

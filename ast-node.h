@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <iostream>
 
+#define DEBUG_AST_NODE_SHOW_CREATION 0
+
 using namespace std;
 
 enum class AstNodeName {
@@ -491,6 +493,7 @@ enum class AstNodeAlt {
 static const char* ast_node_alt_string_reprs[] {
 	"ERROR",
 	"TERMINAL",
+	"ENUMERATION_CONSTANT_1",
 	"PRIMARY_EXPRESSION_1",
 	"PRIMARY_EXPRESSION_2",
 	"PRIMARY_EXPRESSION_3",
@@ -692,7 +695,7 @@ static const char* ast_node_alt_string_reprs[] {
 	"EXTERNAL_DECLARATION_2",
 	"FUNCTION_DEFINITION_1",
 	"DECLARATION_LIST_1",
-	"DECLARATION_LIST_2",
+	"DECLARATION_LIST_2"
 };
 
 class AstNode {
@@ -712,6 +715,12 @@ public:
 		terminal(t), 
 		child(NULL), 
 		sibling(NULL) { 
+	}
+
+	inline ~AstNode() {
+		AstNode* current_node = child;
+		if (sibling) { delete sibling; }
+		if (child) { delete child; }
 	}
 
 	inline AstNode() :
@@ -799,10 +808,12 @@ public:
 static inline AstNode* construct_terminal(
 	Token* t) 
 {
-	cout << "ast-node.cpp:construct_terminal:"
-		 << " constructing terminal from the following token, ";
-	t->print();
-	cout << endl;
+	if (DEBUG_AST_NODE_SHOW_CREATION) {
+		cout << "ast-node.cpp:construct_terminal:"
+			<< " constructing terminal from the following token, ";
+		t->print();
+		cout << endl;
+	}
 	AstNodeName name;
 	switch (t->get_name()) {
 		case TokenName::KEYWORD: 

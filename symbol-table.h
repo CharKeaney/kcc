@@ -78,7 +78,7 @@ enum class DerivedType {
 	ARRAY,
 	STRUCTURE,
 	UNION,
-	FUNCTION,
+	LOCAL,
 	POINTER
 };
 
@@ -93,14 +93,16 @@ static const char* derived_type_string_repr[] {
 
 enum class Scope {
 	UNDEFINED = 0,
-	FUNCTION,
-	GLOBAL
+	LOCAL,
+	GLOBAL,
+	PARAM
 };
 
 static const char* scope_string_repr[]{
 	"UNDEFINED",
-	"FUNCTION",
+	"LOCAL",
 	"GLOBAL",
+	"PARAM"
 };
 
 enum class DerivedOrBasic {
@@ -151,7 +153,7 @@ struct SymbolTableEntry {
 
 };
 
-inline SymbolTableEntry construct_symbol_table_entry(
+static inline SymbolTableEntry construct_symbol_table_entry(
 	const char* symbol)
 {
 	SymbolTableEntry result = {

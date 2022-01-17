@@ -115,6 +115,10 @@ public:
 		form(f) {
 	};
 
+	inline ~PreprocessingToken() {
+		/* PreprocessingToken does not 'own' lexeme so no need to delete it. */
+	};
+
 	inline void print() {
 		cout << "<PreprocessingToken={\""
 			 << lexeme << "\"," 

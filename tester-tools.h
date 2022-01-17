@@ -18,7 +18,7 @@ inline void print_to_output(
 	}
 }
 
-inline void present_test_set_synopsis(
+static inline void present_test_set_synopsis(
 	const char*& title,
 	TestResult const& test_set_result,
 	TestResult* const& subtest_results,

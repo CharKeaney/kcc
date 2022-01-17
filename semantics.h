@@ -23,6 +23,17 @@ public:
 		sibling(NULL) {
 	};
 
+	inline ~AnnotatedAstNode() {
+		AnnotatedAstNode* current_node = child;
+		while (current_node != NULL) {
+			/* Delete next */
+			AnnotatedAstNode* next_node 
+				= current_node->get_sibling();
+			delete current_node;
+			current_node = next_node;
+		} 
+	}
+
 	inline const char* get_symbol() const
 	{
 		return symbol;
@@ -72,8 +83,8 @@ public:
 		SymbolTable* symtab = NULL;
 		if (symbol_table != NULL) {
 			symtab = symbol_table;
-			if ( symbol != NULL 
-				 && symtab->get_entry(symbol) == NULL) {
+			if (symbol != NULL
+				&& symtab->get_entry(symbol) == NULL) {
 				symtab = parent->get_symbol_table(symbol);
 			}
 		} else if (parent != NULL) {
@@ -151,25 +162,5 @@ public:
 		}
 	}
 };
-
-struct StackDescriptor {
-	char* stack_name;
-	uint8_t stack[1028];
-	int stack_i;
-};
-
-inline void print_stack(
-	StackDescriptor* const& stack_descriptor)
-{
-	for (uint8_t* i = stack_descriptor->stack;
-		i < stack_descriptor->stack + stack_descriptor->stack_i;
-		i++) {
-
-		cout << std::hex << (i - stack_descriptor->stack);
-		cout << " : ";
-		cout << std::hex << setw(2) << setfill('0') << (int) *i;
-		cout << endl;
-	}
-}
 
 #endif
