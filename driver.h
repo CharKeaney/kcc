@@ -14,6 +14,13 @@
 #define NUM_PREPROCESSING_TOKENS 1028
 #define NUM_ASSEMBLY_TOKENS		 1028
 
+#define DEBUG_OUTPUT_PPTOKENS	 0
+#define DEBUG_OUTPUT_TOKENS		 0
+#define DEBUG_OUTPUT_TREE		 0
+#define DEBUG_OUTPUT_ANNO_TREE	 1
+#define DEBUG_OUTPUT_X86		 0
+#define DEBUG_OUTPUT_NOTHING	 0
+
 enum class CompilerFlags {
 	OUTPUT_PPTOKENS,
 	OUTPUT_TOKENS,
@@ -52,7 +59,8 @@ static inline KccExitCode drive(
 		preprocess(input, lexema_produced_ptr, fld, ppts_ptr);
 		int count_pptokens = ppts_ptr - ppts;
 
-		if (flag == CompilerFlags::OUTPUT_PPTOKENS) {
+		if (flag == CompilerFlags::OUTPUT_PPTOKENS
+			|| DEBUG_OUTPUT_PPTOKENS) {
 			for (PreprocessingToken* p = ppts;
 				p < ppts + count_pptokens;
 				p++) {
@@ -67,11 +75,12 @@ static inline KccExitCode drive(
 		lex(ppts, tokens_lex_ptr, count_pptokens);
 		int count_tokens = tokens_lex_ptr - tokens;
 
-		if (flag == CompilerFlags::OUTPUT_TOKENS) {
-			for (Token* t = tokens;
-				t < tokens + count_tokens;
-				t++) {
-				t->print();
+		if (flag == CompilerFlags::OUTPUT_TOKENS
+			|| DEBUG_OUTPUT_TOKENS) {
+			for (Token* base_type = tokens;
+				base_type < tokens + count_tokens;
+				base_type++) {
+				base_type->print();
 				cout << endl;
 			}
 		}
@@ -85,7 +94,8 @@ static inline KccExitCode drive(
 
 		/* Semantic Analysis. */
 		annotate(ast_root, anno_ast_root);
-		if (flag == CompilerFlags::OUTPUT_ANNO_TREE || 1) {
+		if (flag == CompilerFlags::OUTPUT_ANNO_TREE
+			|| DEBUG_OUTPUT_ANNO_TREE) {
 			anno_ast_root->print();
 		}
 
@@ -94,13 +104,14 @@ static inline KccExitCode drive(
 		x86_AssemblyInstruction* instrs_ptr
 			= instrs;
 
-		if (flag == CompilerFlags::OUTPUT_X86) {
+		if (flag == CompilerFlags::OUTPUT_X86
+			|| DEBUG_OUTPUT_X86) {
 			int num_labels = 0;
 			gen(num_labels, anno_ast_root, instrs_ptr);
-			for (x86_AssemblyInstruction* t = instrs;
-				t != instrs_ptr;
-				t++) {
-				t->print();
+			for (x86_AssemblyInstruction* base_type = instrs;
+				base_type != instrs_ptr;
+				base_type++) {
+				base_type->print();
 			}
 		}
 	}

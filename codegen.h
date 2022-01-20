@@ -4,17 +4,25 @@
 
 #include "semantics.h"
 
+#define DEBUG_CODEGEN_SHOW_INSTR_GEN 0
+#define DEBUG_CODEGEN_SHOW_REG_ALLOC 0
 
-#define report_alloc(r) cout << "codegen.h:"				 \
-							 << "reg_alloc:"				 \
-						     << "allocating..."				 \
-							 << x86_register_string_reprs[r] \
-						     << endl;
+#define report_alloc(r)						 \
+	if (DEBUG_CODEGEN_SHOW_REG_ALLOC) {		 \
+		cout << "codegen.h:"				 \
+			 << "reg_alloc:"				 \
+			 << "allocating..."				 \
+			 << x86_register_string_reprs[r] \
+			 << endl; 						 \
+	}
 
-#define report_gen(m) cout << "codegen.h:"					 \
-					       << m								 \
-					       << ": generating..."				 \
-					       << endl
+#define report_gen(m)						 \
+	if (DEBUG_CODEGEN_SHOW_REG_ALLOC) {		 \
+		cout << "codegen.h:"				 \
+			 << m							 \
+			 << ": generating..."			 \
+			 << endl;						 \
+	}
 
 #define gen(a, r, i) gen_translation_unit(a, r, i)
 
@@ -248,9 +256,9 @@ public:
 		  val(x86_AssemblyInstructionOperandVal()) { }
 
 	x86_AssemblyInstructionOperand(
-		x86_AssemblyInstructionOperandType t,
+		x86_AssemblyInstructionOperandType base_type,
 		x86_AssemblyInstructionOperandVal v)
-		: type(t), val(v) { }
+		: type(base_type), val(v) { }
 
 	inline void print() const {
 		switch (type) {
@@ -291,6 +299,7 @@ public:
 					 << val.np
 					 << "]";
 				break;
+
 			case x86_AssemblyInstructionOperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
 			case x86_AssemblyInstructionOperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
 				break;
@@ -336,13 +345,13 @@ private:
 	x86_AssemblyInstructionOperand op3;
 
 	inline x86_AssemblyInstruction(
-		x86_AssemblyInstructionType t,
+		x86_AssemblyInstructionType base_type,
 		const char* l,
 		x86_AssemblyInstructionMnemonic m,
 		x86_AssemblyInstructionOperand o1,
 		x86_AssemblyInstructionOperand o2,
 		x86_AssemblyInstructionOperand o3)
-		: type(t),
+		: type(base_type),
 		  mnemonic(m),
 		  op1(o1),
 		  op2(o2),
@@ -353,7 +362,7 @@ public:
 
 	inline void set_label(const char* const& l) { label = l; };
 
-	inline void set_type(x86_AssemblyInstructionType const& t) { type = t; };
+	inline void set_type(x86_AssemblyInstructionType const& base_type) { type = base_type; };
 
 
 	inline x86_AssemblyInstruction(
@@ -373,7 +382,9 @@ public:
 				break;
 		}
 		num_operands = 0;
-		this->print();
+		if (DEBUG_CODEGEN_SHOW_INSTR_GEN) {
+			this->print();
+		}
 	}
 
 	inline x86_AssemblyInstruction(
@@ -397,9 +408,12 @@ public:
 
 			default:
 				break;
+
 		}
 		num_operands = 1;
-		this->print();
+		if (DEBUG_CODEGEN_SHOW_INSTR_GEN) {
+			this->print();
+		}
 	}
 
 	inline x86_AssemblyInstruction(
@@ -449,8 +463,11 @@ public:
 
 			default: 
 				break;
+
 		}
-		this->print();
+		if (DEBUG_CODEGEN_SHOW_INSTR_GEN) {
+			this->print();
+		}
 	}
 
 	inline void print() const {
@@ -901,7 +918,9 @@ static inline CodeGeneratorExitCode gen_primary_expression(
 		}
 
 		case AstNodeAlt::PRIMARY_EXPRESSION_3:
+		{
 			break;
+		}
 
 		case AstNodeAlt::PRIMARY_EXPRESSION_4:
 		{
@@ -1171,7 +1190,7 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 			}
 			*instrs++ = x86_AssemblyInstruction(
 				x86_AssemblyInstructionMnemonic::INC,
-				x86_AssemblyInstructionOperand(operand));
+				operand);
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -1193,9 +1212,11 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
+
 			*instrs++ = x86_AssemblyInstruction(
 				x86_AssemblyInstructionMnemonic::DEC,
 				op1);
+			
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -2422,49 +2443,35 @@ static inline CodeGeneratorExitCode gen_assignment_expression(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::ASSIGNMENT_EXPRESSION_1:
-	{
-		AnnotatedAstNode* conditional_expression
-			= node->get_child();
-		if (gen_conditional_expression(
-			num_labels_used,
-			conditional_expression,
-			instrs,
-			alloc_map,
-			operand)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::ASSIGNMENT_EXPRESSION_1:
+		{
+			AnnotatedAstNode* conditional_expression
+				= node->get_child();
+			if (gen_conditional_expression(
+				num_labels_used,
+				conditional_expression,
+				instrs,
+				alloc_map,
+				operand)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::ASSIGNMENT_EXPRESSION_2:
-	{
-		x86_RegisterAllocMap assignment_expression_2_alloc_map
-			= alloc_map;
-
-		AnnotatedAstNode* unary_expression =
-			node->get_child();
-		AnnotatedAstNode* assignment_operator =
-			node->get_child()->get_sibling();
-		AnnotatedAstNode* assignment_expression =
-			node->get_child()->get_sibling()->get_sibling();
-
-		//if (gen_unary_expression_as_lvalue(
-		//		num_labels_used,
-		//		unary_expression,
-		//		instrs,
-		//		assignment_expression_2_alloc_map,
-		//		output_register)
-		//	== CodeGeneratorExitCode::FAILURE) {
-		//	break;
-		//}
-
-		switch (assignment_operator->get_alt()) {
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_1:
+		case AstNodeAlt::ASSIGNMENT_EXPRESSION_2:
 		{
+			x86_RegisterAllocMap assignment_expression_2_alloc_map
+				= alloc_map;
+
+			AnnotatedAstNode* unary_expression =
+				node->get_child();
+			AnnotatedAstNode* assignment_operator =
+				node->get_child()->get_sibling();
+			AnnotatedAstNode* assignment_expression =
+				node->get_child()->get_sibling()->get_sibling();
+
 			x86_AssemblyInstructionOperand op1;
 
 			if (gen_assignment_expression(
@@ -2484,56 +2491,144 @@ static inline CodeGeneratorExitCode gen_assignment_expression(
 				unary_expression,
 				instrs,
 				assignment_expression_2_alloc_map,
-				op2
-			);
-
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::MOVSS,
-				op1,
 				op2);
 
-			exitcode = CodeGeneratorExitCode::SUCCESS;
+			switch (assignment_operator->get_alt()) {
+
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_1:
+				{
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::MOVSS,
+						op1,
+						op2);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+				}
+
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_2:
+				{
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::MULSS,
+						op1,
+						op2);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;				
+				}
+
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_3:
+				{
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::DIVSS,
+						op1,
+						op2);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;				
+				}
+
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_4:
+				{
+					x86_AssemblyInstructionOperandVal v;
+					v.dwui = 0;
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::MOVSS,
+						x86_AssemblyInstructionOperand(
+							x86_AssemblyInstructionOperandType::DOUBLEWORD_UNSIGNED_INTEGER,
+							v),
+						x86_AssemblyInstructionOperand(
+							x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
+							x86_AssemblyInstructionOperandVal({x86_Register::RDX})));
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::IDIV,
+						op1,
+						op2);
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::MOVSS,
+							x86_AssemblyInstructionOperand(
+								x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
+								x86_AssemblyInstructionOperandVal({ x86_Register::RDX })),
+						op1);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+				}
+
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_5:
+				{	
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::ADD,
+						op1,
+						op2);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;				
+				}
+
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_6:
+				{	
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::SUB,
+						op1,
+						op2);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;				}
+
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_7:
+				{	
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::SHL,
+						op1,
+						op2);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;				
+				}
+				
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_8:
+				{	
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::SHR,
+						op1,
+						op2);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;				
+				}
+				
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_9:
+				{	
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::AND,
+						op1,
+						op2);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+				}
+
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_10:
+				{	
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::XOR,
+						op1,
+						op2);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;				
+				}
+				
+				case AstNodeAlt::ASSIGNMENT_OPERATOR_11:
+				{	
+					*instrs++ = x86_AssemblyInstruction(
+						x86_AssemblyInstructionMnemonic::NEG,
+						op1,
+						op2);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;				
+				}
+			
+				default:
+					break;
+			}
+			operand = op1;
 			break;
 		}
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_2:
-			break;
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_3:
-			break;
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_4:
-			break;
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_5:
-			break;
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_6:
-			break;
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_7:
-			break;
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_8:
-			break;
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_9:
-			break;
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_10:
-			break;
-
-		case AstNodeAlt::ASSIGNMENT_OPERATOR_11:
-			break;
 
 		default:
 			break;
-		}
-		break;
-	}
-
-	default:
-		break;
 	}
 	return exitcode;
 }
@@ -2551,28 +2646,53 @@ static inline CodeGeneratorExitCode gen_expression(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::EXPRESSION_1:
-	{
-		AnnotatedAstNode* assignment_expression
-			= node->get_child();
-		if (gen_assignment_expression(
-			num_labels_used,
-			assignment_expression,
-			instrs,
-			alloc_map,
-			operand) 
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::EXPRESSION_1:
+		{
+			AnnotatedAstNode* assignment_expression
+				= node->get_child();
+			if (gen_assignment_expression(
+				num_labels_used,
+				assignment_expression,
+				instrs,
+				alloc_map,
+				operand) 
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::EXPRESSION_2:
-		break;
+		case AstNodeAlt::EXPRESSION_2:
+		{
+			AnnotatedAstNode* expression
+				= node->get_child();
+			AnnotatedAstNode* assignment_expression
+				= expression->get_sibling();
 
-	default:
-		break;
+			if (gen_expression(
+				num_labels_used,
+				expression,
+				instrs,
+				alloc_map,
+				operand)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			if (gen_assignment_expression(
+				num_labels_used,
+				assignment_expression,
+				instrs,
+				alloc_map,
+				operand)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			break;
+		}
+
+		default:
+			break;
 	}
 	return exitcode;
 }
@@ -2582,7 +2702,7 @@ static inline CodeGeneratorExitCode gen_constant_expression(
 	AnnotatedAstNode* const& node,
 	x86_AssemblyInstruction*& instrs,
 	x86_RegisterAllocMap const& alloc_map,
-	x86_Register const& output_register)
+	x86_AssemblyInstructionOperand& operand)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2590,11 +2710,20 @@ static inline CodeGeneratorExitCode gen_constant_expression(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::CONSTANT_EXPRESSION_1:
-		break;
+		case AstNodeAlt::CONSTANT_EXPRESSION_1:
+		{
+			gen_conditional_expression(
+				num_labels_used,
+				node,
+				instrs,
+				alloc_map,
+				operand);
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
 	}
 	return exitcode;
 }
@@ -2617,7 +2746,7 @@ static inline CodeGeneratorExitCode gen_declaration(
 		AnnotatedAstNode* declaration_specifiers =
 			node->get_child();
 		AnnotatedAstNode* init_declarator_list =
-			node->get_child()->get_sibling();
+			declaration_specifiers->get_sibling();
 		if (init_declarator_list) {
 			if (gen_init_declarator_list(
 				num_labels_used,
@@ -2769,7 +2898,7 @@ static inline CodeGeneratorExitCode gen_init_declarator_list(
 		AnnotatedAstNode* init_declarator_list
 			= node->get_child();
 		AnnotatedAstNode* init_declarator
-			= node->get_child()->get_sibling();
+			= init_declarator_list->get_sibling();
 		if (gen_init_declarator_list(
 			num_labels_used,
 			init_declarator_list,
@@ -2816,10 +2945,12 @@ static inline CodeGeneratorExitCode gen_init_declarator(
 			AnnotatedAstNode* declarator
 				= node->get_child();
 			AnnotatedAstNode* initializer
-				= node->get_child()->get_sibling();
+				= declarator->get_sibling();
 
-			SymbolTable* st = declarator->get_symbol_table();
-			SymbolTableEntry* ste = st->get_entry(declarator->get_symbol());
+			SymbolTable* st 
+				= declarator->get_symbol_table();
+			SymbolTableEntry* ste 
+				= st->get_entry(declarator->get_symbol());
 
 			x86_AssemblyInstructionOperand op1;
 			if (gen_initializer(
@@ -2869,42 +3000,108 @@ static inline CodeGeneratorExitCode gen_initializer(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::INITIALIZER_1:
-	{
-		AnnotatedAstNode* assignment_expression
-			= node->get_child();
-		if (gen_assignment_expression(
-			num_labels_used,
-			assignment_expression,
-			instrs,
-			alloc_map,
-			operand)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::INITIALIZER_1:
+		{
+			AnnotatedAstNode* assignment_expression
+				= node->get_child();
+			if (gen_assignment_expression(
+				num_labels_used,
+				assignment_expression,
+				instrs,
+				alloc_map,
+				operand)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::INITIALIZER_2:
-	case AstNodeAlt::INITIALIZER_3:
-	{
-		AnnotatedAstNode* initializer_list
-			= node->get_child();
-		if (gen_initializer_list(
-			num_labels_used,
-			initializer_list,
-			instrs,
-			alloc_map)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::INITIALIZER_2:
+		case AstNodeAlt::INITIALIZER_3:
+		{
+			AnnotatedAstNode* initializer_list
+				= node->get_child();
+			if (gen_initializer_list(
+				num_labels_used,
+				initializer_list,
+				instrs,
+				alloc_map)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		default:
+			break;
+	}
+	return exitcode;
+}
+
+static inline CodeGeneratorExitCode gen_designator_list(
+	int& num_labels_used,
+	AnnotatedAstNode* const& node,
+	x86_AssemblyInstruction*& instrs,
+	x86_RegisterAllocMap const& alloc_map)
+{
+	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
+
+	report_gen("gen_designation");
+
+	switch (node->get_alt()) {
+
+		case AstNodeAlt::DESIGNATION_1:
+		{
+			AnnotatedAstNode* designator 
+				= node->get_child();
+			AnnotatedAstNode* designator_list
+				= node->get_sibling();
+			gen_designator_list(
+				num_labels_used,
+				designator_list,
+				instrs,
+				alloc_map);
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
+
+	}
+	return exitcode;
+}
+
+static inline CodeGeneratorExitCode gen_designation(
+	int& num_labels_used,
+	AnnotatedAstNode* const& node,
+	x86_AssemblyInstruction*& instrs,
+	x86_RegisterAllocMap const& alloc_map)
+{
+	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
+
+	report_gen("gen_designation");
+
+	switch (node->get_alt()) {
+
+		case AstNodeAlt::DESIGNATION_1:
+		{
+			AnnotatedAstNode* designator_list
+				= node->get_sibling();
+			gen_designator_list(
+				num_labels_used,
+				designator_list,
+				instrs,
+				alloc_map);
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
+
 	}
 	return exitcode;
 }
@@ -2921,25 +3118,48 @@ static inline CodeGeneratorExitCode gen_initializer_list(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::INITIALIZER_LIST_1:
-	{
-		/*AnnotatedAstNode* designation
-			= node->get_child()->get_name() == AstNodeName::;
-		gen_initializer(initializer, instrs);
-		exitcode = CodeGeneratorExitCode::SUCCESS;*/
-		break;
-	}
+		case AstNodeAlt::INITIALIZER_LIST_1:
+		{
+			/*AnnotatedAstNode* designation
+				= node->get_child()->get_name() == AstNodeName::DESIGNATION
+				  ? node->get_child()
+				  : NULL;
+			AnnotatedAstNode* initializer
+				= designation
+				  ? designation->get_sibling()
+				  : node->get_sibling();
+			if (designation) {
+				x86_AssemblyInstructionOperand op1;
+					num_labels_used,
+					designation,
+					instrs,
+					alloc_map);
+			}
+			gen_initializer(
+				num_labels_used,
+				node,
+				instrs,
+				alloc_map, 
+				op);
+			*instrs++ = x86_AssemblyInstruction(
+				x86_AssemblyInstructionMnemonic::MOVSS,
+				op1,
+				op2);*/
+			//TODO;
+			break;
+		}
 
-	case AstNodeAlt::INITIALIZER_LIST_2:
-	{
-		/*	AnnotatedAstNode* initializer_list = node->get_child();
-			gen_initializer_list(initializer_list, instrs);
-			exitcode = CodeGeneratorExitCode::SUCCESS;*/
-		break;
-	}
+		case AstNodeAlt::INITIALIZER_LIST_2:
+		{
+			/*	AnnotatedAstNode* initializer_list = node->get_child();
+				gen_initializer_list(initializer_list, instrs);
+				exitcode = CodeGeneratorExitCode::SUCCESS;*/
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
+
 	}
 	return exitcode;
 }
@@ -2957,102 +3177,103 @@ static inline CodeGeneratorExitCode gen_statement(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::STATEMENT_1:
-	{
-		AnnotatedAstNode* labeled_statement
-			= node->get_child();
-		if (gen_labeled_statement(
-			num_labels_used,
-			labeled_statement,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
-			break;
-		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
-
-	case AstNodeAlt::STATEMENT_2:
-	{
-		AnnotatedAstNode* compound_statement
-			= node->get_child();
-		if (gen_compound_statement(
+		case AstNodeAlt::STATEMENT_1:
+		{
+			AnnotatedAstNode* labeled_statement
+				= node->get_child();
+			if (gen_labeled_statement(
 				num_labels_used,
-				compound_statement,
+				labeled_statement,
 				instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::STATEMENT_3:
-	{
-		AnnotatedAstNode* expression_statement
-			= node->get_child();
-		x86_AssemblyInstructionOperand operand
-			= x86_AssemblyInstructionOperand();
-		if (gen_expression_statement(
-			num_labels_used,
-			expression_statement,
-			instrs,
-			x86_RegisterAllocMap(0),
-			operand)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::STATEMENT_2:
+		{
+			AnnotatedAstNode* compound_statement
+				= node->get_child();
+			if (gen_compound_statement(
+					num_labels_used,
+					compound_statement,
+					instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::STATEMENT_4:
-	{
-		AnnotatedAstNode* selection_statement
-			= node->get_child();
-		if (gen_selection_statement(
-			num_labels_used,
-			selection_statement,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::STATEMENT_3:
+		{
+			AnnotatedAstNode* expression_statement
+				= node->get_child();
+			x86_AssemblyInstructionOperand operand
+				= x86_AssemblyInstructionOperand();
+			if (gen_expression_statement(
+				num_labels_used,
+				expression_statement,
+				instrs,
+				x86_RegisterAllocMap(0),
+				operand)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::STATEMENT_5:
-	{
-		AnnotatedAstNode* iteration_statement
-			= node->get_child();
-		if (gen_iteration_statement(
-			num_labels_used,
-			iteration_statement,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::STATEMENT_4:
+		{
+			AnnotatedAstNode* selection_statement
+				= node->get_child();
+			if (gen_selection_statement(
+				num_labels_used,
+				selection_statement,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::STATEMENT_6:
-	{
-		AnnotatedAstNode* jump_statement
-			= node->get_child();
-		if (gen_jump_statement(
-			num_labels_used,
-			jump_statement,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::STATEMENT_5:
+		{
+			AnnotatedAstNode* iteration_statement
+				= node->get_child();
+			if (gen_iteration_statement(
+				num_labels_used,
+				iteration_statement,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		case AstNodeAlt::STATEMENT_6:
+		{
+			AnnotatedAstNode* jump_statement
+				= node->get_child();
+			if (gen_jump_statement(
+				num_labels_used,
+				jump_statement,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
+
 	}
 	return exitcode;
 }
@@ -3094,23 +3315,23 @@ static inline CodeGeneratorExitCode gen_compound_statement(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::COMPOUND_STATEMENT_1:
-	{
-		AnnotatedAstNode* block_item_list
-			= node->get_child();
-		if (gen_block_item_list(
-			num_labels_used,
-			block_item_list,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::COMPOUND_STATEMENT_1:
+		{
+			AnnotatedAstNode* block_item_list
+				= node->get_child();
+			if (gen_block_item_list(
+				num_labels_used,
+				block_item_list,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		default:
+			break;
 	}
 	return exitcode;
 }
@@ -3126,47 +3347,48 @@ static inline CodeGeneratorExitCode gen_block_item_list(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::BLOCK_ITEM_LIST_1:
-	{
-		AnnotatedAstNode* block_item
-			= node->get_child();
-		if (gen_block_item(
-			num_labels_used,
-			block_item,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::BLOCK_ITEM_LIST_1:
+		{
+			AnnotatedAstNode* block_item
+				= node->get_child();
+			if (gen_block_item(
+				num_labels_used,
+				block_item,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::BLOCK_ITEM_LIST_2:
-	{
-		AnnotatedAstNode* block_item_list
-			= node->get_child();
-		AnnotatedAstNode* block_item
-			= block_item_list->get_sibling();
-		if (gen_block_item_list(
-			num_labels_used,
-			block_item_list,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::BLOCK_ITEM_LIST_2:
+		{
+			AnnotatedAstNode* block_item_list
+				= node->get_child();
+			AnnotatedAstNode* block_item
+				= block_item_list->get_sibling();
+			if (gen_block_item_list(
+				num_labels_used,
+				block_item_list,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			if (gen_block_item(
+				num_labels_used,
+				block_item,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		if (gen_block_item(
-			num_labels_used,
-			block_item,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
-			break;
-		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		default:
+			break;
+
 	}
 	return exitcode;
 }
@@ -3182,37 +3404,38 @@ static inline CodeGeneratorExitCode gen_block_item(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::BLOCK_ITEM_1:
-	{
-		AnnotatedAstNode* declaration
-			= node->get_child();
-		if (gen_declaration(
-			num_labels_used,
-			declaration,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::BLOCK_ITEM_1:
+		{
+			AnnotatedAstNode* declaration
+				= node->get_child();
+			if (gen_declaration(
+				num_labels_used,
+				declaration,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::BLOCK_ITEM_2:
-	{
-		AnnotatedAstNode* statement = node->get_child();
-		if (gen_statement(
-			num_labels_used,
-			statement,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::BLOCK_ITEM_2:
+		{
+			AnnotatedAstNode* statement = node->get_child();
+			if (gen_statement(
+				num_labels_used,
+				statement,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		default:
+			break;
+
 	}
 	return exitcode;
 }
@@ -3230,25 +3453,26 @@ static inline CodeGeneratorExitCode gen_expression_statement(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::EXPRESSION_STATEMENT_1:
-	{
-		AnnotatedAstNode* expression
-			= node->get_child();
-		if (gen_expression(
-			num_labels_used,
-			expression,
-			instrs,
-			alloc_map,
-			operand)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::EXPRESSION_STATEMENT_1:
+		{
+			AnnotatedAstNode* expression
+				= node->get_child();
+			if (gen_expression(
+				num_labels_used,
+				expression,
+				instrs,
+				alloc_map,
+				operand)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		default:
+			break;
+
 	}
 	return exitcode;
 }
@@ -3448,8 +3672,19 @@ static inline CodeGeneratorExitCode gen_external_declaration(
 		}
 
 		case AstNodeAlt::EXTERNAL_DECLARATION_2:
-			//gen_declaration(node, instrs);
+		{
+			AnnotatedAstNode* declaration
+				= node->get_child();
+			if (gen_declaration(
+				num_labels_used,
+				declaration,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
+		}
 
 		default:
 			break;
@@ -3536,9 +3771,9 @@ static inline CodeGeneratorExitCode gen_function_definition(
 			*instrs++ = x86_AssemblyInstruction(
 				x86_AssemblyInstructionMnemonic::POPQ,
 				o2);
+
 			*instrs++ = x86_AssemblyInstruction(
 				x86_AssemblyInstructionMnemonic::RETQ);
-
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -3552,9 +3787,7 @@ static inline CodeGeneratorExitCode gen_function_definition(
 static inline CodeGeneratorExitCode gen_declaration_list(
 	int &num_labels_used,
 	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_Register const& output_register)
+	x86_AssemblyInstruction*& instrs)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3562,14 +3795,48 @@ static inline CodeGeneratorExitCode gen_declaration_list(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::DECLARATION_LIST_1:
-		break;
+		case AstNodeAlt::DECLARATION_LIST_1:
+		{
+			AnnotatedAstNode* declaration
+				= node->get_child();
+			if (gen_declaration(
+				num_labels_used,
+				declaration,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
+		}
 
-	case AstNodeAlt::DECLARATION_LIST_2:
-		break;
+		case AstNodeAlt::DECLARATION_LIST_2:
+		{
+			AnnotatedAstNode* declaration
+				= node->get_child();
+			AnnotatedAstNode* declaration_list				
+				= declaration->get_sibling();
+			if (gen_declaration_list(
+				num_labels_used,
+				declaration_list,
+				instrs) 
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			if (gen_declaration(
+				num_labels_used,
+				declaration,
+				instrs)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
+		}
 
-	default:
-		break;
+		default:
+			break;
+
 	}
 	return exitcode;
 }

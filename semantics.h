@@ -16,7 +16,7 @@ private:
 	const char* symbol;
 public:
 	inline AnnotatedAstNode(
-		AstNode* n)
+		AstNode* const& n)
 		: ast_node(n),
 		symbol_table(NULL),
 		child(NULL),
@@ -63,12 +63,14 @@ public:
 		return parent;
 	}
 
-	inline void set_parent(AnnotatedAstNode* p)
+	inline void set_parent(
+		AnnotatedAstNode* const& p)
 	{
 		parent = p;
 	};
 
-	inline void set_symbol_table(SymbolTable* st)
+	inline void set_symbol_table(
+		SymbolTable* const& st)
 	{
 		symbol_table = st;
 	}
@@ -78,7 +80,8 @@ public:
 		symbol = s;
 	}
 
-	inline SymbolTable* get_symbol_table(const char* symbol = NULL) const
+	inline SymbolTable* get_symbol_table(
+		const char* const& symbol = NULL) const
 	{
 		SymbolTable* symtab = NULL;
 		if (symbol_table != NULL) {
@@ -106,7 +109,8 @@ public:
 		return type;
 	}
 
-	inline void add_child(AnnotatedAstNode* node)
+	inline void add_child(
+		AnnotatedAstNode* const& node)
 	{
 		if (child == NULL) {
 			child = node;
@@ -121,7 +125,9 @@ public:
 
 	}
 
-	inline void add_children(AnnotatedAstNode** nodes, int count)
+	inline void add_children(
+		AnnotatedAstNode** const& nodes, 
+		int const& count)
 	{
 		for (AnnotatedAstNode** n = nodes;
 			n < nodes + count;
@@ -133,15 +139,19 @@ public:
 	}
 
 	inline void print(
-		string parent_prefix = "",
-		string child_prefix = "") 
+		string const& parent_prefix = "",
+		string const& child_prefix = "") 
 	{
 		cout << parent_prefix
 			 << "name="
 			 << ast_form_string_reprs[(int)ast_node->get_name()]
 			 << ",alt="
-			 << ast_node_alt_string_reprs[(int)ast_node->get_alt()]
-			 << endl;
+			 << ast_node_alt_string_reprs[(int)ast_node->get_alt()];
+		if (type != NULL) {
+			cout << ",type=";
+			print_type(type);
+		}
+		cout << endl;
 
 		if (symbol_table) {
 			symbol_table->print(child_prefix);

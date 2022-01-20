@@ -6,6 +6,8 @@
 #include <iostream>
 #include <iomanip>
 
+#define DEBUG_TYPE_SHOW_NULL_DUPLICATION 0
+
 using namespace std;
 
 static int sizeof_map[] = {
@@ -78,8 +80,9 @@ enum class DerivedType {
 	ARRAY,
 	STRUCTURE,
 	UNION,
-	LOCAL,
-	POINTER
+	FUNCTION,
+	POINTER,
+	PARAMETER_LIST,
 };
 
 static const char* derived_type_string_repr[] {
@@ -88,7 +91,8 @@ static const char* derived_type_string_repr[] {
 	"STRUCTURE",
 	"UNION",
 	"FUNCTION",
-	"POINTER"
+	"POINTER",
+	"PARAMETER_LIST"
 };
 
 enum class Scope {
@@ -115,24 +119,109 @@ struct Type {
 	union {
 		struct {
 			DerivedType derived_type_name; 
-			Type* t; 
+			Type* base_type_1;
+			Type* base_type_2;
 		};	
 		BasicType basic;
 	};
 };
 
-inline void print_type(Type* t) 
+static inline void print_type(
+	Type* const& t) 
 {
 	if (t == NULL) {
 		cout << "";
+
 	} else if (t->derived_or_basic == DerivedOrBasic::BASIC) {
 		cout << basic_type_string_repr[(int)t->basic];
+
 	} else {
-		cout << derived_type_string_repr[(int)t->derived_type_name]
-			 << " ";
-		print_type(t->t);
+		switch (t->derived_type_name) {
+
+			case DerivedType::ARRAY:
+				cout << derived_type_string_repr[(int)t->derived_type_name]
+					 << " OF ";
+				print_type(t->base_type_1);
+				break;
+
+			case DerivedType::STRUCTURE:
+				// TODO;
+				break;
+
+			case DerivedType::UNION:
+				// TODO;
+				break;
+
+			case DerivedType::FUNCTION:
+				cout << derived_type_string_repr[(int)t->derived_type_name];
+				cout << " ";
+				print_type(t->base_type_1);
+				print_type(t->base_type_2);
+				break;
+
+			case DerivedType::POINTER:
+				cout << derived_type_string_repr[(int)t->derived_type_name]
+					 << " TO ";
+				print_type(t->base_type_1);
+				break;
+
+			case DerivedType::PARAMETER_LIST:
+			{
+				cout << "( ";
+				Type* current_param = t;
+				print_type(current_param->base_type_1);
+				while (current_param->base_type_2 != NULL) {					
+					current_param = current_param->base_type_2;
+					cout << ", ";
+					print_type(current_param->base_type_1);
+				}
+				cout << " )";
+				break;
+			}
+
+			default:
+				break;
+
+		}
 	}
 }
+
+inline void duplicate_type(
+	Type* const& input, 
+	Type*& output)
+{
+	if (input == NULL) {
+		if (DEBUG_TYPE_SHOW_NULL_DUPLICATION) {
+			/* Not fatal, but a sign something went wrong with the compiler itself. */
+			cout << "err.";
+		}
+	} else {
+		output = new Type();
+		output->derived_or_basic = input->derived_or_basic;
+		if (output->derived_or_basic == DerivedOrBasic::DERIVED) {
+			output->derived_type_name = input->derived_type_name;
+			duplicate_type(input->base_type_1, output->base_type_1);
+			duplicate_type(input->base_type_2, output->base_type_2);
+		}
+		else {
+			output->basic = input->basic;
+		}
+	}
+}
+
+static inline bool types_are_equivalent(
+	Type* const& a,
+	Type* const& b) 
+{	
+	return a->derived_or_basic == b->derived_or_basic
+		   && ((a->derived_or_basic == DerivedOrBasic::BASIC
+				&& a->basic == b->basic)
+			   || ((a->derived_or_basic == DerivedOrBasic::DERIVED
+				    && a->derived_type_name == b->derived_type_name
+					&& types_are_equivalent(a->base_type_1, b->base_type_1))
+					&& types_are_equivalent(a->base_type_2, b->base_type_2)));
+}
+
 
 struct SymbolTableEntry {
 	/* Key data. */
@@ -150,7 +239,6 @@ struct SymbolTableEntry {
 	Scope scope;	
 	/* Attributes added during code generation. */
 	const char* literal_constant_ptr_label;
-
 };
 
 static inline SymbolTableEntry construct_symbol_table_entry(
@@ -189,72 +277,76 @@ static inline void print_symbol_table_entry_content(
 	SymbolTableEntry* entry)
 {
 	cout << ": "
-		<< std::left
-		<< std::setw(13)
-		<< std::setfill(' ')
-		<< entry->symbol;
+		 << std::left
+		 << std::setw(13)
+		 << std::setfill(' ')
+		 << entry->symbol;
 
 	cout << ": "
-		<< std::left
-		<< std::setw(13)
-		<< std::setfill(' ')
-		<< (entry->is_typedef 
+		 << std::left
+		 << std::setw(13)
+		 << std::setfill(' ')
+		 << (entry->is_typedef 
 			? "true" 
 			: "false");
 
 	cout << ": "
-		<< std::left
-		<< std::setw(13)
-		<< std::setfill(' ')
-		<< (entry->is_literal 
+		 << std::left
+		 << std::setw(13)
+		 << std::setfill(' ')
+		 << (entry->is_literal 
 			? "true" 
 			: "false");
 
 	cout << ": 0x"
-		<< std::right
-		<< std::hex
-		<< std::setw(8)
-		<< std::setfill('0')
-		<< entry->value
-		<< "   ";
+		 << std::right
+		 << std::hex
+		 << std::setw(8)
+		 << std::setfill('0')
+		 << entry->value
+		 << "   ";
 
 	cout << ": 0x"
-		<< std::right
-		<< std::hex
-		<< std::setw(8)
-		<< std::setfill('0')
-		<< entry->base_pointer_offset
-		<< "   ";
+		 << std::right
+		 << std::hex
+		 << std::setw(8)
+		 << std::setfill('0')
+		 << entry->base_pointer_offset
+		 << "   ";
 
 	const char* id = entry->function_ptr 
 					 ? entry->function_ptr->symbol 
 					 : "N/A";
 	cout << ": "
-		<< std::left
-		<< std::setw(13)
-		<< std::setfill(' ')
-		<< id;
+		 << std::left
+		 << std::setw(13)
+		 << std::setfill(' ')
+		 << id;
 
 	cout << ": "
-		<< std::left
-		<< std::setw(13)
-		<< std::setfill(' ')
-		<< entry->number_formal_parameters;
+		 << std::left
+		 << std::setw(13)
+		 << std::setfill(' ')
+		 << entry->number_formal_parameters;
 
 	cout << ": "
-		<< std::left
-		<< std::setw(13)
-		<< std::setfill(' ')
-		<< scope_string_repr[(int)entry->scope];
+		 << std::left
+		 << std::setw(13)
+		 << std::setfill(' ')
+		 << scope_string_repr[(int)entry->scope];
 
 	cout << ": "
-		<< std::left
-		<< std::setw(13)
-		<< std::setfill(' ')
-		<< entry->function_frame_size;
+		 << std::left
+		 << std::setw(13)
+		 << std::setfill(' ')
+		 << entry->function_frame_size;
 
 	cout << ": ";
-	print_type(entry->type);
+	if (entry->type != NULL) {
+		print_type(entry->type);
+	} else {
+		cout << "N/A";
+	}
 }
 #define NUM_SYMBOL_TABLE_ENTRIES 6151
 

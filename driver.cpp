@@ -27,17 +27,18 @@ int main() {
 	//};
 	const char* input = new char[NUM_INPUT_CHARACTERS] {
 		"float Q_rsqrt( float number )\n"
-			"{\n"
-			"long i;\n"
-			"float x2, y;\n"
-			"const float threehalfs = 1.5F;\n"
-			"x2 = number * 0.5F;\n"
-			"y  = number;\n"
-			"i  = 0x5f3759df - ( i >> 1 );\n"
-			"y = y * (threehalfs - (x2 * y * y));\n"
-		"return y;\n"
+		"{\n"
+			"\tlong i;\n"
+			"\tfloat x2, y;\n"
+			"\tconst float threehalfs = 1.5F;\n"
+			"\tx2 = number * 0.5F;\n"
+			"\ty  = number;\n"
+			"\ti  = 0x5f3759df - ( i >> 1 );\n"
+			"\ty = y * (threehalfs - (x2 * y * y));\n"
+			"\treturn y;\n"
 		"}\n",
 	};
+	cout << input;
 	drive(fld, input);
 }
 

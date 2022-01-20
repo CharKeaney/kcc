@@ -53,9 +53,9 @@ static inline LookaheadTable merge_first_of(
 
 	for (int i = 0; i < NUM_TOKEN_NAMES * NUM_TOKEN_FORMS; i++) {
 
-		for (const LookaheadTable* const* t = tables; *t != NULL; t++) {
+		for (const LookaheadTable* const* base_type = tables; *base_type != NULL; base_type++) {
 
-			if (*((*t)->lookahead + i) == true) {
+			if (*((*base_type)->lookahead + i) == true) {
 				*(table.lookahead + i) = true;
 				break;
 			}
