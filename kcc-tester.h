@@ -1,5 +1,5 @@
 
-#ifndef KCC_TESTER_H
+#ifdef KCC_TESTER_H
 #define KCC_TESTER_H 1
 
 #include "lexer-tester.h"

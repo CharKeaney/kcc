@@ -4,59 +4,67 @@
 
 #include "token.h"
 
-class LookaheadTable {
-public:
-	bool lookahead[NUM_TOKEN_NAMES * NUM_TOKEN_FORMS];
-};
+typedef struct LookaheadTable {
+	bool bits[NUM_TOKEN_FORMS * NUM_TOKEN_NAMES];
+} LookaheadTable;
 
 static inline bool lookup(
-	LookaheadTable table,
-	TokenName name,  
-	TokenForm form)
+	LookaheadTable const& table,
+	TokenName      const& name,  
+	TokenForm      const& form)
 {
-	bool* addr  = 
-		table.lookahead
-		+ (int) name * NUM_TOKEN_FORMS 
-		+ (int) form;
-	return *(addr);
+	const bool result 
+		= *(table.bits 
+		    + (int) name * NUM_TOKEN_FORMS 
+		    + (int) form);
+	return result;
 }
 
 static inline LookaheadTable construct_lookahead_table(
-	const TokenName n)   
+	TokenName const& n)   
 {
-	LookaheadTable table = { {0} };
+	LookaheadTable table = { 0 };
 	for (int f = 0; f < NUM_TOKEN_FORMS; f++) {
-		int h = (int) n * NUM_TOKEN_FORMS + (int)f;
-		bool* addr = table.lookahead + h;
-		*(addr) = true;
+		bool* const addr
+			= table.bits
+			  + (int) n * NUM_TOKEN_FORMS
+			  + (int) f;
+		*addr = true;
 	}
 	return table;
 }
 
 static inline LookaheadTable construct_lookahead_table(
-	const TokenName n,
-	const TokenForm f) 
+	TokenName const& n,
+	TokenForm const& f) 
 {
-	LookaheadTable table = { {0} };
-	bool* addr = 
-		table.lookahead 
-		+ (int) n * NUM_TOKEN_FORMS 
-		+ (int) f;
+	LookaheadTable table = { 0 };
+	bool* const addr 
+		= table.bits
+		  + (int) n * NUM_TOKEN_FORMS 
+		  + (int) f;
 	*addr = true;
 	return table;
 }
 
 static inline LookaheadTable merge_first_of(
-	const LookaheadTable * const* tables)
+	const LookaheadTable *const * const& tables)
 {
-	LookaheadTable table = { {0} };
+	LookaheadTable table = { 0 };
 
-	for (int i = 0; i < NUM_TOKEN_NAMES * NUM_TOKEN_FORMS; i++) {
+	for (int i = 0; 
+		 i < NUM_TOKEN_NAMES * NUM_TOKEN_FORMS; 
+		 i++) {
 
-		for (const LookaheadTable* const* base_type = tables; *base_type != NULL; base_type++) {
+		for (const LookaheadTable *const *base_type = tables; 
+			 *base_type != NULL;
+			 base_type++) {
 
-			if (*((*base_type)->lookahead + i) == true) {
-				*(table.lookahead + i) = true;
+			LookaheadTable* a = &table;
+			const LookaheadTable* b = *base_type;
+
+			if (*(b->bits + i) == true) {
+				*(a->bits + i) = true;
 				break;
 			}
 		}
@@ -699,7 +707,7 @@ static const LookaheadTable* first_of_struct_declaration_subtables[] = {
 };
 
 static const LookaheadTable first_of_struct_declaration =
-merge_first_of(first_of_struct_declaration_subtables);
+	merge_first_of(first_of_struct_declaration_subtables);
 
 static const LookaheadTable* first_of_struct_declaration_list_subtables[] = {
 	&first_of_struct_declaration,
@@ -715,7 +723,7 @@ static const LookaheadTable* first_of_function_specifier_subtables[] = {
 };
 
 static const LookaheadTable first_of_function_specifier =
-merge_first_of(first_of_function_specifier_subtables);
+	merge_first_of(first_of_function_specifier_subtables);
 
 static const LookaheadTable* first_of_declaration_specifiers_subtables[] = {
 	&first_of_storage_class_specifier,
@@ -734,7 +742,7 @@ static const LookaheadTable* first_of_declaration_subtables[] = {
 };
 
 static const LookaheadTable first_of_declaration =
-merge_first_of(first_of_declaration_subtables);
+	merge_first_of(first_of_declaration_subtables);
 
 static const LookaheadTable* first_of_struct_declarator_subtables[] = {
 	&first_of_declarator,
@@ -1005,7 +1013,6 @@ static const LookaheadTable* first_of_declaration_list_subtables[] = {
 };
 
 static const LookaheadTable first_of_declaration_list =
-merge_first_of(first_of_declaration_list_subtables);
-
+	merge_first_of(first_of_declaration_list_subtables);
 
 #endif

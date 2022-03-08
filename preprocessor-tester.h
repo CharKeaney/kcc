@@ -1,5 +1,5 @@
 
-#ifndef PREPROCESSOR_TESTER_CPP
+#ifdef PREPROCESSOR_TESTER_CPP
 #define PREPROCESSOR_TESTER_CPP 1
 
 #include "preprocessor.h"

@@ -110,7 +110,7 @@ enum class AstNodeName {
 	BLOCK_ITEM
 };
 
-static const char* ast_form_string_reprs[] {
+static const char* const ast_form_string_reprs[]  {
 	"ERROR",
 	"KEYWORD",
 	"IDENTIFIER",
@@ -699,25 +699,25 @@ static const char* ast_node_alt_string_reprs[] {
 
 class AstNode {
 private:
-	AstNodeName name;
-	AstNodeAlt alt;	
-	Token* terminal;
-	AstNode* child;	
-	AstNode* sibling;
+	const AstNodeName name;
+	const AstNodeAlt  alt;	
+	const Token*      terminal;
+	AstNode*          child;	
+	AstNode*          sibling;
 public:
 	inline AstNode(
 		AstNodeName const& n,
 		AstNodeAlt  const& a,
-		Token* const& base_type) :
+		const Token* const& t) :
 		name(n), 
 		alt(a), 
-		terminal(base_type), 
+		terminal(t), 
 		child(NULL), 
 		sibling(NULL) { 
 	}
 
 	inline ~AstNode() {
-		AstNode* current_node = child;
+		const AstNode* current_node = child;
 		if (sibling) { delete sibling; }
 		if (child) { delete child; }
 	}
@@ -740,7 +740,7 @@ public:
 		return alt;
 	};
 
-	inline Token* get_terminal() const
+	inline const Token* get_terminal() const
 	{
 		return terminal;
 	};
@@ -755,10 +755,11 @@ public:
 		return sibling;
 	};
 
-	inline void add_child(AstNode* node) 
+	inline void add_child(AstNode* const& node) 
 	{
 		if (child == NULL) {
 			child = node;
+
 		} else {
 			AstNode* current = child;
 			while (current->sibling) {
@@ -768,7 +769,9 @@ public:
 		}
 	}
 
-	inline void add_children(AstNode** const& nodes, int const& count)
+	inline void add_children(
+		AstNode** const& nodes, 
+		int       const& count)
 	{
 		for (AstNode** n = nodes;
 			n < nodes + count;
@@ -779,65 +782,86 @@ public:
 	}
 
 	inline void print(
-		string parent_prefix = "", 
-		string child_prefix = "") 
+		string const& parent_prefix = "", 
+		string const& child_prefix = "") const
 	{
+		const int name_i         = (int) name;
+		const int alt_i          = (int) alt;
+		const char* const name_s = ast_form_string_reprs[name_i];
+		const char* const alt_s  = ast_node_alt_string_reprs[alt_i];
+
 		cout << parent_prefix
 			 << "name="
-			 << ast_form_string_reprs[(int) name]
+			 << name_s
 			 << ",alt="
-			 <<	ast_node_alt_string_reprs[(int) alt];
-		if (terminal) terminal->print();
+			 << alt_s;
+		
+		if (terminal) {
+			cout << ", terminal==";
+			terminal->print();
+		}
 		cout << endl;
-		AstNode* node = child;
+
+		const AstNode* node = child;
 		for (;node; node = node->sibling) {
+	
 			if (node->sibling) {
 				string appended_p = child_prefix + "|____";
 				string appended_c = child_prefix + "|    ";
 				node->print(appended_p, appended_c);
+			
 			} else {
 				string appended_p = child_prefix + "|____";
 				string appended_c = child_prefix + "     ";
 				node->print(appended_p, appended_c);
+			
 			}
 		}
 	}
 };
 
 static inline AstNode* construct_terminal(
-	Token* base_type) 
+	const Token* const& token)
 {
 	if (DEBUG_AST_NODE_SHOW_CREATION) {
 		cout << "ast-node.cpp:construct_terminal:"
-			<< " constructing terminal from the following token, ";
-		base_type->print();
+			 << " constructing terminal from the following token, ";
+		token->print();
 		cout << endl;
 	}
+
 	AstNodeName name;
-	switch (base_type->get_name()) {
+	switch (token->get_name()) {
+
 		case TokenName::KEYWORD: 
 			name = AstNodeName::KEYWORD;
 			break;
+
 		case TokenName::IDENTIFIER: 
 			name = AstNodeName::IDENTIFIER; 
 			break;
+
 		case TokenName::CONSTANT: 
 			name = AstNodeName::CONSTANT; 
 			break;
+
 		case TokenName::STRING_LITERAL: 
 			name = AstNodeName::STRING_LITERAL; 
 			break;
+
 		case TokenName::PUNCTUATOR: 
 			name = AstNodeName::PUNCTUATOR; 
 			break;
+
 		default: 
 			name = AstNodeName::ERROR;
 			break;
+
 	}
 	AstNode* terminal = new AstNode(
 		name, 
-		AstNodeAlt::TERMINAL, 
-		base_type
+		AstNodeAlt::TERMINAL,
+		token
 	);
 	return terminal;
 }

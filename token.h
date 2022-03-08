@@ -3,6 +3,7 @@
 #define TOKEN_H 1
 
 #include <iostream>
+#include "preprocessing-token.h"
 
 using namespace std;
 
@@ -24,6 +25,9 @@ static const char* token_name_string_reprs[] {
 	"PUNCTUATOR",
 	"ERROR"
 };
+#define token_name_string(p) \
+		token_name_string_reprs[(int) p]
+
 
 enum class TokenForm {
 	/* Mark as no specific form */
@@ -74,8 +78,8 @@ enum class TokenForm {
 	CHARACTER_CONSTANT,
 	STRING_LITERAL,
 	/* PUNCTUATOR */
-	OPEN_SQUARE_BRACKET,
-	CLOSE_SQUARE_BRACKET,
+	OPEN_BRACKET,
+	CLOSE_BRACKET,
 	OPEN_PAREN,
 	CLOSE_PAREN,
 	OPEN_CURLY_BRACKET,
@@ -122,12 +126,12 @@ enum class TokenForm {
 	COMMA,
 	HASHTAG,
 	DOUBLE_HASHTAG,
-	ANTIQUATED_OPEN_SQUARE_BRACKET,
-	ANTIQUATED_CLOSE_SQUARE_BRACKET,
-	ANTIQUATED_OPEN_CURLY_BRACKET,
-	ANTIQUATED_CLOSE_CURLY_BRACKET,
-	ANTIQUATED_HASHTAG,
-	ANTIQUATED_DOUBLE_HASHTAG
+	BIGRAPH_OPEN_BRACKET,
+	BIGRAPH_CLOSE_BRACKET,
+	BIGRAPH_OPEN_CURLY_BRACKET,
+	BIGRAPH_CLOSE_CURLY_BRACKET,
+	BIGRAPH_HASHTAG,
+	BIGRAPH_DOUBLE_HASHTAG
 };
 #define NUM_TOKEN_FORMS 97
 
@@ -230,18 +234,22 @@ static const char* token_form_string_reprs[] {
 	"ANTIQUATED_HASHTAG",
 	"ANTIQUATED_DOUBLE_HASHTAG"
 };
+#define token_form_string(p) \
+		token_form_string_reprs[(int) p]
 
 typedef union TokenValue {
 	float floatvalue;
-	int intvalue;
+	int   intvalue;
 } TokenValue;
 
 class Token {
 private:
-	TokenName name;
-	TokenForm form;
-	TokenValue val;
-	const char* lexeme;
+	TokenName              name;
+	TokenForm              form;
+	TokenValue             val;
+	const char*            lexeme;
+	FileLocationDescriptor file_descriptor;
+	
 public:
 	inline Token() {
 		name = TokenName::ERROR;
@@ -251,26 +259,50 @@ public:
 	};
 
 	inline Token(
-		const TokenName& n,
-		const TokenForm& f,
-		const TokenValue& v,
-		const char*& l)
-		: name(n), form(f), val(v), lexeme(l) {
+		TokenName              const& n,
+		TokenForm              const& f,
+		TokenValue             const& v,
+		const char*            const& l,
+		FileLocationDescriptor const& fld)
+		: name(n), 
+		  form(f), 
+		  val(v), 
+		  lexeme(l),
+		  file_descriptor(fld) {
 	}
 
-	inline TokenName get_name() const { return name;	   }
-	inline TokenForm get_form() const { return form;	   }
-	inline const char* get_lexeme() const { return lexeme; }
-	inline TokenValue get_val() const { return val;		   }
+	inline TokenName get_name() const {    
+		return name;  
+	}
 
-	inline void print() 
+	inline TokenForm get_form() const {     
+		return form;  
+	}
+
+	inline const char* get_lexeme() const {
+		return lexeme; 
+	}
+
+	inline TokenValue get_constant_val() const {    
+		return val;	   
+	}
+
+	inline FileLocationDescriptor get_file_descriptor() const {
+		return file_descriptor;
+	}
+
+	inline void print() const
 	{
+		const char* name_str
+			= token_name_string(name);
+		const char* form_str
+			= token_form_string(form);
 		cout << "<Token={"
 			 << lexeme
 			 << ","
-			 << token_name_string_reprs[(int) name]
+			 << name_str
 			 << ","
-			 << token_form_string_reprs[(int) form]
+			 << form_str
 			 << "}>";
 	}
 };

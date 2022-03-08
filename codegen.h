@@ -1,8 +1,9 @@
-
 #ifndef CODE_GEN_H
 #define CODE_GEN_H 1
 
 #include "semantics.h"
+#include "symbol-table.h"
+#include "annotated-ast-node.h"
 
 #define DEBUG_CODEGEN_SHOW_INSTR_GEN 0
 #define DEBUG_CODEGEN_SHOW_REG_ALLOC 0
@@ -17,7 +18,7 @@
 	}
 
 #define report_gen(m)						 \
-	if (DEBUG_CODEGEN_SHOW_REG_ALLOC) {		 \
+	if (DEBUG_CODEGEN_SHOW_INSTR_GEN) {		 \
 		cout << "codegen.h:"				 \
 			 << m							 \
 			 << ": generating..."			 \
@@ -28,27 +29,35 @@
 
 enum class CodeGeneratorExitCode {
 	SUCCESS,
+	FAILURE_CONVERSION_ERROR,
 	FAILURE
 };
 
-enum class x86_AssemblyInstructionMnemonic {
+enum class x86_Asm_IR_Mnemonic {
 	ADD,
+	ADDSS,
 	AND,
 	SUB,
+	SUBSS,
 	INC,
 	CMP,
 	CMOVZ,
 	CMOVNZ,
 	DEC,
 	MULSS,
+	DIV,
 	DIVSS,
 	IDIV,
+	IMUL,
 	PUSHQ,
 	POPQ,
 	CALL,
-	RETQ,
+	RETQ,	
+	MOV,
 	MOVSS,
 	MOVQ,
+	MOVD,
+	MUL,
 	JE,
 	JNE,
 	JG,
@@ -72,24 +81,31 @@ enum class x86_AssemblyInstructionMnemonic {
 	LONG
 };
 
-static const char* x86_assembly_instruction_mnemonic_string_reprs[] {
+static const char* x86_asm_ir_mnemonic_string_reprs[] {
 	"add",
+	"addss",
 	"and",
 	"sub",
+	"subss",
 	"inc",
 	"cmp",
 	"cmovz",
 	"cmovnz",
 	"dec",
 	"mulss",
+	"div",
 	"divss",
 	"idiv",
+	"imul",
 	"pushq",
 	"popq",
 	"call",
 	"retq",
+	"mov",
 	"movss",
 	"movq",
+	"movd",
+	"mul",
 	"je",
 	"jne",
 	"jg",
@@ -102,7 +118,7 @@ static const char* x86_assembly_instruction_mnemonic_string_reprs[] {
 	"or",
 	"sete",
 	"setne",
-	"setg",
+	"setq",
 	"setge",
 	"setl",
 	"setle",
@@ -112,15 +128,53 @@ static const char* x86_assembly_instruction_mnemonic_string_reprs[] {
 	".long"
 };
 
-enum class x86_Register {
+enum class x86_RegisterName {
+	UNDEFINED,
+	/* Accumulator */
 	RAX,
-	RBX,
+	EAX,
+	AX,
+	AH,
+	AL,
+	/* Counter */
 	RCX,
+	ECX,
+	CX,
+	CH,
+	CL,
+	/* Data */
 	RDX,
-	RSI,
-	RDI,
+	EDX,
+	DX,
+	DH,
+	DL,
+	/* Base */
+	RBX,
+	EBX,
+	BX,
+	BH,
+	BL,
+	/* Stack Pointer */
 	RSP,
+	ESP,
+	SP,
+	SPL,
+	/* Stack Base Pointer */
 	RBP,
+	EBP,
+	BP,
+	BPL,
+	/* Source */
+	RSI,
+	ESI,
+	SI,
+	SIL,
+	/* Destination */
+	RDI,
+	EDI,
+	DI,
+	DIL,
+	/* Other General Purpose */
 	R8,
 	R9,
 	R10,
@@ -129,7 +183,10 @@ enum class x86_Register {
 	R13,
 	R14,
 	R15,
-	XMM0,
+	RIP,
+	EFLAGS,
+	/* XMM Registers */
+	XMM0, 
 	XMM1,
 	XMM2,
 	XMM3,
@@ -137,19 +194,46 @@ enum class x86_Register {
 	XMM5,
 	XMM6,
 	XMM7,
-	XMM8,
-	RIP
 };
 
-static const char* x86_register_string_reprs[] = {
+static const char* x86_register_string_reprs[] = {	
+	"undefined",
 	"rax",
-	"rbx",
+	"eax",
+	"ax",
+	"ah",
+	"al",
 	"rcx",
+	"ecx",
+	"cx",
+	"ch",
+	"cl",
 	"rdx",
-	"rsi",
-	"rdi",
+	"edx",
+	"dx",
+	"dh",
+	"dl",
+	"rbx",
+	"ebx",
+	"bx",
+	"bh",
+	"bl",
 	"rsp",
+	"esp",
+	"sp",
+	"spl",
 	"rbp",
+	"ebp",
+	"bp",
+	"bpl",
+	"rsi",
+	"esi",
+	"si",
+	"sil",
+	"rdi",
+	"edi",
+	"di",
+	"dil",
 	"r8",
 	"r9",
 	"r10",
@@ -158,6 +242,8 @@ static const char* x86_register_string_reprs[] = {
 	"r13",
 	"r14",
 	"r15",
+	"rip",
+	"eflags",
 	"xmm0",
 	"xmm1",
 	"xmm2",
@@ -166,54 +252,106 @@ static const char* x86_register_string_reprs[] = {
 	"xmm5",
 	"xmm6",
 	"xmm7",
-	"xmm8",
-	"rip"
 };
 
-typedef uint32_t	x86_RegisterAllocMap;
+enum class x86_RegisterType {
+	UNDEFINED,
+	FLOAT_64,
+	FLOAT_32,
+	INT_64,
+	INT_32,
+	INT_16,
+	INT_8
+};
 
-typedef	uint8_t		byte_unsigned_integer;
-typedef uint16_t	word_unsigned_integer;
+typedef struct x86_RegisterAllocMap {
+	/* XMM Registers         */
+	bool xmm0 : 1;
+	bool xmm1 : 1;
+	bool xmm2 : 1;
+	bool xmm3 : 1;
+	bool xmm4 : 1;
+	bool xmm5 : 1;
+	bool xmm6 : 1;
+	bool xmm7 : 1; 
+	/* Accumulator           */
+	bool rax  : 1;
+	bool eax  : 1;
+	bool ax   : 1;
+	bool ah   : 1;
+	bool al   : 1;
+	/* Counter               */
+	bool rcx  : 1;
+	bool ecx  : 1;
+	bool cx   : 1;
+	bool ch   : 1;
+	bool cl   : 1;
+	/* Data	                 */
+	bool rdx  : 1;
+	bool edx  : 1;
+	bool dx   : 1;
+	bool dh   : 1;
+	bool dl   : 1;
+	/* Base                  */
+	bool rbx  : 1;
+	bool ebx  : 1;
+	bool bx   : 1;
+	bool bh   : 1;
+	bool bl   : 1;
+	/* Stack Pointer         */
+	bool rsp  : 1;
+	bool esp  : 1;
+	bool sp   : 1;
+	bool spl  : 1;
+	/* Stack Base Pointer    */
+	bool rbp  : 1;
+	bool ebp  : 1;
+	bool bp   : 1;
+	bool bpl  : 1;
+	/* Source                */
+	bool rsi  : 1;
+	bool esi  : 1;
+	bool si   : 1;
+	bool sil  : 1;
+	/* Destination           */
+	bool rdi  : 1;
+	bool edi  : 1;
+	bool di   : 1;
+	bool dil  : 1;
+	/* Other General Purpose */
+	bool r8   : 1;
+	bool r9   : 1;
+	bool r10  : 1;
+	bool r11  : 1;
+	bool r12  : 1;
+	bool r13  : 1;
+	bool r14  : 1;
+	bool r15  : 1;
+	bool rip  : 1;
+};
+
 typedef uint32_t	doubleword_unsigned_integer;
-typedef uint64_t	quadword_unsigned_integer;
-typedef int8_t		byte_signed_integer;
-typedef int16_t		word_signed_integer;
-typedef int32_t		doubleword_signed_integer;
-typedef int64_t		quadword_signed_integer;
-typedef int16_t		half_precision_floating_point;
-typedef int32_t     single_precision_floating_point;
-typedef int64_t     double_precision_floating_point;
-typedef long double	double_extended_precision_floating_point;
 
 typedef uint64_t	near_pointer;
 typedef long double	far_pointer_with_64_bit_operand_size;
 typedef uint64_t	far_pointer_with_32_bit_operand_size;
 
 typedef struct register_and_offset {
-	signed long offset;
-	x86_Register reg;
+	signed long      offset;
+	x86_RegisterName reg;
 } register_and_offset;
 
 typedef struct label_and_register {
-	const char* label;
-	x86_Register reg;
+	const char*      label;
+	x86_RegisterName reg;
 } label_and_register;
 
-enum class x86_AssemblyInstructionOperandType {
+enum class x86_Asm_IR_OperandType {
+	LITERAL,
+	IDENTIFIER,
 	X86_REGISTER_INDEX,
 	X86_REGISTER_CONTAINING_ADDR,
-	BYTE_UNSIGNED_INTEGER,
-	WORD_UNSIGNED_INTEGER,
 	DOUBLEWORD_UNSIGNED_INTEGER,
-	QUADWORD_UNSIGNED_INTEGER, 
-	BYTE_SIGNED_INTEGER,
-	WORD_SIGNED_INTEGER,
-	DOUBLEWORD_SIGNED_INTEGER,
-	QUADWORD_SIGNED_INTEGER,
-	HALF_PRECISION_FLOATING_POINT,
-	SINGLE_PRECISION_FLOATING_POINT,
-	DOUBLE_PRECISION_FLOATING_POINT,
-	DOUBLE_EXTENDED_PRECISION_FLOATING_POINT,
 	NEAR_POINTER,
 	FAR_POINTER_WITH_64_BIT_OPERAND_SIZE,
 	FAR_POINTER_WITH_32_BIT_OPERAND_SIZE,
@@ -222,75 +360,56 @@ enum class x86_AssemblyInstructionOperandType {
 	LABEL
 };
 
-typedef union x86_AssemblyInstructionOperandVal {
-	x86_Register reg_index;
-	x86_Register reg_containing_addr;
-	byte_unsigned_integer bui;
-	word_unsigned_integer wui;
-	doubleword_unsigned_integer dwui;
-	quadword_unsigned_integer qwui;
-	byte_signed_integer bsi;
-	word_signed_integer wsi;
-	doubleword_signed_integer dwsi;
-	quadword_signed_integer qwsi;
-	half_precision_floating_point hpfp;
-	single_precision_floating_point spfp;
-	double_precision_floating_point dpfp;
-	double_extended_precision_floating_point depfp;
-	near_pointer np;
+typedef union x86_Asm_IR_OperandVal {
+	x86_RegisterName                     reg_index;
+	x86_RegisterName                     reg_containing_addr;
+	doubleword_unsigned_integer          dwui;
+	near_pointer                         np;
 	far_pointer_with_64_bit_operand_size fpw64bos;
 	far_pointer_with_32_bit_operand_size fpw32bos;
-	register_and_offset rao;
-	label_and_register lar;
-	const char* label;
+	register_and_offset                  rao;
+	label_and_register                   lar;
+	const char*                          label;
 };
 
-class x86_AssemblyInstructionOperand {
+class x86_Asm_IR_Operand {
 private:
-	x86_AssemblyInstructionOperandType type;
-	x86_AssemblyInstructionOperandVal val;
-	const char* lexeme;
+	x86_Asm_IR_OperandType type;
+	x86_Asm_IR_OperandVal  val;
+	const char*            lexeme;
 public:
-	x86_AssemblyInstructionOperand()
-		: type(x86_AssemblyInstructionOperandType()), 
-		  val(x86_AssemblyInstructionOperandVal()) { }
+	x86_Asm_IR_Operand()
+		: type(x86_Asm_IR_OperandType()), 
+		  val(x86_Asm_IR_OperandVal()) { }
 
-	x86_AssemblyInstructionOperand(
-		x86_AssemblyInstructionOperandType base_type,
-		x86_AssemblyInstructionOperandVal v)
+	x86_Asm_IR_Operand(
+		x86_Asm_IR_OperandType base_type,
+		x86_Asm_IR_OperandVal v)
 		: type(base_type), val(v) { }
 
 	inline void print() const {
+
 		switch (type) {
 
-			case x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX:
-				cout << "%" 
+			case x86_Asm_IR_OperandType::X86_REGISTER_INDEX:
+				cout // TODO; AT&T syntax << "%"
 					 << x86_register_string_reprs[(int)val.reg_index];
 				break;
 			
-			case x86_AssemblyInstructionOperandType::X86_REGISTER_CONTAINING_ADDR:
-				cout << "["
+			case x86_Asm_IR_OperandType::X86_REGISTER_CONTAINING_ADDR:
+				cout <<  "["
 					 << x86_register_string_reprs[(int)val.reg_containing_addr]
 					 << "]";
 				break;
 			
-			case x86_AssemblyInstructionOperandType::BYTE_UNSIGNED_INTEGER:
-			case x86_AssemblyInstructionOperandType::WORD_UNSIGNED_INTEGER:
-			case x86_AssemblyInstructionOperandType::DOUBLEWORD_UNSIGNED_INTEGER:
-			case x86_AssemblyInstructionOperandType::QUADWORD_UNSIGNED_INTEGER:
-			case x86_AssemblyInstructionOperandType::BYTE_SIGNED_INTEGER:
-			case x86_AssemblyInstructionOperandType::WORD_SIGNED_INTEGER:
-			case x86_AssemblyInstructionOperandType::DOUBLEWORD_SIGNED_INTEGER:
-			case x86_AssemblyInstructionOperandType::QUADWORD_SIGNED_INTEGER:
-			case x86_AssemblyInstructionOperandType::HALF_PRECISION_FLOATING_POINT:
-			case x86_AssemblyInstructionOperandType::SINGLE_PRECISION_FLOATING_POINT:
-			case x86_AssemblyInstructionOperandType::DOUBLE_PRECISION_FLOATING_POINT:
-			case x86_AssemblyInstructionOperandType::DOUBLE_EXTENDED_PRECISION_FLOATING_POINT:
-				cout << std::dec << val.dwui;
+			case x86_Asm_IR_OperandType::DOUBLEWORD_UNSIGNED_INTEGER:
+				cout // TODO AT&T Syntax << "$" 
+					<< std::dec 
+					<< val.dwui;
 				break;
 			
-			case x86_AssemblyInstructionOperandType::NEAR_POINTER:
-				cout << "[" 
+			case x86_Asm_IR_OperandType::NEAR_POINTER:
+				cout << "["
 					 << "0x"
 					 << std::right
 					 << std::hex
@@ -300,25 +419,31 @@ public:
 					 << "]";
 				break;
 
-			case x86_AssemblyInstructionOperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
-			case x86_AssemblyInstructionOperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
+			case x86_Asm_IR_OperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
+			case x86_Asm_IR_OperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
 				break;
 			
-			case x86_AssemblyInstructionOperandType::LABEL_AND_REGISTER:
+			case x86_Asm_IR_OperandType::LABEL_AND_REGISTER:
+			{
 				cout << val.lar.label
 					 << "("
-					 << "%" << x86_register_string_reprs[(int)val.lar.reg]
+					 //<< "%" 
+					 << x86_register_string_reprs[(int)val.lar.reg]
 					 << ")";
 				break;
-			
-			case x86_AssemblyInstructionOperandType::REGISTER_AND_OFFSET:
+			}
+
+			case x86_Asm_IR_OperandType::REGISTER_AND_OFFSET:
 			{
 				signed int offset = (int) val.rao.offset;
-				if (offset < 0) cout << "-";
-				cout << std::hex 
-					 << (offset < 0 ? -1 * offset : offset)
-					 << "("
-					 << "%" << x86_register_string_reprs[(int)val.rao.reg]
+				//if (offset < 0) cout << "-";				
+				if (offset != 0) {
+					cout << std::dec
+						<< offset; //< 0 ? -1 * offset : offset
+				}
+				cout << "("
+					 // TODO; AT&T SYNTAX << "%" 
+					 << x86_register_string_reprs[(int)val.rao.reg]
 					 << ")";
 				break;
 			}
@@ -327,30 +452,38 @@ public:
 				break;
 		};
 	}
+
+	inline x86_Asm_IR_OperandType get_type() const {
+		return type;
+	}
+
+	inline x86_Asm_IR_OperandVal get_constant_val() const {
+		return val;
+	}
 };
 
-enum class x86_AssemblyInstructionType {
+enum class x86_Asm_IR_Type {
 	LABELED_INSTRUCTION,
 	INSTRUCTION,
 };
 
-class x86_AssemblyInstruction {
+class x86_Asm_IR {
 private:	
-	x86_AssemblyInstructionType type;
-	const char* label;
-	x86_AssemblyInstructionMnemonic mnemonic;
-	int num_operands;
-	x86_AssemblyInstructionOperand op1;
-	x86_AssemblyInstructionOperand op2;
-	x86_AssemblyInstructionOperand op3;
+	x86_Asm_IR_Type     type;
+	const char*         label;
+	x86_Asm_IR_Mnemonic mnemonic;
+	int                 num_operands;
+	x86_Asm_IR_Operand  op1;
+	x86_Asm_IR_Operand  op2;
+	x86_Asm_IR_Operand  op3;
 
-	inline x86_AssemblyInstruction(
-		x86_AssemblyInstructionType base_type,
-		const char* l,
-		x86_AssemblyInstructionMnemonic m,
-		x86_AssemblyInstructionOperand o1,
-		x86_AssemblyInstructionOperand o2,
-		x86_AssemblyInstructionOperand o3)
+	inline x86_Asm_IR(
+		x86_Asm_IR_Type     const& base_type,
+		const char*         const& l,
+		x86_Asm_IR_Mnemonic const& m,
+		x86_Asm_IR_Operand  const& o1,
+		x86_Asm_IR_Operand  const& o2,
+		x86_Asm_IR_Operand  const& o3)
 		: type(base_type),
 		  mnemonic(m),
 		  op1(o1),
@@ -358,23 +491,28 @@ private:
 		  op3(o3) {
 	}
 public:
-	inline x86_AssemblyInstruction() {};
+	inline x86_Asm_IR() {};
 
-	inline void set_label(const char* const& l) { label = l; };
+	inline void set_label(
+		const char* const& l) { 
+		label = l; 
+	};
 
-	inline void set_type(x86_AssemblyInstructionType const& base_type) { type = base_type; };
+	inline void set_type(
+		x86_Asm_IR_Type const& base_type) { 
+		type = base_type; 
+	};
 
-
-	inline x86_AssemblyInstruction(
-		x86_AssemblyInstructionMnemonic m)
+	inline x86_Asm_IR(
+		x86_Asm_IR_Mnemonic const& m)
 	{
 		switch (m) {
 
-			case x86_AssemblyInstructionMnemonic::RETQ:
+			case x86_Asm_IR_Mnemonic::RETQ:
 			{
-				type = x86_AssemblyInstructionType::INSTRUCTION;
+				type = x86_Asm_IR_Type::INSTRUCTION;
 				const char* label = NULL;
-				mnemonic = x86_AssemblyInstructionMnemonic::RETQ;
+				mnemonic = x86_Asm_IR_Mnemonic::RETQ;
 				break;
 			}
 			
@@ -387,19 +525,19 @@ public:
 		}
 	}
 
-	inline x86_AssemblyInstruction(
-		x86_AssemblyInstructionMnemonic m,
-		const x86_AssemblyInstructionOperand o1)
+	inline x86_Asm_IR(
+		x86_Asm_IR_Mnemonic const& m,
+		x86_Asm_IR_Operand  const& o1)
 	{
 		switch (m) {
 
-			case x86_AssemblyInstructionMnemonic::LONG:
-			case x86_AssemblyInstructionMnemonic::JMP:
-			case x86_AssemblyInstructionMnemonic::PUSHQ:
-			case x86_AssemblyInstructionMnemonic::POPQ:
-			case x86_AssemblyInstructionMnemonic::NEG:
+			case x86_Asm_IR_Mnemonic::LONG:
+			case x86_Asm_IR_Mnemonic::JMP:
+			case x86_Asm_IR_Mnemonic::PUSHQ:
+			case x86_Asm_IR_Mnemonic::POPQ:
+			case x86_Asm_IR_Mnemonic::NEG:
 			{
-				type = x86_AssemblyInstructionType::INSTRUCTION;
+				type = x86_Asm_IR_Type::INSTRUCTION;
 				const char* label = NULL;
 				mnemonic = m;
 				op1 = o1;
@@ -416,43 +554,49 @@ public:
 		}
 	}
 
-	inline x86_AssemblyInstruction(
-		x86_AssemblyInstructionMnemonic m,
-		x86_AssemblyInstructionOperand o1,
-		x86_AssemblyInstructionOperand o2)
+	inline x86_Asm_IR(
+		x86_Asm_IR_Mnemonic const& m,
+		x86_Asm_IR_Operand  const& o1,
+		x86_Asm_IR_Operand  const& o2)
 	{
 		switch (m) {
 
-			case x86_AssemblyInstructionMnemonic::ADD:
-			case x86_AssemblyInstructionMnemonic::SUB:
-			case x86_AssemblyInstructionMnemonic::INC:
-			case x86_AssemblyInstructionMnemonic::DEC:
-			case x86_AssemblyInstructionMnemonic::DIVSS:
-			case x86_AssemblyInstructionMnemonic::IDIV:
-			case x86_AssemblyInstructionMnemonic::PUSHQ:
-			case x86_AssemblyInstructionMnemonic::CALL:
-			case x86_AssemblyInstructionMnemonic::RETQ:
-			case x86_AssemblyInstructionMnemonic::MOVSS:
-			case x86_AssemblyInstructionMnemonic::MOVQ:
-			case x86_AssemblyInstructionMnemonic::CMP:
-			case x86_AssemblyInstructionMnemonic::JE:
-			case x86_AssemblyInstructionMnemonic::JNE:
-			case x86_AssemblyInstructionMnemonic::JG:
-			case x86_AssemblyInstructionMnemonic::JGE:
-			case x86_AssemblyInstructionMnemonic::JL:
-			case x86_AssemblyInstructionMnemonic::JLE:
-			case x86_AssemblyInstructionMnemonic::JMP:
-			case x86_AssemblyInstructionMnemonic::SETE:
-			case x86_AssemblyInstructionMnemonic::SETNE:
-			case x86_AssemblyInstructionMnemonic::SETG:
-			case x86_AssemblyInstructionMnemonic::SETGE:
-			case x86_AssemblyInstructionMnemonic::SETL:
-			case x86_AssemblyInstructionMnemonic::SETLE:
-			case x86_AssemblyInstructionMnemonic::MULSS:
-			case x86_AssemblyInstructionMnemonic::SHL:
-			case x86_AssemblyInstructionMnemonic::SHR:
+			case x86_Asm_IR_Mnemonic::ADD:
+			case x86_Asm_IR_Mnemonic::SUB:
+			case x86_Asm_IR_Mnemonic::SUBSS:
+			case x86_Asm_IR_Mnemonic::INC:
+			case x86_Asm_IR_Mnemonic::DEC:
+			case x86_Asm_IR_Mnemonic::DIVSS:
+			case x86_Asm_IR_Mnemonic::IDIV:
+			case x86_Asm_IR_Mnemonic::DIV:
+			case x86_Asm_IR_Mnemonic::PUSHQ:
+			case x86_Asm_IR_Mnemonic::CALL:
+			case x86_Asm_IR_Mnemonic::RETQ:
+			case x86_Asm_IR_Mnemonic::MOV:
+			case x86_Asm_IR_Mnemonic::MOVD:
+			case x86_Asm_IR_Mnemonic::MOVSS:
+			case x86_Asm_IR_Mnemonic::MOVQ:
+			case x86_Asm_IR_Mnemonic::CMP:
+			case x86_Asm_IR_Mnemonic::JE:
+			case x86_Asm_IR_Mnemonic::JNE:
+			case x86_Asm_IR_Mnemonic::JG:
+			case x86_Asm_IR_Mnemonic::JGE:
+			case x86_Asm_IR_Mnemonic::JL:
+			case x86_Asm_IR_Mnemonic::JLE:
+			case x86_Asm_IR_Mnemonic::JMP:
+			case x86_Asm_IR_Mnemonic::SETE:
+			case x86_Asm_IR_Mnemonic::SETNE:
+			case x86_Asm_IR_Mnemonic::SETG:
+			case x86_Asm_IR_Mnemonic::SETGE:
+			case x86_Asm_IR_Mnemonic::SETL:
+			case x86_Asm_IR_Mnemonic::SETLE:
+			case x86_Asm_IR_Mnemonic::SHL:
+			case x86_Asm_IR_Mnemonic::SHR:			
+			case x86_Asm_IR_Mnemonic::IMUL:		
+			case x86_Asm_IR_Mnemonic::MULSS:
+			case x86_Asm_IR_Mnemonic::MUL:
 			{
-				type = x86_AssemblyInstructionType::INSTRUCTION;
+				type = x86_Asm_IR_Type::INSTRUCTION;
 				const char* label = NULL;
 				mnemonic = m;
 				op1 = o1;
@@ -471,21 +615,25 @@ public:
 	}
 
 	inline void print() const {
-		if (type == x86_AssemblyInstructionType::LABELED_INSTRUCTION) {
-			cout << label;
-			cout << ":" 
+		if (type == x86_Asm_IR_Type::LABELED_INSTRUCTION) {
+			cout << label 
+				 << ":" 
 				 << endl;
 		} 
-		cout << "\t";	
-		cout << x86_assembly_instruction_mnemonic_string_reprs[(int)mnemonic];
-		
-		cout << " ";
+
+		cout << "\t"
+			 << std::left
+			 << setw(5)
+			 << setfill(' ')
+		     << x86_asm_ir_mnemonic_string_reprs[(int) mnemonic]
+		     << " ";
 		if (num_operands > 0) {
 			op1.print();
 		}			
 		if (num_operands > 1) {
 			cout << ", ";
 			op2.print();
+
 		}
 		if (num_operands > 2) {
 			cout << ", ";
@@ -495,270 +643,1432 @@ public:
 	}
 };
 
-static inline x86_Register reg_alloc(
-	x86_RegisterAllocMap& map);
+static inline CodeGeneratorExitCode convert_operand_to_correct_type(
+	x86_Asm_IR_Operand     const& operand,
+	x86_Asm_IR_OperandType const& conversion_type,
+	x86_Asm_IR_Operand          & converted_operand) 
+{
+	CodeGeneratorExitCode exitcode
+		= CodeGeneratorExitCode::FAILURE;
+	switch (operand.get_type()) {
+
+		case x86_Asm_IR_OperandType::X86_REGISTER_INDEX:
+			
+			switch (conversion_type) {
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_INDEX:
+					converted_operand = operand;
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_CONTAINING_ADDR:
+					break;
+
+				case x86_Asm_IR_OperandType::NEAR_POINTER:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL_AND_REGISTER:
+					break;
+
+				case x86_Asm_IR_OperandType::REGISTER_AND_OFFSET:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL:
+					break;
+
+				default:
+					break;
+			}
+			break;
+
+		case x86_Asm_IR_OperandType::X86_REGISTER_CONTAINING_ADDR:
+
+			switch (conversion_type) {
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_INDEX:
+					break;
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_CONTAINING_ADDR:
+					converted_operand = operand;
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+
+				case x86_Asm_IR_OperandType::NEAR_POINTER:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL_AND_REGISTER:
+					break;
+
+				case x86_Asm_IR_OperandType::REGISTER_AND_OFFSET:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL:
+					break;
+
+				default:
+					break;
+			}
+			break;
+
+		case x86_Asm_IR_OperandType::NEAR_POINTER:
+			
+			 switch (conversion_type) {
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_INDEX:
+					break;
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_CONTAINING_ADDR:
+					break;
+
+				case x86_Asm_IR_OperandType::NEAR_POINTER:
+					converted_operand = operand;
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL_AND_REGISTER:
+					break;
+
+				case x86_Asm_IR_OperandType::REGISTER_AND_OFFSET:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL:
+					break;
+
+				default:
+					break;
+
+			}
+			break; 
+		
+		case x86_Asm_IR_OperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
+
+			switch (conversion_type) {
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_INDEX:
+					break;
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_CONTAINING_ADDR:
+					break;
+
+				case x86_Asm_IR_OperandType::NEAR_POINTER:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
+					converted_operand = operand;
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL_AND_REGISTER:
+					break;
+
+				case x86_Asm_IR_OperandType::REGISTER_AND_OFFSET:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL:
+					break;
+
+				default:
+					break;
+
+			}
+			break;
+
+		case x86_Asm_IR_OperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
+
+			switch (conversion_type) {
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_INDEX:
+					break;
+				
+				case x86_Asm_IR_OperandType::X86_REGISTER_CONTAINING_ADDR:
+					break;
+
+				case x86_Asm_IR_OperandType::NEAR_POINTER:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
+					converted_operand = operand;
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL_AND_REGISTER:
+					break;
+
+				case x86_Asm_IR_OperandType::REGISTER_AND_OFFSET:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL:
+					break;
+
+				default:
+					break;
+
+			}
+			break;
+
+		case x86_Asm_IR_OperandType::LABEL_AND_REGISTER:
+
+			switch (conversion_type) {
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_INDEX:
+					break;
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_CONTAINING_ADDR:
+					break;
+
+				case x86_Asm_IR_OperandType::NEAR_POINTER:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL_AND_REGISTER:
+					converted_operand = operand;
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+
+				case x86_Asm_IR_OperandType::REGISTER_AND_OFFSET:
+					break;
+				
+				case x86_Asm_IR_OperandType::LABEL:
+					break;
+				
+				default:
+					break;
+			}
+			break;
+
+		case x86_Asm_IR_OperandType::REGISTER_AND_OFFSET:
+
+			switch (conversion_type) {
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_INDEX:
+					break;
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_CONTAINING_ADDR:
+					break;
+
+				case x86_Asm_IR_OperandType::NEAR_POINTER:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL_AND_REGISTER:
+					break;
+
+				case x86_Asm_IR_OperandType::REGISTER_AND_OFFSET:
+					converted_operand = operand;
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL:
+					break;
+
+				default:
+					break;
+
+			}
+			break; 
+		
+		case x86_Asm_IR_OperandType::LABEL:
+
+			switch (conversion_type) {
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_INDEX:
+					break;
+
+				case x86_Asm_IR_OperandType::X86_REGISTER_CONTAINING_ADDR:
+					break;
+
+				case x86_Asm_IR_OperandType::NEAR_POINTER:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_64_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::FAR_POINTER_WITH_32_BIT_OPERAND_SIZE:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL_AND_REGISTER:
+					break;
+
+				case x86_Asm_IR_OperandType::REGISTER_AND_OFFSET:
+					break;
+
+				case x86_Asm_IR_OperandType::LABEL:
+					converted_operand = operand;
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+
+				default:
+					break;
+			}
+			break;
+
+		default:
+			break;
+	}
+}
+
+static inline CodeGeneratorExitCode construct_x86_AssemblyInstruction_multiply(
+	const Type*        const& op1_t,
+	x86_Asm_IR_Operand const& op1,
+	const Type*        const& op2_t,
+	x86_Asm_IR_Operand const& op2,
+	x86_Asm_IR*             & instrs) 
+{
+	CodeGeneratorExitCode exitcode 
+		= CodeGeneratorExitCode::FAILURE;
+	if (op1_t->classifier    == TypeClassifier::OBJECT
+	    && op2_t->classifier == TypeClassifier::OBJECT) {
+
+		if (is_real_floating_type(op1_t) 
+			&& is_real_floating_type(op2_t)) {
+			*instrs++ 
+				= x86_Asm_IR(
+					x86_Asm_IR_Mnemonic::MULSS,
+					op1,
+					op2); 
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+
+		} else if (is_signed_integer_type(op1_t)
+			       && is_signed_integer_type(op2_t)) {
+			*instrs++ 
+				= x86_Asm_IR(
+					x86_Asm_IR_Mnemonic::IMUL,
+					op1,
+					op2);
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+
+		} else if (is_unsigned_integer_type(op1_t)   
+			       && is_unsigned_integer_type(op2_t)) {
+			*instrs++ 
+				= x86_Asm_IR(
+					x86_Asm_IR_Mnemonic::MUL,
+					op1,
+					op2);
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+
+		} else {
+
+		}
+
+	} else {
+
+	}
+	if (exitcode == CodeGeneratorExitCode::FAILURE) {
+		/*	
+		report_codegen_conversion_failure(
+			"construct_x86_AssemblyInstruction_multiply:",
+			op1_t,
+			op2_t);*/
+		cout << "\x1B[31m"
+			 << "construct_x86_AssemblyInstruction_multiply:"
+			 << " failed to convert type ";
+		print_type(op1_t);
+		cout << " to type ";
+		print_type(op2_t);
+		cout << "."
+			 << "\033[0m"
+			 << endl;
+	}
+	return exitcode;
+}
+
+static inline CodeGeneratorExitCode construct_x86_AssemblyInstruction_divide(
+	const Type*        const& op1_t,
+	x86_Asm_IR_Operand const& op1,
+	const Type*        const& op2_t,
+	x86_Asm_IR_Operand const& op2,
+	x86_Asm_IR*             & instrs)
+{
+	CodeGeneratorExitCode exitcode 
+		= CodeGeneratorExitCode::FAILURE;
+
+	if (is_real_floating_type(op1_t)
+		&& is_real_floating_type(op2_t)) {
+		*instrs++ = x86_Asm_IR(
+			x86_Asm_IR_Mnemonic::DIVSS,
+			op1,
+			op2);
+		exitcode = CodeGeneratorExitCode::SUCCESS;
+
+	} else if (is_signed_integer_type(op1_t)
+		       && is_signed_integer_type(op2_t)) {
+		*instrs++ = x86_Asm_IR(
+			x86_Asm_IR_Mnemonic::IDIV,
+			op1,
+			op2);			
+		exitcode = CodeGeneratorExitCode::SUCCESS;
+
+	} else if (is_unsigned_integer_type(op1_t)
+		       && is_unsigned_integer_type(op2_t)) {
+		*instrs++ = x86_Asm_IR(
+			x86_Asm_IR_Mnemonic::DIV,
+			op1,
+			op2);
+		exitcode = CodeGeneratorExitCode::SUCCESS;
+
+	} else {
+
+	}
+
+	if (exitcode == CodeGeneratorExitCode::FAILURE) {
+		cout << "\x1B[31m"
+			 << "construct_x86_AssemblyInstruction_divide:"
+			 << " failed to convert type ";
+		print_type(op1_t);
+		cout << " to type ";
+		print_type(op2_t);
+		cout << "." << "\033[0m"
+			 << endl;
+	}
+	return exitcode;
+}
+
+static inline CodeGeneratorExitCode construct_x86_AssemblyInstruction_mov(
+	const Type*        const& dest_t,
+	x86_Asm_IR_Operand const& dest,
+	const Type*        const& source_t,
+	x86_Asm_IR_Operand const& source,
+	x86_Asm_IR*             & instrs)
+{
+	CodeGeneratorExitCode exitcode 
+		= CodeGeneratorExitCode::FAILURE_CONVERSION_ERROR;
+
+	if (is_real_floating_type(dest_t) 
+		&& is_real_floating_type(source_t)) {
+		*instrs++ = x86_Asm_IR(
+			x86_Asm_IR_Mnemonic::MOVSS,
+			dest,
+			source);
+		exitcode = CodeGeneratorExitCode::SUCCESS;
+
+	} else if (is_integer_type(dest_t) 
+		       && is_integer_type(source_t)) {
+		*instrs++ = x86_Asm_IR(
+			x86_Asm_IR_Mnemonic::MOV,
+			dest,
+			source);
+		exitcode = CodeGeneratorExitCode::SUCCESS;
+
+	} else if (is_pointer_type(dest_t)
+		       && types_are_equivalent(
+				      dereference_type(dest_t), 
+				      source_t)) {
+		x86_Asm_IR_OperandVal v;
+		v.rao.reg = dest.get_constant_val().reg_index;
+		v.rao.offset = 0;
+
+		x86_Asm_IR_Operand new_op1 
+		    = x86_Asm_IR_Operand(
+			      x86_Asm_IR_OperandType::REGISTER_AND_OFFSET,
+				  v);
+		*instrs++ = x86_Asm_IR(
+			x86_Asm_IR_Mnemonic::MOV,
+			source,
+			new_op1);
+		exitcode = CodeGeneratorExitCode::SUCCESS;
+
+	} else {
+
+	}
+
+	if (exitcode == CodeGeneratorExitCode::FAILURE_CONVERSION_ERROR) {
+		cout << "\x1B[31m"
+			 << "construct_x86_AssemblyInstruction_mov:"
+			 << " failed to convert type ";
+		print_type(dest_t);
+		cout << " to type ";
+		print_type(source_t);
+		cout << "." 
+			 << "\033[0m"
+			 << endl;
+	}
+	return exitcode;
+}
+
+static inline CodeGeneratorExitCode construct_x86_AssemblyInstruction_add(
+	const Type*        const& op1_t,
+	x86_Asm_IR_Operand const& op1,
+	const Type*        const& op2_t,
+	x86_Asm_IR_Operand const& op2,
+	x86_Asm_IR*             & instrs)
+{
+	CodeGeneratorExitCode exitcode 
+		= CodeGeneratorExitCode::FAILURE;
+
+	if (is_real_floating_type(op1_t)
+		&& is_real_floating_type(op2_t)) {
+		*instrs++ = x86_Asm_IR(
+			x86_Asm_IR_Mnemonic::ADDSS,
+			op1,
+			op2);
+		exitcode = CodeGeneratorExitCode::SUCCESS;
+		
+	} else if (is_integer_type(op1_t) 
+			   && is_integer_type(op2_t)) {
+		*instrs++ = x86_Asm_IR(
+			x86_Asm_IR_Mnemonic::ADD,
+			op1,
+			op2);
+		exitcode = CodeGeneratorExitCode::SUCCESS;
+
+	} else {
+
+	}
+
+	if (exitcode == CodeGeneratorExitCode::FAILURE) {
+		cout << "\x1B[31m";
+
+		cout << "construct_x86_AssemblyInstruction_add:"
+			 << " failed to convert type ";
+		print_type(op1_t);
+		cout << " to type ";
+		print_type(op2_t);
+		cout << "." 
+			 << "\033[0m"
+			 << endl;
+	}
+	return exitcode;
+}
+
+static inline CodeGeneratorExitCode construct_x86_AssemblyInstruction_sub(
+	const Type*        const& op1_t,
+	x86_Asm_IR_Operand const& op1,
+	const Type*        const& op2_t,
+	x86_Asm_IR_Operand const& op2,
+	x86_Asm_IR*             & instrs)
+{
+	CodeGeneratorExitCode exitcode 
+		= CodeGeneratorExitCode::FAILURE;
+
+	if (is_real_floating_type(op1_t)
+		&& is_real_floating_type(op2_t)) {
+		*instrs++ = x86_Asm_IR(
+			x86_Asm_IR_Mnemonic::SUBSS,
+			op1,
+			op2);
+		exitcode = CodeGeneratorExitCode::SUCCESS;
+
+	} else if (is_integer_type(op1_t)
+		       && is_integer_type(op2_t)) {
+		*instrs++ = x86_Asm_IR(
+			x86_Asm_IR_Mnemonic::SUB,
+			op1,
+			op2);
+		exitcode = CodeGeneratorExitCode::SUCCESS;
+
+	} else {
+
+	}
+
+	if (exitcode == CodeGeneratorExitCode::FAILURE) {
+		cout << "\x1B[31m";
+		cout << "construct_x86_AssemblyInstruction_sub:"
+			 << " failed to convert type ";
+		print_type(op1_t);
+		cout << " to type ";
+		print_type(op2_t);
+		cout << "." 
+			 << "\033[0m"
+			 << endl;
+	}
+	return exitcode;
+}
 
 static inline CodeGeneratorExitCode gen_primary_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_postfix_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_unary_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_cast_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_multiplicative_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_additive_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_shift_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_relational_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_equality_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_and_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_exclusive_or_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_inclusive_or_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_logical_and_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_exclusive_or_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_logical_or_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_conditional_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_assignment_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand); 
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand); 
 
 static inline CodeGeneratorExitCode gen_constant_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_Register const& output_register);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_RegisterName        const& output_register);
 
 /* Declarations. */
 
 static inline CodeGeneratorExitCode gen_declaration(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map);
 
 static inline CodeGeneratorExitCode gen_declaration_specifiers(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_Register const& output_register);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_RegisterName        const& output_register);
 
 static inline CodeGeneratorExitCode gen_init_declarator_list(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map);
 
 static inline CodeGeneratorExitCode gen_init_declarator(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map);
 
 static inline CodeGeneratorExitCode gen_initializer(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_initializer_list(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map);
 
 /* Statements. */
 
 static inline CodeGeneratorExitCode gen_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map);
 
 static inline CodeGeneratorExitCode gen_labeled_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs);
 
 static inline CodeGeneratorExitCode gen_compound_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
-
-static inline CodeGeneratorExitCode gen_block_item_list(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map);
 
 static inline CodeGeneratorExitCode gen_block_item(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map);
+
+static inline CodeGeneratorExitCode gen_block_item_list(
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map);
 
 static inline CodeGeneratorExitCode gen_expression_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand);
 
 static inline CodeGeneratorExitCode gen_selection_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs);
 
 static inline CodeGeneratorExitCode gen_iteration_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs);
 
 static inline CodeGeneratorExitCode gen_jump_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs);
 
 /* External definitions. */
 
 static inline CodeGeneratorExitCode gen_translation_unit(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs);
 
 static inline CodeGeneratorExitCode gen_external_declaration(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs);
 
 static inline CodeGeneratorExitCode gen_function_definition(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs);
 
 static inline CodeGeneratorExitCode gen_declaration_list(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_Register const& output_register);
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_RegisterName        const& output_register);
 
-static inline x86_Register reg_alloc(
-	x86_RegisterAllocMap& map)
+static x86_RegisterAllocMap construct_blank_alloc_map() {
+	const x86_RegisterAllocMap retval
+		= x86_RegisterAllocMap({ });
+	return retval;
+}
+
+static inline x86_RegisterType get_register_type_from_ast_type(
+	const Type* const& type)
 {
-	x86_RegisterAllocMap m = map;
-	int i = 0;
-	while ((m % 2) != 0) {
-		m >>= 1;
-		i++;
+	x86_RegisterType reg_type = x86_RegisterType::UNDEFINED;
+	if (is_integer_type(type)) {
+		const int sz = get_sizeof_type(type);
+		switch (sz) {
+			case 8: reg_type = x86_RegisterType::INT_64; break;
+			case 4: reg_type = x86_RegisterType::INT_32; break;
+			case 2: reg_type = x86_RegisterType::INT_16; break;
+			case 1: reg_type = x86_RegisterType::INT_8;  break;
+			default: break;
+		}
+
+	} else if (is_real_floating_type(type)) {
+		const int sz = get_sizeof_type(type);
+		switch (sz) {
+			case 8: reg_type = x86_RegisterType::FLOAT_64; break;
+			case 4: reg_type = x86_RegisterType::FLOAT_32; break;
+			default: break;
+		}
+
+	} else {
+
 	}
-	map += (1 << i);
-	report_alloc(i);
-	return (x86_Register) i;
+	return reg_type;
+}
+
+static inline bool accumulator_is_free(
+	x86_RegisterAllocMap const& map) 
+{
+	const bool retval 
+		=  map.rax    == false
+		   && map.eax == false
+		   && map.ax  == false
+		   && map.ah  == false
+		   && map.al  == false;
+	return retval; 
+}
+
+static inline bool counter_is_free(
+	x86_RegisterAllocMap const& map)
+{
+	const bool retval
+		= map.rcx    == false
+		  && map.ecx == false
+		  && map.cx  == false
+		  && map.ch  == false
+	  	  && map.cl  == false;
+	return retval; 
+}
+
+static inline bool data_is_free(
+	x86_RegisterAllocMap const& map)
+{
+	const bool retval
+		= map.rdx    == false
+		  && map.edx == false
+		  && map.dx  == false
+		  && map.dh  == false
+		  && map.dl  == false;
+	return retval;
+}
+
+static inline bool base_is_free(
+	x86_RegisterAllocMap const& map)
+{
+	const bool retval
+		= map.rbx    == false
+		  && map.ebx == false
+		  && map.bx  == false
+		  && map.bh  == false
+		  && map.bl  == false;
+	return retval;
+}
+
+static inline bool stack_pointer_is_free(
+	x86_RegisterAllocMap const& map)
+{
+	const bool retval
+		= map.rsp    == false
+		  && map.esp == false
+		  && map.sp  == false
+		  && map.spl == false;
+	return retval;
+}
+
+static inline bool stack_base_pointer_is_free(
+	x86_RegisterAllocMap const& map)
+{
+	const bool retval
+		= map.rbp    == false
+		  && map.ebp == false
+		  && map.bp  == false
+		  && map.bpl == false;
+	return retval;
+}
+
+static inline bool source_is_free(
+	x86_RegisterAllocMap const& map)
+{
+	const bool retval
+		= map.rsi    == false
+		  && map.esi == false
+		  && map.si  == false
+		  && map.sil == false;
+	return retval;
+}
+
+static inline bool destination_is_free(
+	x86_RegisterAllocMap const& map)
+{
+	const bool retval
+		= map.rdi    == false
+		  && map.edi == false
+		  && map.di  == false
+		  && map.dil == false;
+	return retval;
+}
+
+static inline void allocate_given_register(
+	x86_RegisterAllocMap      & map,
+	x86_RegisterName     const& name)
+{
+	switch (name) {
+		case x86_RegisterName::XMM0: map.xmm0 = true; break;
+		case x86_RegisterName::XMM1: map.xmm1 = true; break;
+		case x86_RegisterName::XMM2: map.xmm2 = true; break;
+		case x86_RegisterName::XMM3: map.xmm3 = true; break;
+		case x86_RegisterName::XMM4: map.xmm4 = true; break;
+		case x86_RegisterName::XMM5: map.xmm5 = true; break;
+		case x86_RegisterName::XMM6: map.xmm6 = true; break;
+		case x86_RegisterName::XMM7: map.xmm7 = true; break;
+		case x86_RegisterName::RAX : map.rax  = true; break;
+		case x86_RegisterName::EAX : map.eax  = true; break;
+		case x86_RegisterName::AX  : map.ax   = true; break;
+		case x86_RegisterName::AH  : map.ah   = true; break;
+		case x86_RegisterName::AL  : map.al   = true; break;
+		case x86_RegisterName::RCX : map.rcx  = true; break;
+		case x86_RegisterName::ECX : map.ecx  = true; break;
+		case x86_RegisterName::CX  : map.cx   = true; break;
+		case x86_RegisterName::CH  : map.ch   = true; break;
+		case x86_RegisterName::CL  : map.cl   = true; break;
+		case x86_RegisterName::RDX : map.rdx  = true; break;
+		case x86_RegisterName::EDX : map.edx  = true; break;
+		case x86_RegisterName::DX  : map.dx   = true; break;
+		case x86_RegisterName::DH  : map.dh   = true; break;
+		case x86_RegisterName::DL  : map.dl   = true; break;
+		case x86_RegisterName::RBX : map.rbx  = true; break;
+		case x86_RegisterName::EBX : map.ebx  = true; break;
+		case x86_RegisterName::BX  : map.bx   = true; break;
+		case x86_RegisterName::BH  : map.bh   = true; break;
+		case x86_RegisterName::BL  : map.bl   = true; break;
+		case x86_RegisterName::RSP : map.rsp  = true; break;
+		case x86_RegisterName::ESP :  map.esp  = true; break;
+		case x86_RegisterName::SP  :   map.sp   = true; break;
+		case x86_RegisterName::SPL :  map.spl  = true; break;
+		case x86_RegisterName::RBP :  map.rbp  = true; break;
+		case x86_RegisterName::EBP :  map.ebp  = true; break;
+		case x86_RegisterName::BP  :   map.bp   = true; break;
+		case x86_RegisterName::BPL:  map.bpl  = true; break;
+		case x86_RegisterName::RSI:  map.rsi  = true; break;
+		case x86_RegisterName::ESI:  map.esi  = true; break;
+		case x86_RegisterName::SI :   map.si   = true; break;
+		case x86_RegisterName::SIL:  map.sil  = true; break;
+		case x86_RegisterName::RDI:  map.rdi  = true; break;
+		case x86_RegisterName::EDI:  map.edi  = true; break;
+		case x86_RegisterName::DI :   map.di   = true; break;
+		case x86_RegisterName::DIL:  map.dil  = true; break;
+		case x86_RegisterName::R8 :   map.r8   = true; break;
+		case x86_RegisterName::R9 :   map.r9   = true; break;
+		case x86_RegisterName::R10:  map.r10  = true; break;
+		case x86_RegisterName::R11:  map.r11  = true; break;
+		case x86_RegisterName::R12:  map.r12  = true; break;
+		case x86_RegisterName::R13:  map.r13  = true; break;
+		case x86_RegisterName::R14:  map.r14  = true; break;
+		case x86_RegisterName::R15:  map.r15  = true; break;
+		case x86_RegisterName::RIP:  map.rip  = true; break;
+		default: break;
+	}
+}
+
+static inline x86_RegisterName allocate_accumulator_of_size(
+	x86_RegisterAllocMap      & map,
+	x86_RegisterType     const& register_size)
+{
+	x86_RegisterName alloced_reg;
+	switch (register_size) {
+
+		case x86_RegisterType::INT_64:
+		case x86_RegisterType::INT_32:
+		case x86_RegisterType::INT_16:
+		case x86_RegisterType::INT_8:
+			map.rax     = true;
+			alloced_reg = x86_RegisterName::RAX;
+			break;
+
+		/*
+		case x86_RegisterType::INT_32:
+			map.eax     = true;
+			alloced_reg = x86_RegisterName::EAX;
+			break;
+
+		case x86_RegisterType::INT_16:
+			map.ax      = true;
+			alloced_reg = x86_RegisterName::AX;
+			break;
+
+		case x86_RegisterType::INT_8:
+			map.ah      = true;
+			alloced_reg = x86_RegisterName::AH;
+			break;
+		*/
+
+		default:
+			break;
+	
+	}
+	return alloced_reg;
+}
+
+static inline x86_RegisterName allocate_counter_of_size(
+	x86_RegisterAllocMap      & map,
+	x86_RegisterType     const& register_size)
+{
+	x86_RegisterName alloced_reg;
+	switch (register_size) {
+
+		case x86_RegisterType::INT_64:
+		case x86_RegisterType::INT_32:
+		case x86_RegisterType::INT_16:
+		case x86_RegisterType::INT_8:
+			map.rcx     = true;
+			alloced_reg = x86_RegisterName::RCX;
+			break;
+
+		/*case x86_RegisterType::INT_32:
+			map.ecx     = true;
+			alloced_reg = x86_RegisterName::ECX;
+			break;
+
+		case x86_RegisterType::INT_16:
+			map.cx      = true;
+			alloced_reg = x86_RegisterName::CX;
+			break;
+
+		case x86_RegisterType::INT_8:
+			map.ch      = true;
+			alloced_reg = x86_RegisterName::CH;
+			break;*/
+
+		default:
+			break;
+	
+	}
+	return alloced_reg;
+}
+
+static inline x86_RegisterName allocate_data_of_size(
+	x86_RegisterAllocMap      & map,
+	x86_RegisterType     const& register_size)
+{
+	x86_RegisterName alloced_reg;
+	switch (register_size) {
+
+		case x86_RegisterType::INT_64:
+		case x86_RegisterType::INT_32:
+		case x86_RegisterType::INT_16:
+		case x86_RegisterType::INT_8:
+			map.rdx     = true;
+			alloced_reg = x86_RegisterName::RDX;
+			break;
+
+		/*case x86_RegisterType::INT_32:
+			map.edx     = true;
+			alloced_reg = x86_RegisterName::EDX;
+			break;
+
+		case x86_RegisterType::INT_16:
+			map.dx       = true;
+			alloced_reg = x86_RegisterName::DX;
+			break;
+
+		case x86_RegisterType::INT_8:
+			map.dl      = true;
+			alloced_reg = x86_RegisterName::DL;
+			break;*/
+
+		default:
+			break;
+	
+	}
+	return alloced_reg;
+}
+
+static inline x86_RegisterName allocate_base_of_size(
+	x86_RegisterAllocMap      & map,
+	x86_RegisterType     const& register_size)
+{
+	x86_RegisterName alloced_reg;
+	switch (register_size) {
+
+		case x86_RegisterType::INT_64:
+		case x86_RegisterType::INT_32:
+		case x86_RegisterType::INT_16:
+		case x86_RegisterType::INT_8:
+			map.rbx     = true;
+			alloced_reg = x86_RegisterName::RBX;
+			break;
+
+		/*case x86_RegisterType::INT_32:
+			map.ebx     = true;
+			alloced_reg = x86_RegisterName::EBX;
+			break;
+
+		case x86_RegisterType::INT_16:
+			map.bx       = true;
+			alloced_reg = x86_RegisterName::BX;
+			break;
+
+		case x86_RegisterType::INT_8:
+			map.bl      = true;
+			alloced_reg = x86_RegisterName::BL;
+			break;*/
+
+		default:
+			break;
+	
+	}
+	return alloced_reg;
+}
+
+static inline x86_RegisterName allocate_stack_pointer_of_size(
+	x86_RegisterAllocMap      & map,
+	x86_RegisterType     const& register_size)
+{
+	x86_RegisterName alloced_reg;
+	switch (register_size) {
+
+		case x86_RegisterType::INT_64:
+		case x86_RegisterType::INT_32:
+		case x86_RegisterType::INT_16:
+		case x86_RegisterType::INT_8:
+			map.rsp     = true;
+			alloced_reg = x86_RegisterName::RSP;
+			break;
+
+		/*case x86_RegisterType::INT_32:
+			map.esp = true;
+			alloced_reg = x86_RegisterName::ESP;
+			break;
+
+		case x86_RegisterType::INT_16:
+			map.sp = true;
+			alloced_reg = x86_RegisterName::SP;
+			break;
+
+		case x86_RegisterType::INT_8:
+			map.spl = true;
+			alloced_reg = x86_RegisterName::SPL;
+			break;*/
+
+		default:
+			break;
+
+	}
+	return alloced_reg;
+}
+
+static inline x86_RegisterName allocate_stack_base_pointer_of_size(
+	x86_RegisterAllocMap      & map,
+	x86_RegisterType     const& register_size)
+{
+	x86_RegisterName alloced_reg;
+	switch (register_size) {
+
+		case x86_RegisterType::INT_64:
+		case x86_RegisterType::INT_32:
+		case x86_RegisterType::INT_16:
+		case x86_RegisterType::INT_8:
+			map.rbp     = true;
+			alloced_reg = x86_RegisterName::RBP;
+			break;
+
+		/*case x86_RegisterType::INT_32:
+			map.ebp     = true;
+			alloced_reg = x86_RegisterName::EBP;
+			break;
+
+		case x86_RegisterType::INT_16:
+			map.bp      = true;
+			alloced_reg = x86_RegisterName::BP;
+			break;
+
+		case x86_RegisterType::INT_8:
+			map.bpl     = true;
+			alloced_reg = x86_RegisterName::BPL;
+			break;*/
+
+		default:
+			break;
+
+	}
+	return alloced_reg;
+}
+
+static inline x86_RegisterName allocate_source_of_size(
+	x86_RegisterAllocMap      & map,
+	x86_RegisterType     const& register_size)
+{
+	x86_RegisterName alloced_reg;
+	switch (register_size) {
+
+		case x86_RegisterType::INT_64:
+		case x86_RegisterType::INT_32:
+		case x86_RegisterType::INT_16:
+		case x86_RegisterType::INT_8:
+			map.rsi     = true;
+			alloced_reg = x86_RegisterName::RSI;
+			break;
+
+		/*
+		case x86_RegisterType::INT_32:
+			map.esi     = true;
+			alloced_reg = x86_RegisterName::ESI;
+			break;
+
+		case x86_RegisterType::INT_16:
+			map.si      = true;
+			alloced_reg = x86_RegisterName::SI;
+			break;
+
+		case x86_RegisterType::INT_8:
+			map.sil     = true;
+			alloced_reg = x86_RegisterName::SIL;
+			break;
+		*/
+
+		default:
+			break;
+
+	}
+	return alloced_reg;
+}
+
+static inline x86_RegisterName allocate_destination_of_size(
+	x86_RegisterAllocMap      & map,
+	x86_RegisterType     const& register_size)
+{
+	x86_RegisterName alloced_reg;
+	switch (register_size) {
+
+		case x86_RegisterType::INT_64:
+		case x86_RegisterType::INT_32:
+		case x86_RegisterType::INT_16:
+		case x86_RegisterType::INT_8:
+			map.rdi     = true;
+			alloced_reg = x86_RegisterName::RDI;
+			break;
+
+		/*
+		case x86_RegisterType::INT_32:
+			map.edi     = true;
+			alloced_reg = x86_RegisterName::EDI;
+			break;
+
+		case x86_RegisterType::INT_16:
+			map.di      = true;
+			alloced_reg = x86_RegisterName::DI;
+			break;
+
+		case x86_RegisterType::INT_8:
+			map.dil     = true;
+			alloced_reg = x86_RegisterName::DIL;
+			break;
+		*/
+
+		default:
+			break;
+
+	}
+	return alloced_reg;
+}
+
+static inline x86_RegisterName allocate_register(
+	x86_RegisterAllocMap      & map,
+	x86_RegisterType     const& register_size)
+{
+	x86_RegisterName allocated_register;
+	
+	switch (register_size) {
+
+		case x86_RegisterType::INT_64:
+		case x86_RegisterType::INT_32:
+		case x86_RegisterType::INT_16:
+		case x86_RegisterType::INT_8:
+		{
+			if (accumulator_is_free(map)) {
+				allocated_register 
+					= allocate_accumulator_of_size(
+						map,
+						register_size);
+
+			} else if (counter_is_free(map)) {
+				allocated_register
+					= allocate_counter_of_size(
+						map,
+						register_size);
+
+			} else if (data_is_free(map)) {
+				allocated_register 
+					= allocate_data_of_size(
+						map, 
+						register_size);
+
+			} else if (base_is_free(map)) {
+				allocated_register 
+					= allocate_base_of_size(
+						map, 
+						register_size);
+
+			} else if (stack_pointer_is_free(map)) {
+				allocated_register
+					= allocate_stack_pointer_of_size(
+						map, 
+						register_size);
+
+			} else if (stack_base_pointer_is_free(map)) {
+				allocated_register 
+					= allocate_stack_base_pointer_of_size(
+						map, 
+						register_size);
+
+			} else if (source_is_free(map)) {
+				allocated_register 
+					= allocate_source_of_size(
+						map, 
+						register_size);
+
+			} else if (destination_is_free(map)) {
+				allocated_register
+					= allocate_destination_of_size(
+						map, 
+						register_size);
+
+			} else {
+				cout << "alloc_fail";
+			}
+			break;
+		}
+
+		case x86_RegisterType::FLOAT_64:
+		case x86_RegisterType::FLOAT_32:
+		{
+			if (map.xmm0 == false) {
+				allocated_register = x86_RegisterName::XMM0;
+				map.xmm0 = true;
+
+			} else if (map.xmm1 == false) {
+				allocated_register = x86_RegisterName::XMM1;
+				map.xmm1 = true;
+
+			} else if (map.xmm2 == false) {
+				allocated_register = x86_RegisterName::XMM2;
+				map.xmm2 = true;
+
+			} else if (map.xmm3 == false) {
+				allocated_register = x86_RegisterName::XMM3;
+				map.xmm3 = true;
+
+			} else if (map.xmm4 == false) {
+				allocated_register = x86_RegisterName::XMM4;
+				map.xmm4 = true;
+
+			} else if (map.xmm5 == false) {
+				allocated_register = x86_RegisterName::XMM5;
+				map.xmm5 = true;
+
+			} else if (map.xmm6 == false) {
+				allocated_register = x86_RegisterName::XMM6;
+				map.xmm6 = true;
+
+			} else if (map.xmm7 == false) {
+				allocated_register = x86_RegisterName::XMM7;
+				map.xmm7 = true;
+
+			} else {
+				cout << "alloc_fail";
+			}
+			break;
+		}
+
+		default:
+			cout << "alloc_fail";
+			break;
+
+	}
+	return allocated_register;
 }
 
 static inline CodeGeneratorExitCode gen_symbol(
-	SymbolTableEntry* const& symbol_entry,
-	x86_AssemblyInstruction*& instrs,
-	x86_AssemblyInstructionOperand& operand)
+	const SymbolTableEntry* const& symbol_entry,
+	x86_Asm_IR*                  & instrs,
+	x86_Asm_IR_Operand           & operand,
+	x86_RegisterAllocMap    const& map)
 {
 	report_gen("gen_symbol");
 	CodeGeneratorExitCode exitcode
@@ -766,29 +2076,29 @@ static inline CodeGeneratorExitCode gen_symbol(
 
  	switch (symbol_entry->scope) {
 
-		case Scope::LOCAL:
-		case Scope::PARAM:
+		case Scope::BLOCK:
+		case Scope::FUNCTION:
 		{
+			x86_RegisterAllocMap alloc_map
+				= construct_blank_alloc_map();
+
 			register_and_offset rao;
 			rao.offset
 				= symbol_entry->base_pointer_offset
 				  - symbol_entry->function_ptr->function_frame_size;
-
-			rao.reg
-				= x86_Register::RBP;
-
-			x86_AssemblyInstructionOperandVal v;
+			rao.reg = x86_RegisterName::RBP;
+			x86_Asm_IR_OperandVal v;
 			v.rao = rao;
-
 			operand
-				= x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::REGISTER_AND_OFFSET,
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::REGISTER_AND_OFFSET,
 					v);
+
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
 
-		case Scope::GLOBAL:
+		case Scope::FILE:
 		{
 			//TODO;
 			/*register_and_offset rao;
@@ -815,10 +2125,10 @@ static inline CodeGeneratorExitCode gen_symbol(
 }
 
 static inline const char* construct_label(
-	const char* label_prefix,
-	int& num_labels_used)	
+	const char*   label_prefix,
+	int         & num_labels_used)	
 {
-	char* label_str = new char[16];
+	char* const label_str = new char[16];
 
 	int i = 0;
 	do {
@@ -826,20 +2136,30 @@ static inline const char* construct_label(
 		i++;
 	} while (label_prefix[i] != '\0');
 
-	_itoa_s(num_labels_used++, label_str + i, 16 - i, 10);
+	char* const label_substr_start 
+		= label_str + i;
+	const int label_substr_len
+		= 16 - i;
+
+	_itoa_s(
+		num_labels_used++, 
+		label_substr_start,
+		label_substr_len,
+		10);
+
 	return label_str;;
 }
 
 static inline CodeGeneratorExitCode gen_literals(
-	int &num_labels_used,
+	int               & num_labels_used,
 	SymbolTable* const& symbol_table,
-	x86_AssemblyInstruction*& instrs)
+	x86_Asm_IR*       & instrs)
 {
 	report_gen("gen_literals");
 	CodeGeneratorExitCode exitcode
 		= CodeGeneratorExitCode::FAILURE;
 	
-	SymbolTableEntry* entries[1028] = { };
+	SymbolTableEntry*  entries [1028]  = { };
 	symbol_table->get_entries(entries);
 	/* for each entry in the symbol table */
 	int literal_constant_ptr_i = 0;
@@ -847,17 +2167,24 @@ static inline CodeGeneratorExitCode gen_literals(
 		 *e != NULL;
 		 e++) {
 
-		if ((*e)->is_literal) {
-			(*e)->literal_constant_ptr_label = construct_label(".LCP_", num_labels_used);
-			x86_AssemblyInstructionOperandVal v;
+		if ((*e)->is_literal
+			&& ((*e)->type->classifier == TypeClassifier::OBJECT
+			    && !is_integer_type((*e)->type))) {
+
+			(*e)->literal_constant_ptr_label 
+				= construct_label(".LCP_", num_labels_used);
+			
+			x86_Asm_IR_OperandVal v;
 			v.dwui = (*e)->value;
-			*instrs = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::LONG,
-				x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::DOUBLEWORD_UNSIGNED_INTEGER,
+			
+			*instrs = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::LONG,
+				x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::DOUBLEWORD_UNSIGNED_INTEGER,
 					v));
+			
 			instrs->set_label((*e)->literal_constant_ptr_label);
-			instrs->set_type(x86_AssemblyInstructionType::LABELED_INSTRUCTION);
+			instrs->set_type(x86_Asm_IR_Type::LABELED_INSTRUCTION);
 			instrs++;
 		}
 	}
@@ -865,11 +2192,11 @@ static inline CodeGeneratorExitCode gen_literals(
 }
 
 static inline CodeGeneratorExitCode gen_primary_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand &operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	report_gen("gen_primary_expression");
 	CodeGeneratorExitCode exitcode
@@ -878,16 +2205,23 @@ static inline CodeGeneratorExitCode gen_primary_expression(
 
 		case AstNodeAlt::PRIMARY_EXPRESSION_1:
 		{
-			const char* symbol = node->get_symbol();
+			const char* const symbol 
+				= node->get_symbol();
+			const SymbolTable* const symtab
+				= node->get_symbol_table(symbol);
+			const SymbolTableEntry* const symtab_entry
+				= symtab->get_entry(symbol);
+
 			if (symbol == NULL) {
 				cout << "codegen.h:gen_primary_expression:"
 						"error on unrecognised identifier.\n";
 			}
 			gen_symbol(
-				node->get_symbol_table(symbol)
-				    ->get_entry(symbol),
+				symtab_entry,
 				instrs,
-				operand);
+				operand,
+				alloc_map);
+
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -895,36 +2229,61 @@ static inline CodeGeneratorExitCode gen_primary_expression(
 		case AstNodeAlt::PRIMARY_EXPRESSION_2:
 		{
 			exitcode = CodeGeneratorExitCode::SUCCESS;
-			x86_RegisterAllocMap literal_alloc_map 
-						= alloc_map;
+			x86_RegisterAllocMap literal_alloc_map
+				= alloc_map;
 
-			label_and_register lar;
-			lar.label
-				= node->get_symbol_table(node->get_symbol())
-				      ->get_entry(node->get_symbol())
-				      ->literal_constant_ptr_label;
-			lar.reg
-				= x86_Register::RIP;
+			const char* const symbol 
+				= node->get_symbol();
+			const SymbolTable* const symtab
+				= node->get_symbol_table(symbol);
+			const SymbolTableEntry* const symtab_entry
+				= symtab->get_entry(symbol);
+			const Type* const type
+				= symtab_entry->type;
 
-			x86_AssemblyInstructionOperandVal v;
-			v.lar = lar;
+			/* See if this will be inlined (made immediate) */
+			if (is_integer_type(type)) {
+				
+				x86_Asm_IR_OperandVal v;
+				v.dwui  
+					= symtab_entry->value;
+				operand 
+					= x86_Asm_IR_Operand(
+					      x86_Asm_IR_OperandType::DOUBLEWORD_UNSIGNED_INTEGER,
+						  v);
 
-			operand
-				= x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::LABEL_AND_REGISTER,
-					v);
+			} else {
+				/* Else load literal from memory. */
+				label_and_register lar;
+				lar.label
+					= symtab_entry
+					  ->literal_constant_ptr_label;
+				lar.reg
+					= x86_RegisterName::RIP;
+
+				x86_Asm_IR_OperandVal v;
+				v.lar = lar;
+
+				operand
+					= x86_Asm_IR_Operand(
+						x86_Asm_IR_OperandType::LABEL_AND_REGISTER,
+						v);
+
+			}
+
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
 
 		case AstNodeAlt::PRIMARY_EXPRESSION_3:
 		{
+			// TODO; String literal.
 			break;
 		}
 
 		case AstNodeAlt::PRIMARY_EXPRESSION_4:
 		{
-			AnnotatedAstNode* expression
+			const AnnotatedAstNode* const expression
 				= node->get_child();
 			if (gen_expression(
 				num_labels_used,
@@ -946,11 +2305,11 @@ static inline CodeGeneratorExitCode gen_primary_expression(
 }
 
 static inline CodeGeneratorExitCode gen_postfix_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode
 		= CodeGeneratorExitCode::FAILURE;
@@ -961,7 +2320,7 @@ static inline CodeGeneratorExitCode gen_postfix_expression(
 
 		case AstNodeAlt::POSTFIX_EXPRESSION_1:
 		{
-			AnnotatedAstNode* primary_expression
+			const AnnotatedAstNode* const primary_expression
 				= node->get_child();
 			if (gen_primary_expression(
 				num_labels_used,
@@ -978,162 +2337,230 @@ static inline CodeGeneratorExitCode gen_postfix_expression(
 
 		case AstNodeAlt::POSTFIX_EXPRESSION_2:
 		{
-			//	/* Loading AST data. */
-			//	AnnotatedAstNode* postfix_expression 
-			//		= node->get_child();
-			//	AnnotatedAstNode* expression 
-			//		= postfix_expression->get_sibling();
-			//	
-			//	/* Compute the array address */
-			//	x86_RegisterAllocMap postfix_alloc_map
-			//		= alloc_map;
-			//	x86_Register postfix_register
-			//		= reg_alloc(postfix_alloc_map);
-			//	gen_postfix_expression(
-			//		num_labels_used,
-			//		postfix_expression,
-			//		instrs, 
-			//		postfix_alloc_map,
-			//		postfix_register);
-			//
-			//	/* Compute the index */
-			//	x86_RegisterAllocMap expression_alloc_map
-			//		= alloc_map;
-			//	x86_Register expression_register
-			//		= reg_alloc(expression_alloc_map);
-			//	if (gen_expression(
-			//			num_labels_used,
-			//			expression,
-			//			instrs,
-			//			expression_alloc_map,
-			//			expression_register)
-			//		== CodeGeneratorExitCode::SUCCESS) {
-			//		exitcode = CodeGeneratorExitCode::FAILURE;
-			//		break;
-			//	}
-			//
-			//	/* Computing the offset */
-			//	*instrs++ = construct_mov_instruction(
-			//		r1,
-			//		x86_Register::EAX
-			//	);
-			//
-			//	/**instrs++ = construct_mul_instruction(
-			//		size_of(postfix_expression->get_type())
-			//	);*/
-			//	/* Pop array address from stack */
-			//	*instrs++ = construct_pop_instruction(
-			//		postfix_register
-			//	);
-			//
-			//	/* Computing the address of the indexed array. */
-			//	*instrs++ = construct_add_instruction(
-			//		postfix_register,
-			//		x86_Register::EAX
-			//	);
-			//
-			//	/* Dereference */
-			//	*instrs++ = construct_mov_instruction(
-			//		mem_t(postfix_register),
-			//		postfix_register
-			//	);
-			//
-			//	*instrs++ = construct_mov_instruction(
-			//		postfix_register,
-			//		result_register
-			//	);
-			//	break;
-			//}
-			//
-			//case AstNodeAlt::POSTFIX_EXPRESSION_3:
-			//{
-			//	/* Loading AST data. */
-			//	AnnotatedAstNode* unary_expression 
-			//		= node->get_child();
-			//
-			//	/* Compute the array address */
-			//	x86_Register unary_register;
-			//	if (gen_postfix_expression(
-			//			num_labels_used,
-			//			unary_expression, 
-			//			instrs, 
-			//			unary_register)
-			//		== CodeGeneratorExitCode::FAILURE) {
-			//		exitcode = CodeGeneratorExitCode::FAILURE;
-			//		break;
-			//	}
-			//
-			//	*instrs++ = construct_inc_instruction(
-			//		unary_register
-			//	);		
-			//	break;
+			x86_RegisterAllocMap expression_alloc_map
+				= alloc_map;
+
+			/* Loading AST data. */
+			const AnnotatedAstNode* const postfix_expression 
+				= node->get_child();
+			const AnnotatedAstNode* const expression 
+				= postfix_expression->get_sibling();
+			
+			const Type* const postfix_expression_type
+				= postfix_expression->get_type();
+				
+			/* Compute the array address */
+			x86_RegisterAllocMap postfix_alloc_map
+				= alloc_map;
+			const x86_RegisterType register_type
+				= get_register_type_from_ast_type(
+				      postfix_expression_type);
+			x86_RegisterName postfix_register
+				= allocate_register(
+					postfix_alloc_map,
+					register_type);
+
+			/* Computing the base */
+			x86_Asm_IR_Operand op1;
+			if (gen_postfix_expression(
+				num_labels_used,
+				postfix_expression,
+				instrs,
+				expression_alloc_map,
+				op1) 
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+
+			const x86_RegisterName base_register_name
+				= allocate_register(
+				      postfix_alloc_map,
+					  register_type);
+
+			const x86_Asm_IR_Operand base_register_operand
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+					{ base_register_name });
+			
+			construct_x86_AssemblyInstruction_mov(
+				postfix_expression_type,
+				base_register_operand,
+				postfix_expression_type,
+				op1,
+				instrs);
+
+			/* Compute the offset */
+			x86_Asm_IR_Operand offset;
+			if (gen_expression(
+					num_labels_used,
+					expression,
+					instrs,
+					expression_alloc_map,
+					offset)
+				== CodeGeneratorExitCode::SUCCESS) {
+				exitcode = CodeGeneratorExitCode::FAILURE;
+				break;
+			}
+			x86_Asm_IR_OperandVal size_imm;
+
+			const Type* const element_type
+				= get_element_type(
+					postfix_expression_type);
+			const int element_size
+				= get_sizeof_type(element_type);
+			size_imm.dwui
+				= element_size;
+
+			const x86_Asm_IR_Operand size_operand
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::DOUBLEWORD_UNSIGNED_INTEGER,
+					size_imm);
+
+			construct_x86_AssemblyInstruction_multiply(
+				postfix_expression_type,
+				offset,
+				postfix_expression_type,
+				size_operand,
+				instrs);
+
+			/* Computing the address of the array plus offset */
+			construct_x86_AssemblyInstruction_add(
+				postfix_expression_type,
+				base_register_operand,
+				postfix_expression_type,
+				offset,
+				instrs);
+
+			/* Dereference */
+			x86_Asm_IR_OperandVal derefed_postfix_register_val;
+			derefed_postfix_register_val.reg_containing_addr 
+				= postfix_register;
+
+			x86_Asm_IR_Operand derefed_postfix_register
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::REGISTER_AND_OFFSET,
+					derefed_postfix_register_val);
+
+			x86_Asm_IR_Operand postfix_register_op
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+					derefed_postfix_register_val);
+
+			construct_x86_AssemblyInstruction_mov(
+				postfix_expression_type,
+				postfix_register_op,
+				postfix_expression_type,
+				derefed_postfix_register,
+				instrs);
+
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
+		}
+			
+		case AstNodeAlt::POSTFIX_EXPRESSION_3:
+		{
+			/* TODO; FUNCTION CALLING ROUTINE. */
 			break;
 		}
 
 		case AstNodeAlt::POSTFIX_EXPRESSION_4:
 		{
-
+			/* TODO; . */
 			break;
 		}
 
 		case AstNodeAlt::POSTFIX_EXPRESSION_5:
 		{
+			/* TODO; -> */
 			break;
 		}
 
 		case AstNodeAlt::POSTFIX_EXPRESSION_6:
-		{
-			///* Loading AST data. */
-			//AnnotatedAstNode* postfix_expression
-			//	= node->get_child();
-
-			//if (gen_postfix_expression(
-			//	num_labels_used,
-			//	node,
-			//	instrs,
-			//	alloc_map,
-			//	output_register)
-			//	== CodeGeneratorExitCode::FAILURE) {
-			//	exitcode = CodeGeneratorExitCode::FAILURE;
-			//	break;
-			//}
-
-			//*instrs++ = construct_inc_instruction(
-			//	output_register
-			//);
-			break;
-		}
-
 		case AstNodeAlt::POSTFIX_EXPRESSION_7:
 		{
-			///* Loading AST data. */
-			//AnnotatedAstNode* postfix_expression 
-			//	= node->get_child();
+			x86_RegisterAllocMap expression_alloc_map
+				= alloc_map;
 
-			//if (gen_postfix_expression(
-			//		num_labels_used,
-			//		node, 
-			//		instrs,
-			//		alloc_map,
-			//		output_register)
-			//	== CodeGeneratorExitCode::FAILURE) {
-			//	exitcode = CodeGeneratorExitCode::FAILURE;
-			//	break;
-			//}
+			/* Loading AST data. */
+			AnnotatedAstNode* postfix_expression
+				= node->get_child();
 
-			//*instrs++ = construct_dec_instruction(
-			//	output_register
-			//);
+			x86_Asm_IR_Operand postfix_expression_operand;
+			if (gen_postfix_expression(
+				num_labels_used,
+				postfix_expression,
+				instrs,
+				expression_alloc_map,
+				postfix_expression_operand)
+				== CodeGeneratorExitCode::FAILURE) {
+				exitcode = CodeGeneratorExitCode::FAILURE;
+				break;
+			}
+
+			x86_Asm_IR_OperandVal reg_pre_side_effect;
+			reg_pre_side_effect.reg_index 
+				= allocate_register(
+					expression_alloc_map, 
+					get_register_type_from_ast_type(postfix_expression->get_type()));
+
+			const Type* const postfix_expression_type
+				= postfix_expression->get_type();
+
+			const x86_Asm_IR_Operand reg_pre_side_effect_operand
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+					reg_pre_side_effect);
+
+			construct_x86_AssemblyInstruction_mov(
+				postfix_expression_type,
+				postfix_expression_operand,
+				postfix_expression_type,
+				reg_pre_side_effect_operand,
+				instrs);
+
+			switch (node->get_alt()) {
+
+				case AstNodeAlt::POSTFIX_EXPRESSION_6:
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::INC,
+						postfix_expression_operand);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+
+				case AstNodeAlt::POSTFIX_EXPRESSION_7:
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::DEC,
+						postfix_expression_operand);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;
+
+				default:
+					break;
+			}
+			
+			operand = x86_Asm_IR_Operand(
+				x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+				reg_pre_side_effect);
 			break;
 		}
 
 		case AstNodeAlt::POSTFIX_EXPRESSION_8:
-		{
-			break;
-		}
-
 		case AstNodeAlt::POSTFIX_EXPRESSION_9:
 		{
+			AnnotatedAstNode* type_name 
+				= node->get_child();
+			AnnotatedAstNode* initializer_list 
+				= type_name->get_child();
+			
+			if (gen_initializer_list(
+				num_labels_used,
+				initializer_list,
+				instrs,
+				alloc_map) == CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
 
@@ -1145,11 +2572,11 @@ static inline CodeGeneratorExitCode gen_postfix_expression(
 }
 
 static inline CodeGeneratorExitCode gen_unary_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode
 		= CodeGeneratorExitCode::FAILURE;
@@ -1160,7 +2587,7 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 
 		case AstNodeAlt::UNARY_EXPRESSION_1:
 		{
-			AnnotatedAstNode* postfix_expression
+			const AnnotatedAstNode* const postfix_expression
 				= node->get_child();
 			if (gen_postfix_expression(
 				num_labels_used,
@@ -1177,7 +2604,7 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 
 		case AstNodeAlt::UNARY_EXPRESSION_2:
 		{
-			AnnotatedAstNode* unary_expression
+			const AnnotatedAstNode* const unary_expression
 				= node->get_child();
 			if (gen_unary_expression(
 				num_labels_used,
@@ -1188,8 +2615,8 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::INC,
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::INC,
 				operand);
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
@@ -1197,25 +2624,24 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 
 		case AstNodeAlt::UNARY_EXPRESSION_3:
 		{
-			AnnotatedAstNode* unary_expression
+			const AnnotatedAstNode* const unary_expression
 				= node->get_child();
 			
-			x86_AssemblyInstructionOperand op1
-				= x86_AssemblyInstructionOperand();
+			x86_Asm_IR_Operand unary_expression_operand;
 
 			if (gen_unary_expression(
 				num_labels_used,
 				unary_expression,
 				instrs,
 				alloc_map,
-				op1)
+				unary_expression_operand)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::DEC,
-				op1);
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::DEC,
+				unary_expression_operand);
 			
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
@@ -1223,33 +2649,114 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 
 		case AstNodeAlt::UNARY_EXPRESSION_4:
 		{
-			AnnotatedAstNode* unary_operator
+			const AnnotatedAstNode* const unary_operator
 				= node->get_child();
-			AnnotatedAstNode* cast_expression
+			const AnnotatedAstNode* const cast_expression
 				= unary_operator->get_sibling();
 
-			x86_AssemblyInstructionOperand op1 
-				= x86_AssemblyInstructionOperand();
+			x86_Asm_IR_Operand cast_expression_output_operand
+				= x86_Asm_IR_Operand();
 
 			if (gen_cast_expression(
 				num_labels_used,
 				cast_expression,
 				instrs,
 				alloc_map,
-				op1)
+				cast_expression_output_operand)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
+
 			switch (unary_operator->get_alt()) {
 
 				case AstNodeAlt::UNARY_OPERATOR_1:
 				{
+					x86_RegisterAllocMap unary_expression_alloc_map
+						= alloc_map;
+
+					const char* const cast_expression_symbol
+						= cast_expression->get_symbol();
+					const SymbolTable* const cast_expression_scope
+						= node->get_symbol_table(
+							cast_expression_symbol);
+					const SymbolTableEntry* const cast_expression_entry
+						= cast_expression_scope->get_entry(
+							cast_expression_symbol);
+
+					const Type* const cast_expression_type
+						= cast_expression->get_type();
+					const x86_RegisterType cast_expression_reg_type
+						= get_register_type_from_ast_type(
+							cast_expression_type);
+					const x86_RegisterName cast_expression_register
+						= allocate_register(
+							unary_expression_alloc_map,
+							cast_expression_reg_type);
+
+					const x86_Asm_IR_Operand 
+						reference_to_cast_expression_reg
+						= x86_Asm_IR_Operand(
+							x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+							x86_Asm_IR_OperandVal(
+								{ cast_expression_register }));
+
+					x86_Asm_IR_OperandVal cast_expression_imm_val;
+					cast_expression_imm_val.dwui 
+						= cast_expression_entry->base_pointer_offset;
+
+					x86_Asm_IR_Operand reference_to_cast_expression_imm
+						= x86_Asm_IR_Operand(
+							x86_Asm_IR_OperandType::DOUBLEWORD_UNSIGNED_INTEGER,
+							cast_expression_imm_val);
+
+					x86_Asm_IR_Operand rbp_reg
+						= x86_Asm_IR_Operand(
+							x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+							x86_Asm_IR_OperandVal(
+								{ x86_RegisterName::RBP }));
+
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::MOV,
+						reference_to_cast_expression_reg,
+						rbp_reg);
+
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::ADD,
+						reference_to_cast_expression_reg,
+						reference_to_cast_expression_imm);
+
+					operand = reference_to_cast_expression_reg;
+					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;
 				}
 
 				case AstNodeAlt::UNARY_OPERATOR_2:
 				{
-					break;
+					x86_Asm_IR_OperandVal v;
+
+					v.reg_index 
+						= cast_expression_output_operand.get_constant_val().reg_index;
+
+					x86_Asm_IR_Operand op1_dereferenced
+						= x86_Asm_IR_Operand(
+							x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+							v);
+
+					const Type* const cast_expression_type
+						= cast_expression->get_type();
+					const Type* const dereferenced_cast_expression_type
+						= dereference_type(cast_expression_type);
+
+					construct_x86_AssemblyInstruction_mov(
+						cast_expression_type,
+						cast_expression_output_operand,
+						dereferenced_cast_expression_type,
+						op1_dereferenced,
+						instrs);
+
+					operand = cast_expression_output_operand;
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+					break;				
 				}
 
 				case AstNodeAlt::UNARY_OPERATOR_3:
@@ -1260,9 +2767,9 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 
 				case AstNodeAlt::UNARY_OPERATOR_4:
 				{
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::NEG,
-						op1);
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::NEG,
+						cast_expression_output_operand);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;
 				}
@@ -1274,6 +2781,10 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 				
 				case AstNodeAlt::UNARY_OPERATOR_6:
 				{
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::NEG,
+						cast_expression_output_operand);
+					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;
 				}
 
@@ -1284,10 +2795,49 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 		}
 
 		case AstNodeAlt::UNARY_EXPRESSION_5:
-			break;
+		{
+			const AnnotatedAstNode* const type_name
+				= node->get_child();
+
+			const Type* const type_name_type
+				= type_name->get_type();
+			const int sizeof_type_name
+				= get_sizeof_type(type_name_type);
+
+			x86_Asm_IR_OperandVal v;
+			v.dwui = sizeof_type_name;
+
+			x86_Asm_IR_Operand op
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::DOUBLEWORD_UNSIGNED_INTEGER,
+					v);
+			operand = op;
+
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+		}
 
 		case AstNodeAlt::UNARY_EXPRESSION_6:
+		{
+			const AnnotatedAstNode* const type_name 
+				= node->get_child();
+
+			const Type* const type_name_type
+				= type_name->get_type();
+			const int sizeof_type_name
+				= get_sizeof_type(type_name_type);
+
+			x86_Asm_IR_OperandVal v;
+			v.dwui = sizeof_type_name;
+
+			x86_Asm_IR_Operand op
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::DOUBLEWORD_UNSIGNED_INTEGER,
+					v);
+			operand = op;
+
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
+		}
 
 		default:
 			break;
@@ -1297,11 +2847,11 @@ static inline CodeGeneratorExitCode gen_unary_expression(
 }
 
 static inline CodeGeneratorExitCode gen_cast_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode
 		= CodeGeneratorExitCode::FAILURE;
@@ -1312,7 +2862,7 @@ static inline CodeGeneratorExitCode gen_cast_expression(
 
 		case AstNodeAlt::CAST_EXPRESSION_1:
 		{
-			AnnotatedAstNode* unary_expression
+			const AnnotatedAstNode* const unary_expression
 				= node->get_child();
 			if (gen_unary_expression(
 				num_labels_used,
@@ -1329,10 +2879,11 @@ static inline CodeGeneratorExitCode gen_cast_expression(
 
 		case AstNodeAlt::CAST_EXPRESSION_2:
 		{
-			AnnotatedAstNode* type_name
+			const AnnotatedAstNode* const type_name
 				= node->get_child();
-			AnnotatedAstNode* cast_expression
+			const AnnotatedAstNode* const cast_expression
 				= type_name->get_sibling();
+
 			if (gen_cast_expression(
 				num_labels_used,
 				cast_expression,
@@ -1353,11 +2904,11 @@ static inline CodeGeneratorExitCode gen_cast_expression(
 }
 
 static inline CodeGeneratorExitCode gen_multiplicative_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode
 		= CodeGeneratorExitCode::FAILURE;
@@ -1392,81 +2943,127 @@ static inline CodeGeneratorExitCode gen_multiplicative_expression(
 			x86_RegisterAllocMap multicative_expression_2_alloc_map
 				= alloc_map;
 
-			AnnotatedAstNode* multiplicative_expression
+			const AnnotatedAstNode* const multiplicative_expression
 				= node->get_child();
-			AnnotatedAstNode* cast_expression
-				= node->get_child()->get_sibling();
+			const AnnotatedAstNode* const cast_expression
+				= multiplicative_expression->get_sibling();
 
-			x86_AssemblyInstructionOperand op1;
-			x86_AssemblyInstructionOperand op2;
+			x86_Asm_IR_Operand op1;
+			x86_Asm_IR_Operand op2;
 
-			gen_multiplicative_expression(
+			if (gen_multiplicative_expression(
 				num_labels_used,
 				multiplicative_expression,
 				instrs,
 				multicative_expression_2_alloc_map,
-				op1);
+				op1) == CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
 
-			x86_Register temp = reg_alloc(multicative_expression_2_alloc_map);
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::MOVSS,
+			const Type* const multiplicative_expression_type
+				= multiplicative_expression->get_type();
+			const x86_RegisterType multiplicative_expression_reg_type
+				= get_register_type_from_ast_type(
+					multiplicative_expression_type);
+
+			x86_RegisterName temp 
+				= allocate_register(
+				      multicative_expression_2_alloc_map,
+					  multiplicative_expression_reg_type);
+
+			construct_x86_AssemblyInstruction_mov(
+				multiplicative_expression_type,
+				x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+					x86_Asm_IR_OperandVal({ temp })),
+				multiplicative_expression_type,
 				op1,
-				x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-					x86_AssemblyInstructionOperandVal({ temp })));
+				instrs);
 
-			gen_cast_expression(
+			if (gen_cast_expression(
 				num_labels_used,
 				cast_expression,
 				instrs,
 				multicative_expression_2_alloc_map,
-				op2);
+				op2) == CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+
+			const Type* const cast_expression_type
+				= cast_expression->get_type();
 			
+			bool valid_typing = true;
 			switch (node->get_alt()) {
 
 				case AstNodeAlt::MULTIPLICATIVE_EXPRESSION_2:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::MULSS,
-						x86_AssemblyInstructionOperand(
-							x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-							x86_AssemblyInstructionOperandVal({ temp })),
-						op2);
+				{
+					construct_x86_AssemblyInstruction_multiply(
+						multiplicative_expression_type,
+						x86_Asm_IR_Operand(
+							x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+							x86_Asm_IR_OperandVal({ temp })),
+						cast_expression_type,
+						op2,
+						instrs);
 					break;
+				}
 				
 				case AstNodeAlt::MULTIPLICATIVE_EXPRESSION_3:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::DIVSS,
-						x86_AssemblyInstructionOperand(
-							x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-							x86_AssemblyInstructionOperandVal({ temp })),
-						op2);
+				{
+					construct_x86_AssemblyInstruction_divide(
+						multiplicative_expression_type,
+						x86_Asm_IR_Operand(
+							x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+							x86_Asm_IR_OperandVal({ temp })),
+						cast_expression_type,
+						op2,
+						instrs);
 					break;
+				}
 
 				case AstNodeAlt::MULTIPLICATIVE_EXPRESSION_4:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::IDIV,
+				{
+					/*construct_x86_AssemblyInstruction_modulo(
+						multiplicative_expression->get_type(),
 						x86_AssemblyInstructionOperand(
 							x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
 							x86_AssemblyInstructionOperandVal({ temp })),
-						op2);
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::MOVSS,
-						x86_AssemblyInstructionOperand(
-							x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-							x86_AssemblyInstructionOperandVal({ x86_Register::RDX})),
-						x86_AssemblyInstructionOperand(
-							x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-							x86_AssemblyInstructionOperandVal({ temp })));
-					break; 
-					
-				default:
+						cast_expression->get_type(),
+						op2,
+						instrs);*/
 					break;
+				}
+
+				/*
+				*instrs++ = x86_AssemblyInstruction(
+					x86_AssemblyInstructionMnemonic::IDIV,
+					x86_AssemblyInstructionOperand(
+						x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
+						x86_AssemblyInstructionOperandVal({ temp })),
+					op2);
+				*instrs++ = x86_AssemblyInstruction(
+					x86_AssemblyInstructionMnemonic::MOVSS,
+					x86_AssemblyInstructionOperand(
+						x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
+						x86_AssemblyInstructionOperandVal({ x86_Register::RDX})),
+					x86_AssemblyInstructionOperand(
+						x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
+						x86_AssemblyInstructionOperandVal({ temp })));
+				*/
+					 					
+				default:
+					valid_typing = false;
+					break;
+
 			}
-			operand = x86_AssemblyInstructionOperand(
-				x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-				x86_AssemblyInstructionOperandVal({ temp }));
-			exitcode = CodeGeneratorExitCode::SUCCESS;
+			if (valid_typing) {
+					operand = x86_Asm_IR_Operand(
+						x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+						x86_Asm_IR_OperandVal({ temp }));
+					exitcode = CodeGeneratorExitCode::SUCCESS;
+			}
 			break;
+
 		}
 
 		default:
@@ -1476,11 +3073,11 @@ static inline CodeGeneratorExitCode gen_multiplicative_expression(
 }
 
 static inline CodeGeneratorExitCode gen_additive_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode
 		= CodeGeneratorExitCode::FAILURE;
@@ -1491,7 +3088,7 @@ static inline CodeGeneratorExitCode gen_additive_expression(
 
 		case AstNodeAlt::ADDITIVE_EXPRESSION_1:
 		{
-			AnnotatedAstNode* multiplicative_expression
+			const AnnotatedAstNode* const multiplicative_expression
 				= node->get_child();
 			if (gen_multiplicative_expression(
 				num_labels_used,
@@ -1509,68 +3106,94 @@ static inline CodeGeneratorExitCode gen_additive_expression(
 		case AstNodeAlt::ADDITIVE_EXPRESSION_2:
 		case AstNodeAlt::ADDITIVE_EXPRESSION_3:
 		{
-			AnnotatedAstNode* additive_expression
+			const AnnotatedAstNode* const additive_expression
 				= node->get_child();
-			AnnotatedAstNode* multiplicative_expression
+			const AnnotatedAstNode* const multiplicative_expression
 				= additive_expression->get_sibling();
 
 			x86_RegisterAllocMap additive_expression_alloc_map
 				= alloc_map;
 
-			x86_AssemblyInstructionOperand op1;
-			x86_AssemblyInstructionOperand op2;
+			x86_Asm_IR_Operand additive_expression_reg;
 
 			if (gen_additive_expression(
 				num_labels_used,
 				additive_expression,
 				instrs,
 				additive_expression_alloc_map,
-				op1)
+				additive_expression_reg)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
 
-			x86_AssemblyInstructionOperand output
-				= x86_AssemblyInstructionOperand(
-				    x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-					{ reg_alloc(additive_expression_alloc_map) });
+			const Type* const additive_expression_type
+				= additive_expression->get_type();
+			const Type* const multiplicative_expression_type
+				= multiplicative_expression->get_type();
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::MOVSS,
-				op1,
-				output);
+			const x86_RegisterType additive_expression_register_type
+				= get_register_type_from_ast_type(
+					additive_expression_type);
+
+			const x86_RegisterName additive_expression_register
+				= allocate_register(
+					additive_expression_alloc_map,
+					additive_expression_register_type);
+
+			x86_Asm_IR_Operand output
+				= x86_Asm_IR_Operand(
+				    x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+					{ additive_expression_register });
+
+			construct_x86_AssemblyInstruction_mov(
+				additive_expression_type,
+				output,
+				additive_expression_type,
+				additive_expression_reg,
+				instrs);
+
+			x86_Asm_IR_Operand multiplicative_expression_reg;
 
 			if (gen_multiplicative_expression(
 				num_labels_used,
 				multiplicative_expression,
 				instrs,
 				additive_expression_alloc_map,
-				op2)
+				multiplicative_expression_reg)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
 
+
+			bool valid_typing = true;
 			switch (node->get_alt()) {
 
 				case AstNodeAlt::ADDITIVE_EXPRESSION_2:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::ADD,
+					construct_x86_AssemblyInstruction_add(
+						additive_expression_type,
 						output,
-						op2);
-					break; 
+						multiplicative_expression_type,
+						multiplicative_expression_reg,
+						instrs);
+					break;
 				
 				case AstNodeAlt::ADDITIVE_EXPRESSION_3:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SUB,
+					construct_x86_AssemblyInstruction_sub(
+						additive_expression_type,
 						output,
-						op2);
+						multiplicative_expression_type,
+						multiplicative_expression_reg,
+						instrs);
 					break; 
 
 				default:
+					valid_typing = false;
 					break;
 			}
-			operand = output;
-			exitcode = CodeGeneratorExitCode::SUCCESS;
+			if (valid_typing) {
+				operand = output;
+				exitcode = CodeGeneratorExitCode::SUCCESS;
+			}
 			break;
 		}
 
@@ -1581,13 +3204,14 @@ static inline CodeGeneratorExitCode gen_additive_expression(
 }
 
 static inline CodeGeneratorExitCode gen_shift_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
-	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
+	CodeGeneratorExitCode exitcode 
+		= CodeGeneratorExitCode::FAILURE;
 
 	report_gen("gen_shift_expression");
 
@@ -1595,7 +3219,7 @@ static inline CodeGeneratorExitCode gen_shift_expression(
 
 		case AstNodeAlt::SHIFT_EXPRESSION_1:
 		{
-			AnnotatedAstNode* additive_expression
+			const AnnotatedAstNode* const additive_expression
 				= node->get_child();
 			if (gen_additive_expression(
 				num_labels_used,
@@ -1613,16 +3237,16 @@ static inline CodeGeneratorExitCode gen_shift_expression(
 		case AstNodeAlt::SHIFT_EXPRESSION_2:
 		case AstNodeAlt::SHIFT_EXPRESSION_3:
 		{
-			AnnotatedAstNode* shift_expression
+			const AnnotatedAstNode* const shift_expression
 				= node->get_child();
-			AnnotatedAstNode* additive_expression
+			const AnnotatedAstNode* const additive_expression
 				= shift_expression->get_sibling();
 
 			x86_RegisterAllocMap shift_expression_alloc_map
 				= alloc_map;
 
-			x86_AssemblyInstructionOperand op1;
-			x86_AssemblyInstructionOperand op2;
+			x86_Asm_IR_Operand op1;
+			x86_Asm_IR_Operand op2;
 
 			if (gen_shift_expression(
 				num_labels_used,
@@ -1634,15 +3258,31 @@ static inline CodeGeneratorExitCode gen_shift_expression(
 				break;
 			}
 
-			x86_AssemblyInstructionOperand output
-				= x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-					{ reg_alloc(shift_expression_alloc_map) });
+			const Type* const shift_expression_type
+				= shift_expression->get_type();
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::MOVSS,
+			const x86_RegisterType shift_expression_register_type
+				= get_register_type_from_ast_type(shift_expression_type);
+
+			const x86_RegisterName shift_expression_register
+				= allocate_register(
+					shift_expression_alloc_map,
+					shift_expression_register_type);
+
+			x86_Asm_IR_Operand output
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+					{ shift_expression_register });
+
+			const Type* const additive_expression_type
+				= additive_expression->get_type();
+
+			construct_x86_AssemblyInstruction_mov(
+				shift_expression_type,
+				output,
+				additive_expression_type,
 				op1,
-				output);
+				instrs);
 
 			if (gen_additive_expression(
 				num_labels_used,
@@ -1657,16 +3297,16 @@ static inline CodeGeneratorExitCode gen_shift_expression(
 			switch (node->get_alt()) {
 
 				case AstNodeAlt::SHIFT_EXPRESSION_2:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SHL,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::SHL,
 						output,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;
 
 				case AstNodeAlt::SHIFT_EXPRESSION_3:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SHR,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::SHR,
 						output,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
@@ -1688,13 +3328,14 @@ static inline CodeGeneratorExitCode gen_shift_expression(
 }
 
 static inline CodeGeneratorExitCode gen_relational_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
-	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
+	CodeGeneratorExitCode exitcode 
+		= CodeGeneratorExitCode::FAILURE;
 
 	report_gen("gen_relational_expression");
 
@@ -1702,7 +3343,7 @@ static inline CodeGeneratorExitCode gen_relational_expression(
 
 		case AstNodeAlt::RELATIONAL_EXPRESSION_1:
 		{
-			AnnotatedAstNode* shift_expression
+			const AnnotatedAstNode* const shift_expression
 				= node->get_child();
 			if (gen_shift_expression(
 				num_labels_used,
@@ -1722,12 +3363,12 @@ static inline CodeGeneratorExitCode gen_relational_expression(
 		case AstNodeAlt::RELATIONAL_EXPRESSION_4:
 		case AstNodeAlt::RELATIONAL_EXPRESSION_5:
 		{
-			AnnotatedAstNode* relational_expression
+			const AnnotatedAstNode* const relational_expression
 				= node->get_child();
-			AnnotatedAstNode* shift_expression
+			const AnnotatedAstNode* const shift_expression
 				= relational_expression->get_sibling();
 
-			x86_AssemblyInstructionOperand op1;
+			x86_Asm_IR_Operand op1;
 
 			if (gen_relational_expression(
 				num_labels_used,
@@ -1739,7 +3380,7 @@ static inline CodeGeneratorExitCode gen_relational_expression(
 				break;
 			}
 
-			x86_AssemblyInstructionOperand op2;
+			x86_Asm_IR_Operand op2;
 
 			if (gen_shift_expression(
 				num_labels_used,
@@ -1751,40 +3392,40 @@ static inline CodeGeneratorExitCode gen_relational_expression(
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::CMP,
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::CMP,
 				op1,
 				op2);
 
 			switch (node->get_alt()) {
 
 				case AstNodeAlt::RELATIONAL_EXPRESSION_2:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SETL,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::SETL,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;
 
 				case AstNodeAlt::RELATIONAL_EXPRESSION_3:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SETG,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::SETG,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;				
 
 				case AstNodeAlt::RELATIONAL_EXPRESSION_4:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SETLE,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::SETLE,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;
 
 				case AstNodeAlt::RELATIONAL_EXPRESSION_5:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SETGE,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::SETGE,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
@@ -1806,13 +3447,14 @@ static inline CodeGeneratorExitCode gen_relational_expression(
 }
 
 static inline CodeGeneratorExitCode gen_equality_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
-	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
+	CodeGeneratorExitCode exitcode 
+		= CodeGeneratorExitCode::FAILURE;
 
 	report_gen("gen_equality_expression");
 
@@ -1820,7 +3462,7 @@ static inline CodeGeneratorExitCode gen_equality_expression(
 
 		case AstNodeAlt::EQUALITY_EXPRESSION_1:
 		{
-			AnnotatedAstNode* relational_expression
+			const AnnotatedAstNode* const relational_expression
 				= node->get_child();
 			if (gen_relational_expression(
 				num_labels_used,
@@ -1838,12 +3480,12 @@ static inline CodeGeneratorExitCode gen_equality_expression(
 		case AstNodeAlt::EQUALITY_EXPRESSION_2:
 		case AstNodeAlt::EQUALITY_EXPRESSION_3:
 		{
-			AnnotatedAstNode* equality_expression
+			const AnnotatedAstNode* const equality_expression
 				= node->get_child();
-			AnnotatedAstNode* relational_expression
+			const AnnotatedAstNode* const relational_expression
 				= equality_expression->get_sibling();
 
-			x86_AssemblyInstructionOperand op1;
+			x86_Asm_IR_Operand op1;
 
 			if (gen_equality_expression(
 				num_labels_used,
@@ -1855,7 +3497,7 @@ static inline CodeGeneratorExitCode gen_equality_expression(
 				break;
 			}
 
-			x86_AssemblyInstructionOperand op2;
+			x86_Asm_IR_Operand op2;
 
 			if (gen_relational_expression(
 				num_labels_used,
@@ -1867,24 +3509,24 @@ static inline CodeGeneratorExitCode gen_equality_expression(
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::CMP,
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::CMP,
 				op1,
 				op2);
 
 			switch (node->get_alt()) {
 
 				case AstNodeAlt::EQUALITY_EXPRESSION_2:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SETE,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::SETE,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;
 
 				case AstNodeAlt::EQUALITY_EXPRESSION_3:
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SETNE,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::SETNE,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
@@ -1905,13 +3547,14 @@ static inline CodeGeneratorExitCode gen_equality_expression(
 }
 
 static inline CodeGeneratorExitCode gen_and_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
-	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
+	CodeGeneratorExitCode exitcode 
+		= CodeGeneratorExitCode::FAILURE;
 
 	report_gen("gen_and_expression");
 
@@ -1919,7 +3562,7 @@ static inline CodeGeneratorExitCode gen_and_expression(
 
 		case AstNodeAlt::AND_EXPRESSION_1:
 		{
-			AnnotatedAstNode* equality_expression
+			const AnnotatedAstNode* const equality_expression
 				= node->get_child();
 			if (gen_equality_expression(
 				num_labels_used,
@@ -1936,12 +3579,12 @@ static inline CodeGeneratorExitCode gen_and_expression(
 
 		case AstNodeAlt::AND_EXPRESSION_2:
 		{
-			AnnotatedAstNode* and_expression
+			const AnnotatedAstNode* const and_expression
 				= node->get_child();
-			AnnotatedAstNode* equality_expression
+			const AnnotatedAstNode* const equality_expression
 				= and_expression->get_sibling();
 
-			x86_AssemblyInstructionOperand op1;
+			x86_Asm_IR_Operand op1;
 
 			if (gen_and_expression(
 				num_labels_used,
@@ -1953,7 +3596,7 @@ static inline CodeGeneratorExitCode gen_and_expression(
 				break;
 			}
 
-			x86_AssemblyInstructionOperand op2;
+			x86_Asm_IR_Operand op2;
 
 			if (gen_equality_expression(
 				num_labels_used,
@@ -1965,8 +3608,8 @@ static inline CodeGeneratorExitCode gen_and_expression(
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::AND,
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::AND,
 				op1,
 				op2);
 
@@ -1982,13 +3625,14 @@ static inline CodeGeneratorExitCode gen_and_expression(
 }
 
 static inline CodeGeneratorExitCode gen_exclusive_or_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
-	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
+	CodeGeneratorExitCode exitcode 
+		= CodeGeneratorExitCode::FAILURE;
 
 	report_gen("gen_exclusive_or_expression");
 
@@ -1996,7 +3640,7 @@ static inline CodeGeneratorExitCode gen_exclusive_or_expression(
 
 		case AstNodeAlt::EXCLUSIVE_OR_EXPRESSION_1:
 		{
-			AnnotatedAstNode* and_expression
+			const AnnotatedAstNode* const and_expression
 				= node->get_child();
 			if (gen_and_expression(
 				num_labels_used,
@@ -2013,12 +3657,12 @@ static inline CodeGeneratorExitCode gen_exclusive_or_expression(
 
 		case AstNodeAlt::EXCLUSIVE_OR_EXPRESSION_2:
 		{
-			AnnotatedAstNode* exclusive_or_expression
+			const AnnotatedAstNode* const exclusive_or_expression
 				= node->get_child();
-			AnnotatedAstNode* and_expression
+			const AnnotatedAstNode* const and_expression
 				= exclusive_or_expression->get_sibling();
 
-			x86_AssemblyInstructionOperand op1;
+			x86_Asm_IR_Operand op1;
 
 			if (gen_exclusive_or_expression(
 				num_labels_used,
@@ -2030,7 +3674,7 @@ static inline CodeGeneratorExitCode gen_exclusive_or_expression(
 				break;
 			}
 
-			x86_AssemblyInstructionOperand op2;
+			x86_Asm_IR_Operand op2;
 
 			if (gen_and_expression(
 				num_labels_used,
@@ -2042,8 +3686,8 @@ static inline CodeGeneratorExitCode gen_exclusive_or_expression(
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::XOR,
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::XOR,
 				op1,
 				op2);
 
@@ -2059,11 +3703,11 @@ static inline CodeGeneratorExitCode gen_exclusive_or_expression(
 }
 
 static inline CodeGeneratorExitCode gen_inclusive_or_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2073,7 +3717,7 @@ static inline CodeGeneratorExitCode gen_inclusive_or_expression(
 
 		case AstNodeAlt::INCLUSIVE_OR_EXPRESSION_1:
 		{
-			AnnotatedAstNode* exclusive_or_expression
+			const AnnotatedAstNode* const exclusive_or_expression
 				= node->get_child();
 			if (gen_exclusive_or_expression(
 				num_labels_used,
@@ -2090,13 +3734,12 @@ static inline CodeGeneratorExitCode gen_inclusive_or_expression(
 
 		case AstNodeAlt::INCLUSIVE_OR_EXPRESSION_2:
 		{
-			AnnotatedAstNode* inclusive_or_expression
+			const AnnotatedAstNode* const inclusive_or_expression
 				= node->get_child();
-			AnnotatedAstNode* exclusive_or_expression
+			const AnnotatedAstNode* const exclusive_or_expression
 				= inclusive_or_expression->get_sibling();
 
-			x86_AssemblyInstructionOperand op1;
-
+			x86_Asm_IR_Operand op1;
 			if (gen_inclusive_or_expression(
 				num_labels_used,
 				inclusive_or_expression,
@@ -2107,8 +3750,7 @@ static inline CodeGeneratorExitCode gen_inclusive_or_expression(
 				break;
 			}
 
-			x86_AssemblyInstructionOperand op2;
-
+			x86_Asm_IR_Operand op2;
 			if (gen_exclusive_or_expression(
 				num_labels_used,
 				exclusive_or_expression,
@@ -2119,8 +3761,8 @@ static inline CodeGeneratorExitCode gen_inclusive_or_expression(
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::OR,
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::OR,
 				op1,
 				op2);
 
@@ -2137,11 +3779,11 @@ static inline CodeGeneratorExitCode gen_inclusive_or_expression(
 
 
 static inline CodeGeneratorExitCode gen_logical_and_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2151,7 +3793,7 @@ static inline CodeGeneratorExitCode gen_logical_and_expression(
 
 		case AstNodeAlt::LOGICAL_AND_EXPRESSION_1:
 		{
-			AnnotatedAstNode* inclusive_or_expression
+			const AnnotatedAstNode* const inclusive_or_expression
 				= node->get_child();
 			if (gen_inclusive_or_expression(
 				num_labels_used,
@@ -2168,13 +3810,12 @@ static inline CodeGeneratorExitCode gen_logical_and_expression(
 
 		case AstNodeAlt::LOGICAL_AND_EXPRESSION_2:
 		{
-			AnnotatedAstNode* logical_or_expression
+			const AnnotatedAstNode* const logical_or_expression
 				= node->get_child();
-			AnnotatedAstNode* logical_and_expression
+			const AnnotatedAstNode* const logical_and_expression
 				= logical_or_expression->get_sibling();
 
-			x86_AssemblyInstructionOperand op1;
-
+			x86_Asm_IR_Operand op1;
 			if (gen_logical_or_expression(
 				num_labels_used,
 				logical_or_expression,
@@ -2185,8 +3826,7 @@ static inline CodeGeneratorExitCode gen_logical_and_expression(
 				break;
 			}
 
-			x86_AssemblyInstructionOperand op2;
-
+			x86_Asm_IR_Operand op2;
 			if (gen_logical_and_expression(
 				num_labels_used,
 				logical_and_expression,
@@ -2197,8 +3837,8 @@ static inline CodeGeneratorExitCode gen_logical_and_expression(
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::OR,
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::OR,
 				op1,
 				op2);
 
@@ -2214,11 +3854,11 @@ static inline CodeGeneratorExitCode gen_logical_and_expression(
 }
 
 static inline CodeGeneratorExitCode gen_logical_or_expression(
-	int& num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2228,11 +3868,11 @@ static inline CodeGeneratorExitCode gen_logical_or_expression(
 
 		case AstNodeAlt::LOGICAL_OR_EXPRESSION_1:
 		{
-			AnnotatedAstNode* logical_and_expression
+			const AnnotatedAstNode* const logical_and_expression
 				= node->get_child();
 			if (gen_logical_and_expression(
 				num_labels_used,
-				logical_and_expression,
+				logical_and_expression, 
 				instrs,
 				alloc_map,
 				operand)
@@ -2245,12 +3885,12 @@ static inline CodeGeneratorExitCode gen_logical_or_expression(
 
 		case AstNodeAlt::LOGICAL_OR_EXPRESSION_2:
 		{
-			AnnotatedAstNode* logical_or_expression
+			const AnnotatedAstNode* const logical_or_expression
 				= node->get_child();
-			AnnotatedAstNode* logical_and_expression
+			const AnnotatedAstNode* const logical_and_expression
 				= logical_or_expression->get_sibling();
 
-			x86_AssemblyInstructionOperand op1;
+			x86_Asm_IR_Operand op1;
 			if (gen_logical_or_expression(
 				num_labels_used,
 				logical_or_expression,
@@ -2261,7 +3901,7 @@ static inline CodeGeneratorExitCode gen_logical_or_expression(
 				break;
 			}
 
-			x86_AssemblyInstructionOperand op2;
+			x86_Asm_IR_Operand op2;
 
 			if (gen_logical_and_expression(
 				num_labels_used,
@@ -2273,8 +3913,8 @@ static inline CodeGeneratorExitCode gen_logical_or_expression(
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::OR,
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::OR,
 				op1,
 				op2);
 
@@ -2290,11 +3930,11 @@ static inline CodeGeneratorExitCode gen_logical_or_expression(
 }
 
 static inline CodeGeneratorExitCode gen_conditional_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2304,7 +3944,7 @@ static inline CodeGeneratorExitCode gen_conditional_expression(
 
 		case AstNodeAlt::CONDITIONAL_EXPRESSION_1:
 		{
-			AnnotatedAstNode* logical_or_expression
+			const AnnotatedAstNode* const logical_or_expression
 				= node->get_child();
 			if (gen_logical_or_expression(
 				num_labels_used,
@@ -2330,29 +3970,41 @@ static inline CodeGeneratorExitCode gen_conditional_expression(
 			    val = b;
 			}
 			*/
-			AnnotatedAstNode* logical_or_expression
+
+			const AnnotatedAstNode* const logical_or_expression
 				= node->get_child();
-			AnnotatedAstNode* expression
+			const AnnotatedAstNode* const expression
 				= logical_or_expression->get_sibling();
-			AnnotatedAstNode* conditional_expression
-				= logical_or_expression->get_sibling();
+			const AnnotatedAstNode* const conditional_expression
+				= expression->get_sibling();
 			
-			const char* skip_expression_label 
+			const char* const skip_expression_label 
 				= construct_label(".LBB0_", num_labels_used);
-			const char* evaluation_finished_label 
+			const char* const evaluation_finished_label 
 				= construct_label(".LBB0_", num_labels_used);
 
-			x86_RegisterAllocMap cond_expr;
+			x86_RegisterAllocMap cond_expr
+				= alloc_map;
 
-			x86_AssemblyInstructionOperand output
-				= x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-					{ reg_alloc(cond_expr) });
+			const Type* const conditional_expression_type
+				= conditional_expression->get_type();
 
-			x86_AssemblyInstructionOperand op1
-				= x86_AssemblyInstructionOperand();
-			
+			const x86_RegisterType conditional_expression_register_type
+				= get_register_type_from_ast_type(conditional_expression_type);
+
+			const x86_RegisterName conditional_expression_register
+				= allocate_register(
+					cond_expr,
+					conditional_expression_register_type);
+
+			x86_Asm_IR_Operand output
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+					{ conditional_expression_register });
+
 			/* if (cond) { */
+			x86_Asm_IR_Operand op1
+				= x86_Asm_IR_Operand();
 			if (gen_logical_or_expression(
 				num_labels_used,
 				logical_or_expression,
@@ -2363,18 +4015,21 @@ static inline CodeGeneratorExitCode gen_conditional_expression(
 				break;
 			}
 
-			x86_AssemblyInstructionOperandVal skip_expression_label_val;
+			x86_Asm_IR_OperandVal skip_expression_label_val;
 			skip_expression_label_val.label = { skip_expression_label };
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::JZ,
+
+			const x86_Asm_IR_Operand skip_expression_label_op
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::LABEL,
+					skip_expression_label_val);
+
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::JZ,
 				op1,
-				x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::LABEL,
-					skip_expression_label_val));
+				skip_expression_label_op);
 
-			x86_AssemblyInstructionOperand op2
-				= x86_AssemblyInstructionOperand();
-
+			x86_Asm_IR_Operand op2
+				= x86_Asm_IR_Operand();
 			if (gen_expression(
 				num_labels_used,
 				expression,
@@ -2385,23 +4040,27 @@ static inline CodeGeneratorExitCode gen_conditional_expression(
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::MOVSS,
-				op2,
-				output);
+			const Type* const expression_type
+				= expression->get_type();
 
-			x86_AssemblyInstructionOperandVal evaluation_finished_label_val;
+			construct_x86_AssemblyInstruction_mov(
+				conditional_expression_type,
+				output,
+				expression_type,
+				op2,
+				instrs);
+
+			x86_Asm_IR_OperandVal evaluation_finished_label_val;
 			evaluation_finished_label_val.label = evaluation_finished_label;
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::JMP,
-				x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::LABEL,
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::JMP,
+				x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::LABEL,
 					evaluation_finished_label_val));
 
 			/* } else { */
-			x86_AssemblyInstructionOperand op3
-				= x86_AssemblyInstructionOperand();
-
+			x86_Asm_IR_Operand op3
+				= x86_Asm_IR_Operand();
 			if (gen_conditional_expression(
 				num_labels_used,
 				conditional_expression,
@@ -2412,10 +4071,12 @@ static inline CodeGeneratorExitCode gen_conditional_expression(
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::MOVSS,
+			construct_x86_AssemblyInstruction_mov(
+				conditional_expression_type,
+				output,
+				conditional_expression_type,
 				op3,
-				output);
+				instrs);
 
 			/* } */
 			operand = output;
@@ -2431,11 +4092,11 @@ static inline CodeGeneratorExitCode gen_conditional_expression(
 }
 
 static inline CodeGeneratorExitCode gen_assignment_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2445,7 +4106,7 @@ static inline CodeGeneratorExitCode gen_assignment_expression(
 
 		case AstNodeAlt::ASSIGNMENT_EXPRESSION_1:
 		{
-			AnnotatedAstNode* conditional_expression
+			const AnnotatedAstNode* const conditional_expression
 				= node->get_child();
 			if (gen_conditional_expression(
 				num_labels_used,
@@ -2465,14 +4126,14 @@ static inline CodeGeneratorExitCode gen_assignment_expression(
 			x86_RegisterAllocMap assignment_expression_2_alloc_map
 				= alloc_map;
 
-			AnnotatedAstNode* unary_expression =
+			const AnnotatedAstNode* const unary_expression =
 				node->get_child();
-			AnnotatedAstNode* assignment_operator =
-				node->get_child()->get_sibling();
-			AnnotatedAstNode* assignment_expression =
-				node->get_child()->get_sibling()->get_sibling();
+			const AnnotatedAstNode* const assignment_operator =
+				unary_expression->get_sibling();
+			const AnnotatedAstNode* const assignment_expression =
+				assignment_operator->get_sibling();
 
-			x86_AssemblyInstructionOperand op1;
+			x86_Asm_IR_Operand op1;
 
 			if (gen_assignment_expression(
 				num_labels_used,
@@ -2484,96 +4145,142 @@ static inline CodeGeneratorExitCode gen_assignment_expression(
 				break;
 			}
 
-			x86_AssemblyInstructionOperand op2;
+			x86_Asm_IR_Operand op2;
 
-			gen_unary_expression(
+			if (gen_unary_expression(
 				num_labels_used,
 				unary_expression,
 				instrs,
 				assignment_expression_2_alloc_map,
-				op2);
+				op2)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
 
 			switch (assignment_operator->get_alt()) {
 
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_1:
 				{
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::MOVSS,
+					const Type* const unary_expression_type
+						= unary_expression->get_type();
+					const Type* const assignment_expression_type
+						= assignment_expression->get_type();
+					construct_x86_AssemblyInstruction_mov(
+						unary_expression_type,
+						op2,
+						assignment_expression_type,
 						op1,
-						op2);
+						instrs);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;
 				}
 
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_2:
 				{
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::MULSS,
+					const Type* const unary_expression_type
+						= unary_expression->get_type();
+					const Type* const assignment_expression_type
+						= assignment_expression->get_type();
+					construct_x86_AssemblyInstruction_multiply(
+						assignment_expression_type,
 						op1,
-						op2);
+						unary_expression_type,
+						op2,
+						instrs);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;				
 				}
 
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_3:
 				{
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::DIVSS,
+					const Type* const unary_expression_type
+						= unary_expression->get_type();
+					const Type* const assignment_expression_type
+						= assignment_expression->get_type();
+					construct_x86_AssemblyInstruction_divide(
+						assignment_expression_type,
 						op1,
-						op2);
+						unary_expression_type,
+						op2,
+						instrs);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;				
 				}
 
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_4:
 				{
-					x86_AssemblyInstructionOperandVal v;
+					const Type* const unary_expression_type
+						= unary_expression->get_type();
+					const Type* const assignment_expression_type						
+						= assignment_expression->get_type();
+
+					x86_Asm_IR_OperandVal v;
 					v.dwui = 0;
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::MOVSS,
-						x86_AssemblyInstructionOperand(
-							x86_AssemblyInstructionOperandType::DOUBLEWORD_UNSIGNED_INTEGER,
+					
+					construct_x86_AssemblyInstruction_mov(
+						assignment_expression_type,
+						x86_Asm_IR_Operand(
+							x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+							x86_Asm_IR_OperandVal({x86_RegisterName::RDX})),
+						unary_expression_type,
+						x86_Asm_IR_Operand(
+							x86_Asm_IR_OperandType::DOUBLEWORD_UNSIGNED_INTEGER,
 							v),
-						x86_AssemblyInstructionOperand(
-							x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-							x86_AssemblyInstructionOperandVal({x86_Register::RDX})));
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::IDIV,
+						instrs);
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::IDIV,
 						op1,
 						op2);
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::MOVSS,
-							x86_AssemblyInstructionOperand(
-								x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-								x86_AssemblyInstructionOperandVal({ x86_Register::RDX })),
-						op1);
+					construct_x86_AssemblyInstruction_multiply(
+						assignment_expression_type,
+						op1,
+						assignment_expression_type,
+						x86_Asm_IR_Operand(
+							x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+							x86_Asm_IR_OperandVal({ x86_RegisterName::RDX })),
+						instrs);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;
 				}
 
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_5:
 				{	
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::ADD,
+					const Type* const unary_expression_type
+						= unary_expression->get_type();
+					const Type* const assignment_expression_type
+						= assignment_expression->get_type();
+
+					construct_x86_AssemblyInstruction_add(
+						assignment_expression_type,
 						op1,
-						op2);
+						unary_expression_type,
+						op2,
+						instrs);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
 					break;				
 				}
 
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_6:
-				{	
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SUB,
+				{
+					const Type* const unary_expression_type
+						= unary_expression->get_type();
+					const Type* const assignment_expression_type
+						= assignment_expression->get_type();
+
+					construct_x86_AssemblyInstruction_sub(
+						assignment_expression_type,
 						op1,
-						op2);
+						unary_expression_type,
+						op2,
+						instrs);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
-					break;				}
+					break;				
+				}
 
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_7:
-				{	
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SHL,
+				{
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::SHL,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
@@ -2582,8 +4289,8 @@ static inline CodeGeneratorExitCode gen_assignment_expression(
 				
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_8:
 				{	
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::SHR,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::SHR,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
@@ -2592,8 +4299,8 @@ static inline CodeGeneratorExitCode gen_assignment_expression(
 				
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_9:
 				{	
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::AND,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::AND,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
@@ -2602,8 +4309,8 @@ static inline CodeGeneratorExitCode gen_assignment_expression(
 
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_10:
 				{	
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::XOR,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::XOR,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
@@ -2612,8 +4319,8 @@ static inline CodeGeneratorExitCode gen_assignment_expression(
 				
 				case AstNodeAlt::ASSIGNMENT_OPERATOR_11:
 				{	
-					*instrs++ = x86_AssemblyInstruction(
-						x86_AssemblyInstructionMnemonic::NEG,
+					*instrs++ = x86_Asm_IR(
+						x86_Asm_IR_Mnemonic::NEG,
 						op1,
 						op2);
 					exitcode = CodeGeneratorExitCode::SUCCESS;
@@ -2634,11 +4341,11 @@ static inline CodeGeneratorExitCode gen_assignment_expression(
 }
 
 static inline CodeGeneratorExitCode gen_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2648,7 +4355,7 @@ static inline CodeGeneratorExitCode gen_expression(
 
 		case AstNodeAlt::EXPRESSION_1:
 		{
-			AnnotatedAstNode* assignment_expression
+			const AnnotatedAstNode* const assignment_expression
 				= node->get_child();
 			if (gen_assignment_expression(
 				num_labels_used,
@@ -2665,9 +4372,9 @@ static inline CodeGeneratorExitCode gen_expression(
 
 		case AstNodeAlt::EXPRESSION_2:
 		{
-			AnnotatedAstNode* expression
+			const AnnotatedAstNode* const expression
 				= node->get_child();
-			AnnotatedAstNode* assignment_expression
+			const AnnotatedAstNode* const assignment_expression
 				= expression->get_sibling();
 
 			if (gen_expression(
@@ -2698,11 +4405,11 @@ static inline CodeGeneratorExitCode gen_expression(
 }
 
 static inline CodeGeneratorExitCode gen_constant_expression(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2712,12 +4419,15 @@ static inline CodeGeneratorExitCode gen_constant_expression(
 
 		case AstNodeAlt::CONSTANT_EXPRESSION_1:
 		{
-			gen_conditional_expression(
+			if (gen_conditional_expression(
 				num_labels_used,
 				node,
 				instrs,
 				alloc_map,
-				operand);
+				operand)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -2731,9 +4441,10 @@ static inline CodeGeneratorExitCode gen_constant_expression(
 /* Declarations. */
 
 static inline CodeGeneratorExitCode gen_declaration(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2741,37 +4452,38 @@ static inline CodeGeneratorExitCode gen_declaration(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::DECLARATION_1:
-	{
-		AnnotatedAstNode* declaration_specifiers =
-			node->get_child();
-		AnnotatedAstNode* init_declarator_list =
-			declaration_specifiers->get_sibling();
-		if (init_declarator_list) {
-			if (gen_init_declarator_list(
-				num_labels_used,
-				init_declarator_list,
-				instrs)
-				== CodeGeneratorExitCode::FAILURE) {
-				break;
+		case AstNodeAlt::DECLARATION_1:
+		{
+			const AnnotatedAstNode* const declaration_specifiers =
+				node->get_child();
+			const AnnotatedAstNode* const init_declarator_list =
+				declaration_specifiers->get_sibling();
+			if (init_declarator_list) {
+				if (gen_init_declarator_list(
+					num_labels_used,
+					init_declarator_list,
+					instrs,
+					alloc_map)
+					== CodeGeneratorExitCode::FAILURE) {
+					break;
+				}
 			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		default:
+			break;
 	}
 	return exitcode;
 }
 
 static inline CodeGeneratorExitCode gen_declaration_specifiers(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_Register const& output_register)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_RegisterName        const& output_register)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2779,98 +4491,101 @@ static inline CodeGeneratorExitCode gen_declaration_specifiers(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::DECLARATION_SPECIFIERS_1:
-	{
-		AnnotatedAstNode* storage_class_specifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= node->get_child()->get_sibling();
-		if (declaration_specifiers) {
-			if (gen_declaration_specifiers(
-				num_labels_used,
-				declaration_specifiers,
-				instrs,
-				alloc_map,
-				output_register)
-				== CodeGeneratorExitCode::FAILURE) {
-				break;
+		case AstNodeAlt::DECLARATION_SPECIFIERS_1:
+		{
+			const AnnotatedAstNode* const storage_class_specifier
+				= node->get_child();
+			const AnnotatedAstNode* const declaration_specifiers
+				= storage_class_specifier->get_sibling();
+			if (declaration_specifiers) {
+				if (gen_declaration_specifiers(
+					num_labels_used,
+					declaration_specifiers,
+					instrs,
+					alloc_map,
+					output_register)
+					== CodeGeneratorExitCode::FAILURE) {
+					break;
+				}
 			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::DECLARATION_SPECIFIERS_2:
-	{
-		AnnotatedAstNode* type_specifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= node->get_child()->get_sibling();
-		if (declaration_specifiers) {
-			if (gen_declaration_specifiers(
-				num_labels_used,
-				declaration_specifiers,
-				instrs,
-				alloc_map,
-				output_register)
-				== CodeGeneratorExitCode::FAILURE) {
-				break;
+		case AstNodeAlt::DECLARATION_SPECIFIERS_2:
+		{
+			const AnnotatedAstNode* const type_specifier
+				= node->get_child();
+			const AnnotatedAstNode* const declaration_specifiers
+				= type_specifier->get_sibling();
+			if (declaration_specifiers) {
+				if (gen_declaration_specifiers(
+					num_labels_used,
+					declaration_specifiers,
+					instrs,
+					alloc_map,
+					output_register)
+					== CodeGeneratorExitCode::FAILURE) {
+					break;
+				}
 			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
-	case AstNodeAlt::DECLARATION_SPECIFIERS_3:
-	{
-		AnnotatedAstNode* type_qualifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= node->get_child()->get_sibling();
-		if (declaration_specifiers) {
-			if (gen_declaration_specifiers(
-				num_labels_used,
-				declaration_specifiers,
-				instrs,
-				alloc_map,
-				output_register)
-				== CodeGeneratorExitCode::FAILURE) {
-				break;
-			}
-		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
-	case AstNodeAlt::DECLARATION_SPECIFIERS_4:
-	{
-		AnnotatedAstNode* function_specifier
-			= node->get_child();
-		AnnotatedAstNode* declaration_specifiers
-			= node->get_child()->get_sibling();
-		if (declaration_specifiers) {
-			if (gen_declaration_specifiers(
-				num_labels_used,
-				declaration_specifiers,
-				instrs,
-				alloc_map,
-				output_register)
-				== CodeGeneratorExitCode::FAILURE) {
-				break;
-			}
-		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		case AstNodeAlt::DECLARATION_SPECIFIERS_3:
+		{
+			const AnnotatedAstNode* const type_qualifier
+				= node->get_child();
+			const AnnotatedAstNode* const declaration_specifiers
+				= type_qualifier->get_sibling();
+			if (declaration_specifiers) {
+				if (gen_declaration_specifiers(
+					num_labels_used,
+					declaration_specifiers,
+					instrs,
+					alloc_map,
+					output_register)
+					== CodeGeneratorExitCode::FAILURE) {
+					break;
+				}
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
+		}
+
+		case AstNodeAlt::DECLARATION_SPECIFIERS_4:
+		{
+			const AnnotatedAstNode* const function_specifier
+				= node->get_child();
+			const AnnotatedAstNode* const declaration_specifiers
+				= function_specifier->get_sibling();
+			if (declaration_specifiers) {
+				if (gen_declaration_specifiers(
+					num_labels_used,
+					declaration_specifiers,
+					instrs,
+					alloc_map,
+					output_register)
+					== CodeGeneratorExitCode::FAILURE) {
+					break;
+				}
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
 	}
 	return exitcode;
 }
 
 static inline CodeGeneratorExitCode gen_init_declarator_list(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2878,55 +4593,59 @@ static inline CodeGeneratorExitCode gen_init_declarator_list(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::INIT_DECLARATOR_LIST_1:
-	{
-		AnnotatedAstNode* init_declarator
-			= node->get_child();
-		if (gen_init_declarator(
-			num_labels_used,
-			init_declarator,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::INIT_DECLARATOR_LIST_1:
+		{
+			const AnnotatedAstNode* const init_declarator
+				= node->get_child();
+			if (gen_init_declarator(
+				num_labels_used,
+				init_declarator,
+				instrs,
+				alloc_map)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	case AstNodeAlt::INIT_DECLARATOR_LIST_2:
-	{
-		AnnotatedAstNode* init_declarator_list
-			= node->get_child();
-		AnnotatedAstNode* init_declarator
-			= init_declarator_list->get_sibling();
-		if (gen_init_declarator_list(
-			num_labels_used,
-			init_declarator_list,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
+		case AstNodeAlt::INIT_DECLARATOR_LIST_2:
+		{
+			AnnotatedAstNode* init_declarator_list
+				= node->get_child();
+			AnnotatedAstNode* init_declarator
+				= init_declarator_list->get_sibling();
+			if (gen_init_declarator_list(
+				num_labels_used,
+				init_declarator_list,
+				instrs,
+				alloc_map)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			if (gen_init_declarator(
+				num_labels_used,
+				init_declarator,
+				instrs,
+				alloc_map)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
-		if (gen_init_declarator(
-			num_labels_used,
-			init_declarator,
-			instrs)
-			== CodeGeneratorExitCode::FAILURE) {
-			break;
-		}
-		exitcode = CodeGeneratorExitCode::SUCCESS;
-		break;
-	}
 
-	default:
-		break;
+		default:
+			break;
 	}
 	return exitcode;
 }
 
 static inline CodeGeneratorExitCode gen_init_declarator(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -2942,41 +4661,51 @@ static inline CodeGeneratorExitCode gen_init_declarator(
 
 		case AstNodeAlt::INIT_DECLARATOR_2:
 		{
-			AnnotatedAstNode* declarator
+			const AnnotatedAstNode* const declarator
 				= node->get_child();
-			AnnotatedAstNode* initializer
+			const AnnotatedAstNode* const initializer
 				= declarator->get_sibling();
 
-			SymbolTable* st 
+			const SymbolTable* const symtab
 				= declarator->get_symbol_table();
-			SymbolTableEntry* ste 
-				= st->get_entry(declarator->get_symbol());
+			const char* const declarator_symbol
+				= declarator->get_symbol();
+			const SymbolTableEntry* const symtab_entry 
+				= symtab->get_entry(declarator_symbol);
 
-			x86_AssemblyInstructionOperand op1;
+			x86_Asm_IR_Operand op1;
 			if (gen_initializer(
 				num_labels_used,
 				initializer,
 				instrs,
-				x86_RegisterAllocMap(0),
+				construct_blank_alloc_map(),
 				op1)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
 
-			x86_AssemblyInstructionOperand op2;
+			x86_Asm_IR_Operand op2;
 			if (gen_symbol(
-				declarator->get_symbol_table()->get_entry(declarator->get_symbol()),
+				symtab_entry,
 				instrs,
-				op2)
+				op2,
+				alloc_map)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::MOVSS,
-				op1,
-				op2);
+			const Type* const initializer_type
+				= initializer->get_type();
 
+			const Type* const symtab_entry_type
+				= symtab_entry->type;
+
+			construct_x86_AssemblyInstruction_mov(
+				symtab_entry_type,
+				op2,
+				initializer_type,
+				op1,
+				instrs);
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -2988,11 +4717,11 @@ static inline CodeGeneratorExitCode gen_init_declarator(
 }
 
 static inline CodeGeneratorExitCode gen_initializer(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3002,7 +4731,7 @@ static inline CodeGeneratorExitCode gen_initializer(
 
 		case AstNodeAlt::INITIALIZER_1:
 		{
-			AnnotatedAstNode* assignment_expression
+			const AnnotatedAstNode* const assignment_expression
 				= node->get_child();
 			if (gen_assignment_expression(
 				num_labels_used,
@@ -3020,7 +4749,7 @@ static inline CodeGeneratorExitCode gen_initializer(
 		case AstNodeAlt::INITIALIZER_2:
 		case AstNodeAlt::INITIALIZER_3:
 		{
-			AnnotatedAstNode* initializer_list
+			const AnnotatedAstNode* const initializer_list
 				= node->get_child();
 			if (gen_initializer_list(
 				num_labels_used,
@@ -3041,10 +4770,10 @@ static inline CodeGeneratorExitCode gen_initializer(
 }
 
 static inline CodeGeneratorExitCode gen_designator_list(
-	int& num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3054,15 +4783,20 @@ static inline CodeGeneratorExitCode gen_designator_list(
 
 		case AstNodeAlt::DESIGNATION_1:
 		{
-			AnnotatedAstNode* designator 
+			const AnnotatedAstNode* const designator 
 				= node->get_child();
-			AnnotatedAstNode* designator_list
+			const AnnotatedAstNode* const designator_list
 				= node->get_sibling();
-			gen_designator_list(
+
+			if (gen_designator_list(
 				num_labels_used,
 				designator_list,
 				instrs,
-				alloc_map);
+				alloc_map)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -3075,9 +4809,9 @@ static inline CodeGeneratorExitCode gen_designator_list(
 }
 
 static inline CodeGeneratorExitCode gen_designation(
-	int& num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
+	int                       & num_labels_used,
+	AnnotatedAstNode*    const& node,
+	x86_Asm_IR*               & instrs,
 	x86_RegisterAllocMap const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
@@ -3088,13 +4822,18 @@ static inline CodeGeneratorExitCode gen_designation(
 
 		case AstNodeAlt::DESIGNATION_1:
 		{
-			AnnotatedAstNode* designator_list
+			const AnnotatedAstNode* const designator_list
 				= node->get_sibling();
-			gen_designator_list(
+
+			if (gen_designator_list(
 				num_labels_used,
 				designator_list,
 				instrs,
-				alloc_map);
+				alloc_map)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -3107,10 +4846,10 @@ static inline CodeGeneratorExitCode gen_designation(
 }
 
 static inline CodeGeneratorExitCode gen_initializer_list(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map)
+	int                          &num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3118,44 +4857,44 @@ static inline CodeGeneratorExitCode gen_initializer_list(
 
 	switch (node->get_alt()) {
 
-		case AstNodeAlt::INITIALIZER_LIST_1:
-		{
-			/*AnnotatedAstNode* designation
-				= node->get_child()->get_name() == AstNodeName::DESIGNATION
-				  ? node->get_child()
-				  : NULL;
-			AnnotatedAstNode* initializer
-				= designation
-				  ? designation->get_sibling()
-				  : node->get_sibling();
-			if (designation) {
-				x86_AssemblyInstructionOperand op1;
-					num_labels_used,
-					designation,
-					instrs,
-					alloc_map);
-			}
-			gen_initializer(
-				num_labels_used,
-				node,
-				instrs,
-				alloc_map, 
-				op);
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::MOVSS,
-				op1,
-				op2);*/
-			//TODO;
-			break;
-		}
+		//case AstNodeAlt::INITIALIZER_LIST_1:
+		//{
+		//	AnnotatedAstNode* designation
+		//		= node->get_child()->get_name() == AstNodeName::DESIGNATION
+		//		  ? node->get_child()
+		//		  : NULL;
+		//	AnnotatedAstNode* initializer
+		//		= designation
+		//		  ? designation->get_sibling()
+		//		  : node->get_sibling();
+		//	if (designation) {
+		//		x86_AssemblyInstructionOperand op1;
+		//			num_labels_used,
+		//			designation,
+		//			instrs,
+		//			alloc_map);
+		//	}
+		//	gen_initializer(
+		//		num_labels_used,
+		//		node,
+		//		instrs,
+		//		alloc_map, 
+		//		op);
+		//	*instrs++ = x86_AssemblyInstruction(
+		//		x86_AssemblyInstructionMnemonic::MOVSS,
+		//		op1,
+		//		op2);*/
+		//	//TODO;
+		//	break;
+		//}
 
-		case AstNodeAlt::INITIALIZER_LIST_2:
-		{
-			/*	AnnotatedAstNode* initializer_list = node->get_child();
-				gen_initializer_list(initializer_list, instrs);
-				exitcode = CodeGeneratorExitCode::SUCCESS;*/
-			break;
-		}
+		//case AstNodeAlt::INITIALIZER_LIST_2:
+		//{
+		//	/*	AnnotatedAstNode* initializer_list = node->get_child();
+		//		gen_initializer_list(initializer_list, instrs);
+		//		exitcode = CodeGeneratorExitCode::SUCCESS;*/
+		//	break;
+		//}
 
 		default:
 			break;
@@ -3167,9 +4906,10 @@ static inline CodeGeneratorExitCode gen_initializer_list(
 /* Statements. */
 
 static inline CodeGeneratorExitCode gen_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3179,7 +4919,7 @@ static inline CodeGeneratorExitCode gen_statement(
 
 		case AstNodeAlt::STATEMENT_1:
 		{
-			AnnotatedAstNode* labeled_statement
+			const AnnotatedAstNode* const labeled_statement
 				= node->get_child();
 			if (gen_labeled_statement(
 				num_labels_used,
@@ -3194,12 +4934,13 @@ static inline CodeGeneratorExitCode gen_statement(
 
 		case AstNodeAlt::STATEMENT_2:
 		{
-			AnnotatedAstNode* compound_statement
+			const AnnotatedAstNode* const compound_statement
 				= node->get_child();
 			if (gen_compound_statement(
 					num_labels_used,
 					compound_statement,
-					instrs)
+					instrs,
+				    alloc_map)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
@@ -3209,15 +4950,15 @@ static inline CodeGeneratorExitCode gen_statement(
 
 		case AstNodeAlt::STATEMENT_3:
 		{
-			AnnotatedAstNode* expression_statement
+			const AnnotatedAstNode* const expression_statement
 				= node->get_child();
-			x86_AssemblyInstructionOperand operand
-				= x86_AssemblyInstructionOperand();
+			x86_Asm_IR_Operand operand
+				= x86_Asm_IR_Operand();
 			if (gen_expression_statement(
 				num_labels_used,
 				expression_statement,
 				instrs,
-				x86_RegisterAllocMap(0),
+				alloc_map,
 				operand)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
@@ -3228,7 +4969,7 @@ static inline CodeGeneratorExitCode gen_statement(
 
 		case AstNodeAlt::STATEMENT_4:
 		{
-			AnnotatedAstNode* selection_statement
+			const AnnotatedAstNode* const selection_statement
 				= node->get_child();
 			if (gen_selection_statement(
 				num_labels_used,
@@ -3243,7 +4984,7 @@ static inline CodeGeneratorExitCode gen_statement(
 
 		case AstNodeAlt::STATEMENT_5:
 		{
-			AnnotatedAstNode* iteration_statement
+			const AnnotatedAstNode* const iteration_statement
 				= node->get_child();
 			if (gen_iteration_statement(
 				num_labels_used,
@@ -3258,7 +4999,7 @@ static inline CodeGeneratorExitCode gen_statement(
 
 		case AstNodeAlt::STATEMENT_6:
 		{
-			AnnotatedAstNode* jump_statement
+			const AnnotatedAstNode* const jump_statement
 				= node->get_child();
 			if (gen_jump_statement(
 				num_labels_used,
@@ -3279,9 +5020,9 @@ static inline CodeGeneratorExitCode gen_statement(
 }
 
 static inline CodeGeneratorExitCode gen_labeled_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          &num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3290,13 +5031,46 @@ static inline CodeGeneratorExitCode gen_labeled_statement(
 	switch (node->get_alt()) {
 
 		case AstNodeAlt::LABELED_STATEMENT_1:
+		{
+			const AnnotatedAstNode* const identifier 
+				= node->get_child();
+			const AnnotatedAstNode* const statement 
+				= identifier->get_sibling();
+
+			x86_Asm_IR* statement_start = instrs;
+			if (gen_statement(				num_labels_used,
+				node,
+				instrs,
+				construct_blank_alloc_map())
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
+			statement_start->set_type(
+				x86_Asm_IR_Type::LABELED_INSTRUCTION);
+			const char* const label_s 
+				= construct_label("LSS_", num_labels_used);
+			statement_start->set_label(
+				label_s);
+
+			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
+		}
 
 		case AstNodeAlt::LABELED_STATEMENT_2:
+		{
+			const AnnotatedAstNode* const constant_expression
+				= node->get_child();
+			const AnnotatedAstNode* const statement
+				= constant_expression->get_sibling();
 			break;
+		}
 
 		case AstNodeAlt::LABELED_STATEMENT_3:
+		{
+			const AnnotatedAstNode* const statement
+				= node->get_child();
 			break;
+		}
 
 		default:
 			break;
@@ -3305,9 +5079,10 @@ static inline CodeGeneratorExitCode gen_labeled_statement(
 }
 
 static inline CodeGeneratorExitCode gen_compound_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3317,15 +5092,18 @@ static inline CodeGeneratorExitCode gen_compound_statement(
 
 		case AstNodeAlt::COMPOUND_STATEMENT_1:
 		{
-			AnnotatedAstNode* block_item_list
+			const AnnotatedAstNode* const block_item_list
 				= node->get_child();
+
 			if (gen_block_item_list(
 				num_labels_used,
 				block_item_list,
-				instrs)
+				instrs,
+				alloc_map)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
+
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -3337,9 +5115,10 @@ static inline CodeGeneratorExitCode gen_compound_statement(
 }
 
 static inline CodeGeneratorExitCode gen_block_item_list(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3349,36 +5128,42 @@ static inline CodeGeneratorExitCode gen_block_item_list(
 
 		case AstNodeAlt::BLOCK_ITEM_LIST_1:
 		{
-			AnnotatedAstNode* block_item
+			const AnnotatedAstNode* const block_item
 				= node->get_child();
+
 			if (gen_block_item(
 				num_labels_used,
 				block_item,
-				instrs)
+				instrs,
+				alloc_map)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
+
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
 
 		case AstNodeAlt::BLOCK_ITEM_LIST_2:
 		{
-			AnnotatedAstNode* block_item_list
+			const AnnotatedAstNode* const block_item_list
 				= node->get_child();
-			AnnotatedAstNode* block_item
+			const AnnotatedAstNode* const block_item
 				= block_item_list->get_sibling();
+
 			if (gen_block_item_list(
 				num_labels_used,
 				block_item_list,
-				instrs)
+				instrs,
+				alloc_map)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
 			if (gen_block_item(
 				num_labels_used,
 				block_item,
-				instrs)
+				instrs,
+				alloc_map)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
@@ -3394,9 +5179,10 @@ static inline CodeGeneratorExitCode gen_block_item_list(
 }
 
 static inline CodeGeneratorExitCode gen_block_item(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3406,12 +5192,13 @@ static inline CodeGeneratorExitCode gen_block_item(
 
 		case AstNodeAlt::BLOCK_ITEM_1:
 		{
-			AnnotatedAstNode* declaration
+			const AnnotatedAstNode* const declaration
 				= node->get_child();
 			if (gen_declaration(
 				num_labels_used,
 				declaration,
-				instrs)
+				instrs,
+				alloc_map)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
@@ -3421,11 +5208,13 @@ static inline CodeGeneratorExitCode gen_block_item(
 
 		case AstNodeAlt::BLOCK_ITEM_2:
 		{
-			AnnotatedAstNode* statement = node->get_child();
+			const AnnotatedAstNode* const statement 
+				= node->get_child();
 			if (gen_statement(
 				num_labels_used,
 				statement,
-				instrs)
+				instrs,
+				alloc_map)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
@@ -3441,11 +5230,11 @@ static inline CodeGeneratorExitCode gen_block_item(
 }
 
 static inline CodeGeneratorExitCode gen_expression_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs,
-	x86_RegisterAllocMap const& alloc_map,
-	x86_AssemblyInstructionOperand& operand)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map,
+	x86_Asm_IR_Operand           & operand)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3455,7 +5244,7 @@ static inline CodeGeneratorExitCode gen_expression_statement(
 
 		case AstNodeAlt::EXPRESSION_STATEMENT_1:
 		{
-			AnnotatedAstNode* expression
+			const AnnotatedAstNode* const expression
 				= node->get_child();
 			if (gen_expression(
 				num_labels_used,
@@ -3478,9 +5267,9 @@ static inline CodeGeneratorExitCode gen_expression_statement(
 }
 
 static inline CodeGeneratorExitCode gen_selection_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                           & num_labels_used,
+	const AnnotatedAstNode*  const& node,
+	x86_Asm_IR*                   & instrs)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3488,25 +5277,25 @@ static inline CodeGeneratorExitCode gen_selection_statement(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::SELECTION_STATEMENT_1:
-		break;
+		case AstNodeAlt::SELECTION_STATEMENT_1:
+			break;
 
-	case AstNodeAlt::SELECTION_STATEMENT_2:
-		break;
+		case AstNodeAlt::SELECTION_STATEMENT_2:
+			break;
 
-	case AstNodeAlt::SELECTION_STATEMENT_3:
-		break;
+		case AstNodeAlt::SELECTION_STATEMENT_3:
+			break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 	return exitcode;
 }
 
 static inline CodeGeneratorExitCode gen_iteration_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                           & num_labels_used,
+	const AnnotatedAstNode*  const& node,
+	x86_Asm_IR*                   & instrs)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3514,28 +5303,28 @@ static inline CodeGeneratorExitCode gen_iteration_statement(
 
 	switch (node->get_alt()) {
 
-	case AstNodeAlt::ITERATION_STATEMENT_1:
-		break;
+		case AstNodeAlt::ITERATION_STATEMENT_1:
+			break;
 
-	case AstNodeAlt::ITERATION_STATEMENT_2:
-		break;
+		case AstNodeAlt::ITERATION_STATEMENT_2:
+			break;
 
-	case AstNodeAlt::ITERATION_STATEMENT_3:
-		break;
+		case AstNodeAlt::ITERATION_STATEMENT_3:
+			break;
 
-	case AstNodeAlt::ITERATION_STATEMENT_4:
-		break;
+		case AstNodeAlt::ITERATION_STATEMENT_4:
+			break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 	return exitcode;
 }
 
 static inline CodeGeneratorExitCode gen_jump_statement(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3554,24 +5343,33 @@ static inline CodeGeneratorExitCode gen_jump_statement(
 
 		case AstNodeAlt::JUMP_STATEMENT_4:
 		{
-			x86_AssemblyInstructionOperand operand;
-			AnnotatedAstNode* expression
+			x86_Asm_IR_Operand operand;
+			const AnnotatedAstNode* const expression
 				= node->get_child();
-			gen_expression(
+			if (gen_expression(
 				num_labels_used,
 				expression,
 				instrs,
-				x86_RegisterAllocMap(0),
-				operand);
+				construct_blank_alloc_map(),
+				operand)
+				== CodeGeneratorExitCode::FAILURE) {
+				break;
+			}
 			/* moving returned value to xmm0 */
-			x86_AssemblyInstructionOperand o1
-				= x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-					{ x86_Register::XMM0 });
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::MOVSS,
+			x86_Asm_IR_Operand o1
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+					{ x86_RegisterName::XMM0 });
+
+			const Type* const expression_type
+				= expression->get_type();
+
+			construct_x86_AssemblyInstruction_mov(
+				expression_type,
+				o1,
+				expression_type,
 				operand,
-				o1);
+				instrs);
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -3586,15 +5384,15 @@ static inline CodeGeneratorExitCode gen_jump_statement(
 /* External definitions. */
 
 static inline CodeGeneratorExitCode gen_translation_unit(
-	int &num_labels_used,
+	int                    & num_labels_used,
 	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	x86_Asm_IR*            & instrs)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
 	report_gen("gen_translation_unit");
 
-	x86_RegisterAllocMap alloc_map = x86_RegisterAllocMap(0);
+	x86_RegisterAllocMap alloc_map = construct_blank_alloc_map();
 
 	gen_literals(num_labels_used, node->get_symbol_table(), instrs);
 
@@ -3602,7 +5400,7 @@ static inline CodeGeneratorExitCode gen_translation_unit(
 
 		case AstNodeAlt::TRANSLATION_UNIT_1:
 		{
-			AnnotatedAstNode* external_declaration
+			const AnnotatedAstNode* const external_declaration
 				= node->get_child();
 			if (gen_external_declaration(
 					num_labels_used,
@@ -3617,9 +5415,9 @@ static inline CodeGeneratorExitCode gen_translation_unit(
 
 		case AstNodeAlt::TRANSLATION_UNIT_2:
 		{
-			AnnotatedAstNode* translation_unit
+			const AnnotatedAstNode* const translation_unit
 				= node->get_child();
-			AnnotatedAstNode* external_declaration
+			const AnnotatedAstNode* const external_declaration
 				= translation_unit->get_sibling();
 			if (gen_translation_unit(
 				num_labels_used,
@@ -3646,9 +5444,9 @@ static inline CodeGeneratorExitCode gen_translation_unit(
 }
 
 static inline CodeGeneratorExitCode gen_external_declaration(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3658,7 +5456,7 @@ static inline CodeGeneratorExitCode gen_external_declaration(
 
 		case AstNodeAlt::EXTERNAL_DECLARATION_1:
 		{
-			AnnotatedAstNode* function_definition
+			const AnnotatedAstNode* const function_definition
 				= node->get_child();
 			if (gen_function_definition(
 				num_labels_used,
@@ -3673,12 +5471,13 @@ static inline CodeGeneratorExitCode gen_external_declaration(
 
 		case AstNodeAlt::EXTERNAL_DECLARATION_2:
 		{
-			AnnotatedAstNode* declaration
+			const AnnotatedAstNode* const declaration
 				= node->get_child();
 			if (gen_declaration(
 				num_labels_used,
 				declaration,
-				instrs)
+				instrs,
+				construct_blank_alloc_map())
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
@@ -3693,9 +5492,9 @@ static inline CodeGeneratorExitCode gen_external_declaration(
 }
 
 static inline CodeGeneratorExitCode gen_function_definition(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3705,75 +5504,95 @@ static inline CodeGeneratorExitCode gen_function_definition(
 
 		case AstNodeAlt::FUNCTION_DEFINITION_1:
 		{
-			AnnotatedAstNode* declaration_specifiers
+			const AnnotatedAstNode* const declaration_specifiers
 				= node->get_child();
-			AnnotatedAstNode* declarator
+			const AnnotatedAstNode* const declarator
 				= declaration_specifiers->get_sibling();
-			
-			AnnotatedAstNode* compound_statement
-				= (declarator->get_sibling()->get_name()
+			const AnnotatedAstNode* const declarator_sibling
+				= declarator->get_sibling();
+			const AnnotatedAstNode* const compound_statement
+				= (declarator_sibling->get_name()
 					== AstNodeName::DECLARATION_LIST)
-				  ? declarator->get_sibling()->get_sibling()
-				  : declarator->get_sibling();
+				  ? declarator_sibling->get_sibling()
+				  : declarator_sibling;
 
-			x86_AssemblyInstructionOperand o 
-				= x86_AssemblyInstructionOperand(
-				x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-				{ x86_Register::RBP });
-			*instrs = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::PUSHQ,
-				o);
+			const x86_Asm_IR_Operand rbp_operand
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+					x86_Asm_IR_OperandVal(
+						{ x86_RegisterName::RBP }));
 
-			instrs->set_label(declarator->get_symbol());
-			instrs->set_type(x86_AssemblyInstructionType::LABELED_INSTRUCTION);
+			*instrs = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::PUSHQ,
+				rbp_operand);
+
+			const char* const declarator_symbol
+				= declarator->get_symbol();
+
+			instrs->set_label(
+				declarator_symbol);
+			instrs->set_type(
+				x86_Asm_IR_Type::LABELED_INSTRUCTION);
 			instrs++;
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::MOVQ,
-				x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-					x86_AssemblyInstructionOperandVal({ x86_Register::RSP })),
-				x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-					x86_AssemblyInstructionOperandVal({ x86_Register::RBP })));
+			const x86_Asm_IR_Operand rsp_operand
+				= x86_Asm_IR_Operand(
+					x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+					x86_Asm_IR_OperandVal(
+						{ x86_RegisterName::RSP }));
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::MOVQ,
+				rbp_operand,
+				rsp_operand);
 
 			/* for each argument */
-			SymbolTable* func_sym_tab = node->get_symbol_table();
+			SymbolTable* const func_sym_tab 
+				= node->get_symbol_table();
+
 			SymbolTableEntry* arguments[1028] = { };
 			func_sym_tab->get_entries(arguments);
 			for (SymbolTableEntry** e = arguments;
 				 *e != NULL;
 				 e++) {
-				x86_AssemblyInstructionOperand op2;
-				
-				gen_symbol(*e, instrs, op2);
-				*instrs++ = x86_AssemblyInstruction(
-					x86_AssemblyInstructionMnemonic::MOVSS,
-					x86_AssemblyInstructionOperand(
-						x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-						x86_AssemblyInstructionOperandVal({ x86_Register::XMM1 })),
-					op2);
+				x86_Asm_IR_Operand op2;
+
+				x86_RegisterAllocMap alloc_map 
+					= construct_blank_alloc_map();
+
+				gen_symbol(
+					*e, 
+					instrs, 
+					op2, 
+					alloc_map);
+
+				x86_Asm_IR_Operand xmm1_operand
+					= x86_Asm_IR_Operand(
+						x86_Asm_IR_OperandType::X86_REGISTER_INDEX,
+						x86_Asm_IR_OperandVal(
+							{ x86_RegisterName::XMM1 }));
+				*instrs++ = x86_Asm_IR(
+					x86_Asm_IR_Mnemonic::MOVSS,
+					op2,
+					xmm1_operand);
+				// TODO; stub.
 			}
 
 			if (gen_compound_statement(
 				num_labels_used,
 				compound_statement,
-				instrs)
+				instrs,
+				construct_blank_alloc_map())
 				== CodeGeneratorExitCode::FAILURE) {
 				//break;
 			}
 			
 			/* returning from function */
-			x86_AssemblyInstructionOperand o2
-				= x86_AssemblyInstructionOperand(
-					x86_AssemblyInstructionOperandType::X86_REGISTER_INDEX,
-					{ x86_Register::RBP });
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::POPQ,
-				o2);
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::POPQ,
+				rbp_operand);
 
-			*instrs++ = x86_AssemblyInstruction(
-				x86_AssemblyInstructionMnemonic::RETQ);
+			*instrs++ = x86_Asm_IR(
+				x86_Asm_IR_Mnemonic::RETQ);
 			exitcode = CodeGeneratorExitCode::SUCCESS;
 			break;
 		}
@@ -3785,9 +5604,10 @@ static inline CodeGeneratorExitCode gen_function_definition(
 }
 
 static inline CodeGeneratorExitCode gen_declaration_list(
-	int &num_labels_used,
-	AnnotatedAstNode* const& node,
-	x86_AssemblyInstruction*& instrs)
+	int                          & num_labels_used,
+	const AnnotatedAstNode* const& node,
+	x86_Asm_IR*                  & instrs,
+	x86_RegisterAllocMap    const& alloc_map)
 {
 	CodeGeneratorExitCode exitcode = CodeGeneratorExitCode::FAILURE;
 
@@ -3797,12 +5617,13 @@ static inline CodeGeneratorExitCode gen_declaration_list(
 
 		case AstNodeAlt::DECLARATION_LIST_1:
 		{
-			AnnotatedAstNode* declaration
+			const AnnotatedAstNode* const declaration
 				= node->get_child();
 			if (gen_declaration(
 				num_labels_used,
 				declaration,
-				instrs)
+				instrs,
+				alloc_map)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
@@ -3812,21 +5633,23 @@ static inline CodeGeneratorExitCode gen_declaration_list(
 
 		case AstNodeAlt::DECLARATION_LIST_2:
 		{
-			AnnotatedAstNode* declaration
+			const AnnotatedAstNode* const declaration
 				= node->get_child();
-			AnnotatedAstNode* declaration_list				
+			const AnnotatedAstNode* const declaration_list				
 				= declaration->get_sibling();
 			if (gen_declaration_list(
 				num_labels_used,
 				declaration_list,
-				instrs) 
+				instrs,
+				alloc_map) 
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}
 			if (gen_declaration(
 				num_labels_used,
 				declaration,
-				instrs)
+				instrs,
+				alloc_map)
 				== CodeGeneratorExitCode::FAILURE) {
 				break;
 			}

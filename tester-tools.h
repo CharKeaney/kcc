@@ -11,7 +11,7 @@ enum class TestResult {
 
 inline void print_to_output(
 	const char* const& val_to_print, 
-	char* &output) 
+	char*            & output) 
 {
 	for (const char* c = val_to_print; *c != NULL; ) {
 		*output++ = *c++;
@@ -19,12 +19,12 @@ inline void print_to_output(
 }
 
 static inline void present_test_set_synopsis(
-	const char*& title,
-	TestResult const& test_set_result,
-	TestResult* const& subtest_results,
-	const size_t& size,
-	char* &output,
-	int indent = 0) 
+	const char*       & title,
+	TestResult   const& test_set_result,
+	TestResult*  const& subtest_results,
+	const size_t      & size,
+	char*             &output,
+	int                indent = 0) 
 {
 	for (int i = 0; i < indent; i++) print_to_output("\t", output);
 
