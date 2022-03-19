@@ -1,3 +1,6 @@
+/* Authored By Charlie Keaney                     */
+/* parser.h - Responsible for parsing tokens into 
+              an Abstract Syntax Tree             */
 
 #ifndef PARSER_H
 #define PARSER_H 1
@@ -10,9 +13,953 @@
 #define DEBUG_PARSER_SHOW_ATTEMPTS  0
 #define DEBUG_PARSER_SHOW_BACKTRACK 0
 
-static inline void parser_report_attempt(
-	const char*  const& module_str, 
-	const Token* const& token) 
+#define parse(tokens, root) parse_translation_unit(tokens, root)
+
+#define free_stack(s, si) while (si > 0) { delete s[--si]; } 
+
+/*****************************************************//**
+*                      Declarations                      *
+/********************************************************/
+
+enum class ParserExitCode {
+	SUCCESS,
+	FAIL,
+};
+
+/**
+* Reports an attempt for the parser.
+* 
+* @param module_str The given module name.
+* @param alt The alt successfully parsed.
+* @param token The parsed token.
+**/
+static inline
+void parser_report_attempt(
+	const char*  const& module_str,
+	const Token* const& token);
+
+/**
+* Reports success for the parser.
+* 
+* @param module_str The given module name.
+* @param alt The alt successfully parsed.
+* @param token The parsed token.
+**/
+static inline
+void parse_report_success(
+	const char*  const& module_str,
+	AstNodeAlt   const& alt,
+	const Token* const& token);
+
+/**
+* Constructs an Ast node from children.
+* 
+* @param name The name for the node.
+* @param alt The alt for the node.
+* @param children The children for the node.
+* @param count The number of children for the node.
+* @return Returns an exit code based on how parsing went.
+**/
+AstNode* construct_node_from_children(
+	AstNodeName const& name,
+	AstNodeAlt  const& alt,
+	AstNode**   const& children,
+	int         const& count);
+
+/**
+* Parses given tokens as a primary-expression, 
+* outputting a primary-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param primary_expression The output primary-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_primary_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & primary_expression);
+
+/**
+* Parses given tokens as a postfix-expression,
+* outputting a postfix-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param postfix_expression The output postfix-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_postfix_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & postfix_expression);
+
+/**
+* Parses given tokens as a postfix-expression,
+* outputting a postfix-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param postfix_expression The output postfix-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_type_name(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & type_name);
+
+/**
+* Parses given tokens as a unary-operator,
+* outputting a unary-operator AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param unary_operator The output unary-operator.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_unary_operator(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & unary_operator);
+
+/**
+* Parses given tokens as a cast-expression,
+* outputting a cast-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param cast_expression The output cast-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_cast_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & unary_operator);
+
+/**
+* Parses given tokens as a unary-expression,
+* outputting a unary-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param unary_expression The output unary-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_unary_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & unary_expression);
+
+/**
+* Parses given tokens as a multiplicative-expression,
+* outputting a multiplicative-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param multiplicative_expression The output multiplicative_expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_multiplicative_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & multiplicative_expression);
+
+/**
+* Parses given tokens as a additive-expression,
+* outputting a additive-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param additive_expression The output additive_expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_additive_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & additive_expression);
+
+/**
+* Parses given tokens as a shift-expression,
+* outputting a shift-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param shift_expression The output shift-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_shift_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & shift_expression);
+
+/**
+* Parses given tokens as a relational-expression,
+* outputting a relational-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param relational_expression The output relational-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_relational_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & relational_expression);
+
+/**
+* Parses given tokens as a equality-expression,
+* outputting a equality-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param equality_expression The output equality-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_equality_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & equality_expression);
+
+/**
+* Parses given tokens as an and-expression,
+* outputting an and-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param and_expression The output and-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_and_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & and_expression);
+
+/**
+* Parses given tokens as an exclusive-or-expression,
+* outputting an exclusive-or-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param exclusive_or_expression The output exclusive_or_expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_exclusive_or_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & exclusive_or_expression);
+
+/**
+* Parses given tokens as an inclusive-or-expression,
+* outputting an inclusive-or-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param inclusive_or_expression The output inclusive_or_expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_inclusive_or_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & inclusive_or_expression);
+
+/**
+* Parses given tokens as an logical-and-expression,
+* outputting an logical-and-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param logical_and_expression The output logical-and-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_logical_and_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & logical_and_expression);
+
+/**
+* Parses given tokens as an logical-or-expression,
+* outputting an logical-or-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param logical_or_expression The output logical-or-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_logical_or_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & logical_or_expression);
+
+/**
+* Parses given tokens as an logical-or-expression,
+* outputting an logical-or-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param logical_or_expression The output logical-or-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_assignment_operator(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & assignment_operator);
+
+/**
+* Parses given tokens as an expression,
+* outputting an expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param expression The output expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & expression);
+
+/**
+* Parses given tokens as an conditional_expression,
+* outputting an conditional_expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param conditional_expression The output conditional-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_conditional_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & conditional_expression);
+
+/**
+* Parses given tokens as an assignment-expression,
+* outputting an assignment-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param assignment_expression The output assignment-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_assignment_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & assignment_expression);
+
+/**
+* Parses given tokens as an constant-expression,
+* outputting an constant-expression AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param constant-expression The output constant-expression.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_constant_expression(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & constant_expression);
+
+/**
+* Parses given tokens as a declaration,
+* outputting an declaration AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param declaration The output declaration.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_declaration(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & declaration);
+
+/**
+* Parses given tokens as a declaration-specifiers,
+* outputting an declaration-specifiers AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param declaration_specifiers The output declaration-specifiers.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_declaration_specifiers(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & declaration_specifiers);
+
+/**
+* Parses given tokens as a init-declarator-list,
+* outputting an init-declarator-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param init_declarator_list The output init-declarator-list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_init_declarator_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & init_declarator_list);
+
+/**
+* Parses given tokens as a init-declarator,
+* outputting an init-declarator AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param init_declarator The output init-declarator.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_init_declarator(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & init_declarator);
+
+/**
+* Parses given tokens as a type-specifier,
+* outputting an type-specifier AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param type_specifier The output type-specifier.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_type_specifier(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & type_specifier);
+
+/**
+* Parses given tokens as a struct-or-union-specifier,
+* outputting an struct-or-union-specifier AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param struct_or_union_specifier The output
+                                   struct-or-union-specifier.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_struct_or_union_specifier(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & struct_or_union_specifier);
+
+/**
+* Parses given tokens as a struct-or-union,
+* outputting an struct-or-union AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param struct_or_union The output struct-or-union.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_struct_or_union(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & struct_or_union);
+
+/**
+* Parses given tokens as a struct-declaration-list,
+* outputting an struct-declaration-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param struct_declaration_list The output
+*                                struct-declaration-list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_struct_declaration_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & struct_declaration_list);
+
+/**
+* Parses given tokens as a struct-declaration,
+* outputting an struct-declaration AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param struct_declaration The output struct_declaration.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_struct_declaration(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & struct_declaration);
+
+/**
+* Parses given tokens as a specifier-qualifier-list,
+* outputting a specifier-qualifier-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param specifier_qualifier_list The output 
+*                                 specifier-qualifier-list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_specifier_qualifier_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & specifier_qualifier_list);
+
+/**
+* Parses given tokens as a struct-declarator-list,
+* outputting an struct-declarator-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param struct_declarator_list The output
+                                struct-declarator-list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_struct_declarator_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & struct_declarator_list);
+
+/**
+* Parses given tokens as a struct-declarator,
+* outputting an struct-declarator AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param struct_declarator The output struct-declarator.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_struct_declarator(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & struct_declarator);
+
+/**
+* Parses given tokens as a enumerator-list,
+* outputting an enumerator-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param enumerator_list The output enumerator_list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_enumerator_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & enumerator_list);
+
+/**
+* Parses given tokens as a enumeration-specifier,
+* outputting an enumeration-specifier AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param enumeration_specifier The output enumeration-specifier.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_enumeration_specifier(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & enumeration_specifier);
+
+/**
+* Parses given tokens as a type-qualifier,
+* outputting an type-qualifier AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param type_qualifier The output type-qualifier.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_type_qualifier(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & type_qualifier);
+
+/**
+* Parses given tokens as a declarator,
+* outputting an declarator AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param declarator The output declarator.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_declarator(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & declarator);
+
+/**
+* Parses given tokens as a direct-declarator,
+* outputting an direct-declarator AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param direct_declarator The output direct-declarator.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_direct_declarator(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & direct_declarator);
+
+/**
+* Parses given tokens as a pointer,
+* outputting a pointer AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param pointer The output pointer.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_pointer(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & pointer);
+
+/**
+* Parses given tokens as a type-qualifier-list,
+* outputting a type-qualifier-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param type_qualifier_list The output type-qualifier-list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_type_qualifier_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & type_qualifier_list);
+
+/**
+* Parses given tokens as a parameter-type-list,
+* outputting a parameter-type-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param parameter_type_list The output parameter_type_list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_parameter_type_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & parameter_type_list);
+
+/**
+* Parses given tokens as a parameter-type-list,
+* outputting a parameter-type-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param parameter_type_list The output parameter_type_list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_parameter_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & parameter_list);
+
+/**
+* Parses given tokens as a parameter-declaration,
+* outputting a parameter-declaration AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param parameter_declaration The output parameter-declaration.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_parameter_declaration(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & parameter_declaration);
+
+/**
+* Parses given tokens as a identifier-list,
+* outputting a identifier-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param identifier_list The output identifier-list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_identifier_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & identifier_list);
+
+/**
+* Parses given tokens as a abstract-declarator,
+* outputting a abstract-declarator AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param abstract_declarator The output abstract-declarator.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_abstract_declarator(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & abstract_declarator);
+
+/**
+* Parses given tokens as a direct-abstract-declarator,
+* outputting a direct-abstract-declarator AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param abstract_declarator The output direct-abstract-declarator.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_direct_abstract_declarator(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & direct_abstract_declarator);
+
+/**
+* Parses given tokens as a initializer,
+* outputting a initializer AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param initializer The output initializer.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_initializer(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & initializer);
+
+/**
+* Parses given tokens as a initializer-list,
+* outputting a initializer-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param initializer_list The output initializer-list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_initializer_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & initializer_list);
+
+/**
+* Parses given tokens as a designation,
+* outputting a designation AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param designation The output designation.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_designation(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & designation);
+
+/**
+* Parses given tokens as a designator-list,
+* outputting a designator-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param designator_list The output designator-list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_designator_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & designator_list);
+
+/**
+* Parses given tokens as a designator,
+* outputting a designator AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param designator The output designator.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_designator(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & designator);
+
+/**
+* Parses given tokens as a statement,
+* outputting a statement AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param statement The output statement.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_statement(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & statement);
+
+/**
+* Parses given tokens as a compound-statement,
+* outputting a compound-statement AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param compound_statement The output compound-statement.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_compound_statement(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & compound_statement);
+
+/**
+* Parses given tokens as a block-item-list,
+* outputting a block-item-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param block_item_list The output block-item-list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_block_item_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & block_item_list);
+
+/**
+* Parses given tokens as a block-item,
+* outputting a block-item AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param block_item The output block-item.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_block_item(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & block_item);
+
+/**
+* Parses given tokens as a expression-statement,
+* outputting a expression-statement AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param expression_statement The output expression-statement.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_expression_statement(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & expression_statement);
+
+/**
+* Parses given tokens as a selection-statement,
+* outputting a selection-statement AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param selection_statement The output selection-statement.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_selection_statement(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & selection_statement);
+
+/**
+* Parses given tokens as a iteration-statement,
+* outputting a iteration-statement AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param iteration_statement The output iteration-statement.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_iteration_statement(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & iteration_statement);
+
+/**
+* Parses given tokens as a jump-statement,
+* outputting a jump-statement AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param iteration_statement The output jump_statement.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_jump_statement(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & jump_statement);
+
+/**
+* Parses given tokens as a translation-unit,
+* outputting a translation-unit AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param translation_unit The output translation-unit.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_translation_unit(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & translation_unit);
+
+/**
+* Parses given tokens as a external-declaration,
+* outputting a external-declaration AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param external_declaration The output external-declaration.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_external_declaration(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & external_declaration);
+
+/**
+* Parses given tokens as a function-definition,
+* outputting a function-definition AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param function_definition The output function-definition.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_function_definition(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & function_definition);
+
+/**
+* Parses given tokens as a declaration-list,
+* outputting a declaration-list AstNode.
+* 
+* @param sym The symbol table used during parsing.
+* @param tokens The tokens to parse.
+* @param declaration_list The output declaration-list.
+* @return Returns an exit code based on how parsing went.
+**/
+ParserExitCode parse_declaration_list(
+	SymbolTable* const& sym,
+	const Token*      & tokens,
+	AstNode*          & declaration_list);
+
+/*****************************************************//**
+*                         Definitions                    *
+/********************************************************/
+
+static inline
+void parser_report_attempt(
+	const char* const& module_str,
+	const Token* const& token)
 {
 	const FileLocationDescriptor fld
 		= token->get_file_descriptor();
@@ -24,21 +971,22 @@ static inline void parser_report_attempt(
 		= fld.character_number;
 	const char* const lexeme
 		= token->get_lexeme();
-	cout << "parser.cpp"     << ":"
-		 << filename         << ":"
-		 << line_number      << ":"
-		 << character_number << ":"
-		 << module_str       << ":"
-		 << "attempting to produce tree on lexeme "
-		 << lexeme
-		 << "."										\
-		 << endl;
+	cout << "parser.cpp" << ":"
+		<< filename << ":"
+		<< line_number << ":"
+		<< character_number << ":"
+		<< module_str << ":"
+		<< "attempting to produce tree on lexeme "
+		<< lexeme
+		<< "."										\
+		<< endl;
 }
 
-static inline void parse_report_success(
-	const char*      const& module_str,
+static inline
+void parse_report_success(
+	const char* const& module_str,
 	AstNodeAlt       const& alt,
-	const Token*     const& token)
+	const Token* const& token)
 {
 	const FileLocationDescriptor fld
 		= token->get_file_descriptor();
@@ -50,238 +998,26 @@ static inline void parse_report_success(
 		= fld.character_number;
 	const char* const lexeme
 		= token->get_lexeme();
-	const int alt_i = (int) alt;
+	const int alt_i
+		= (int)alt;
 	const char* const ast_node_alt_string_repr
 		= ast_node_alt_string_reprs[alt_i];
 	cout << "parser.cpp" << ":"
-		 << filename << ":"
-		 << line_number << ":"
-		 << character_number << ":"
-		 << module_str << ":"
-		 << "produced tree with form "
-		 << ast_node_alt_string_repr
-		 << " and lexeme "
-		 << lexeme
-		 << "."
-		 << endl;
+		<< filename << ":"
+		<< line_number << ":"
+		<< character_number << ":"
+		<< module_str << ":"
+		<< "produced tree with form "
+		<< ast_node_alt_string_repr
+		<< " and lexeme "
+		<< lexeme
+		<< "."
+		<< endl;
 }
 
-#define parse(tokens, root) parse_translation_unit(tokens, root)
 
-#define free_stack(s, si) while (si > 0) { delete s[--si]; } 
-
-
-enum class ParserExitCode {
-	SUCCESS,
-	FAIL,
-};
-
-/// <summary>
-/// Constructs a node with the given name and alt, 
-/// with a given number of children with given data.
-/// </summary>
-/// <param name="name"></param>
-/// <param name="alt"></param>
-/// <param name="children"></param>
-/// <param name="count"></param>
-/// <returns></returns>
+static inline
 AstNode* construct_node_from_children(
-	AstNodeName const& name,
-	AstNodeAlt  const& alt,
-	AstNode**   const& children,
-	int         const& count);
-
-ParserExitCode parse_primary_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_postfix_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_type_name(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_unary_operator(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_cast_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_unary_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_multiplicative_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_additive_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_shift_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_relational_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_equality_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_and_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_exclusive_or_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_inclusive_or_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_logical_and_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_logical_or_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_assignment_operator(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_conditional_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_assignment_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_constant_expression(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_declaration(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_declaration_specifiers(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_init_declarator_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_init_declarator(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_type_specifier(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_struct_or_union_specifier(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_struct_or_union(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_struct_declaration_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_struct_declaration(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_specifier_qualifier_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_struct_declarator_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_struct_declarator(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_enumerator_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_enumeration_specifier(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_type_qualifier(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_declarator(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_direct_declarator(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_pointer(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_type_qualifier_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_parameter_type_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_parameter_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_parameter_declaration(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_identifier_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_abstract_declarator(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_direct_abstract_declarator(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_initializer(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_initializer_list(
-	SymbolTable* const&, const Token*&, AstNode*& );
-
-ParserExitCode parse_designation(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_designator_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_designator(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_statement(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_compound_statement(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_block_item_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_block_item(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_expression_statement(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_selection_statement(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_iteration_statement(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_jump_statement(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_translation_unit(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_external_declaration(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_function_definition(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-ParserExitCode parse_declaration_list(
-	SymbolTable* const&, const Token*&, AstNode*&);
-
-
-static inline AstNode* construct_node_from_children(
 	AstNodeName const& name,
 	AstNodeAlt  const& alt,
 	AstNode**   const& children,
@@ -296,7 +1032,8 @@ static inline AstNode* construct_node_from_children(
 	return node;
 }
 
-static inline ParserExitCode parse_primary_expression(
+static inline
+ParserExitCode parse_primary_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & primary_expression)
@@ -307,13 +1044,15 @@ static inline ParserExitCode parse_primary_expression(
 			tokens);
 	}
 
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
 	AstNode* stack[16];
 	int si = 0;
 
 	bool should_generate = false;
-	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	switch (tokens->get_name()) {
 
@@ -386,7 +1125,8 @@ static inline ParserExitCode parse_primary_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_argument_expression_list(
+static inline
+ParserExitCode parse_argument_expression_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*&           argument_expression_list)
@@ -475,12 +1215,14 @@ static inline ParserExitCode parse_argument_expression_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_postfix_expression(
+static inline
+ParserExitCode parse_postfix_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & postfix_expression)
 {
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	if (DEBUG_PARSER_SHOW_ATTEMPTS) {
 		parser_report_attempt(
@@ -764,7 +1506,8 @@ static inline ParserExitCode parse_postfix_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_type_name(
+static inline
+ParserExitCode parse_type_name(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & type_name)
@@ -775,7 +1518,8 @@ static inline ParserExitCode parse_type_name(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNode* stack[16];
 	int si = 0;
@@ -821,7 +1565,8 @@ static inline ParserExitCode parse_type_name(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_unary_operator(
+static inline
+ParserExitCode parse_unary_operator(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & unary_operator)
@@ -833,7 +1578,8 @@ static inline ParserExitCode parse_unary_operator(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
@@ -897,7 +1643,8 @@ static inline ParserExitCode parse_unary_operator(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_cast_expression(
+static inline
+ParserExitCode parse_cast_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & cast_expression)
@@ -908,7 +1655,9 @@ static inline ParserExitCode parse_cast_expression(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
 	AstNode* stack[16];
@@ -999,7 +1748,8 @@ static inline ParserExitCode parse_cast_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_unary_expression(
+static inline
+ParserExitCode parse_unary_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & unary_expression)
@@ -1010,7 +1760,9 @@ static inline ParserExitCode parse_unary_expression(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
 	AstNode* stack[16];
@@ -1175,7 +1927,8 @@ static inline ParserExitCode parse_unary_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_multiplicative_expression(
+static inline
+ParserExitCode parse_multiplicative_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & multiplicative_expression)
@@ -1186,7 +1939,8 @@ static inline ParserExitCode parse_multiplicative_expression(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -1207,10 +1961,11 @@ static inline ParserExitCode parse_multiplicative_expression(
 					cast_expression)
 					== ParserExitCode::SUCCESS) {
 
-					multiplicative_expression = new AstNode(
-						AstNodeName::MULTIPLICATIVE_EXPRESSION,
-						AstNodeAlt::MULTIPLICATIVE_EXPRESSION_1,
-						NULL);
+					multiplicative_expression 
+						= new AstNode(
+							AstNodeName::MULTIPLICATIVE_EXPRESSION,
+							AstNodeAlt::MULTIPLICATIVE_EXPRESSION_1,
+							NULL);
 					multiplicative_expression->add_child(
 						cast_expression);
 
@@ -1225,68 +1980,48 @@ static inline ParserExitCode parse_multiplicative_expression(
 			case MULTIPLICATIVE_EXPRESSION:
 			{
 				if (tokens->get_name() 
-					== TokenName::PUNCTUATOR) {
+					== TokenName::PUNCTUATOR
+					&& ((tokens->get_form() 
+						 == TokenForm::ASTERIX) 
+						|| (tokens->get_form()
+							== TokenForm::FORWARD_SLASH)
+						|| (tokens->get_form()
+								== TokenForm::MODULO))) {
 
-					bool valid_form = true;
-					switch (tokens->get_form()) {
+					bool valid_form = false;
 
-						case TokenForm::ASTERIX:
-						case TokenForm::FORWARD_SLASH:
-						case TokenForm::MODULO:
-						{
-							AstNodeAlt alt;
-							switch (tokens->get_form()) {
+					AstNodeAlt alt 
+						= (tokens->get_form()
+						   == TokenForm::ASTERIX) 
+						  ? AstNodeAlt::MULTIPLICATIVE_EXPRESSION_2
+						  : (tokens->get_form()
+							  == TokenForm::FORWARD_SLASH) 
+						    ? AstNodeAlt::MULTIPLICATIVE_EXPRESSION_3
+							: AstNodeAlt::MULTIPLICATIVE_EXPRESSION_4;
+					tokens++;
 
-								case TokenForm::ASTERIX:
-									alt = AstNodeAlt::MULTIPLICATIVE_EXPRESSION_2;
-									break;
+					AstNode* cast_expression;
+					if (parse_cast_expression(
+						sym, 
+						tokens, 
+						cast_expression)
+						== ParserExitCode::SUCCESS) {
 
-								case TokenForm::FORWARD_SLASH:
-									alt = AstNodeAlt::MULTIPLICATIVE_EXPRESSION_3;
-									break;
-
-								case TokenForm::MODULO:
-									alt = AstNodeAlt::MULTIPLICATIVE_EXPRESSION_4;
-									break;
-
-								default:
-									valid_form = false;
-									break;
-							
-							}
-							if (!valid_form) {
-								break;
-							}
-							tokens++;
-
-							AstNode* cast_expression;
-							if (parse_cast_expression(
-								sym, 
-								tokens, 
-								cast_expression)
-								== ParserExitCode::SUCCESS) {
-
-								AstNode* higher_multiplicative_expression;
-								higher_multiplicative_expression = new AstNode(
-									AstNodeName::MULTIPLICATIVE_EXPRESSION,
-									alt,
-									NULL);
-								higher_multiplicative_expression->add_child(
-									multiplicative_expression);
-								higher_multiplicative_expression->add_child(
-									cast_expression);
-								multiplicative_expression =
-									higher_multiplicative_expression;
+						AstNode* higher_multiplicative_expression;
+						higher_multiplicative_expression = new AstNode(
+							AstNodeName::MULTIPLICATIVE_EXPRESSION,
+							alt,
+							NULL);
+						higher_multiplicative_expression->add_child(
+							multiplicative_expression);
+						higher_multiplicative_expression->add_child(
+							cast_expression);
+						multiplicative_expression =
+							higher_multiplicative_expression;
 						
-								continue;
+						continue;
 							
-							}						
-							break;
-						}
-
-						default:
-							break;
-					}
+					}			
 				}			
 				break;
 			}
@@ -1299,7 +2034,8 @@ static inline ParserExitCode parse_multiplicative_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_additive_expression(
+static inline
+ParserExitCode parse_additive_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & additive_expression)
@@ -1310,7 +2046,8 @@ static inline ParserExitCode parse_additive_expression(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -1331,10 +2068,11 @@ static inline ParserExitCode parse_additive_expression(
 						multiplicative_expression)
 						== ParserExitCode::SUCCESS) {
 
-					additive_expression = new AstNode(
-						AstNodeName::ADDITIVE_EXPRESSION,
-						AstNodeAlt::ADDITIVE_EXPRESSION_1,
-						NULL);
+					additive_expression 
+						= new AstNode(
+							AstNodeName::ADDITIVE_EXPRESSION,
+							AstNodeAlt::ADDITIVE_EXPRESSION_1,
+							NULL);
 					additive_expression->add_child(
 						multiplicative_expression);
 					
@@ -1355,26 +2093,11 @@ static inline ParserExitCode parse_additive_expression(
 						|| (tokens->get_form() 
 							== TokenForm::MINUS))) {
 
-					AstNodeAlt alt;				
-					bool valid_form = true;
-					switch (tokens->get_form()) {
-
-						case TokenForm::PLUS: 
-							alt = AstNodeAlt::ADDITIVE_EXPRESSION_2; 
-							break;
-
-						case TokenForm::MINUS:
-							alt = AstNodeAlt::ADDITIVE_EXPRESSION_3;
-							break;
-
-						default:
-							valid_form = false;
-							break;
-
-					}
-					if (!valid_form) {
-						break;
-					}
+					AstNodeAlt alt 
+						= (tokens->get_form()
+						   == TokenForm::PLUS)
+						  ? AstNodeAlt::ADDITIVE_EXPRESSION_2
+					      : AstNodeAlt::ADDITIVE_EXPRESSION_3;
 					tokens++;
 
 					AstNode* multiplicative_expression;
@@ -1385,10 +2108,11 @@ static inline ParserExitCode parse_additive_expression(
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_additive_expression;
-						higher_additive_expression = new AstNode(
-							AstNodeName::ADDITIVE_EXPRESSION,
-							alt,
-							NULL);
+						higher_additive_expression 
+							= new AstNode(
+								AstNodeName::ADDITIVE_EXPRESSION,
+								alt,
+								NULL);
 						higher_additive_expression->add_child(
 							additive_expression);
 						higher_additive_expression->add_child(
@@ -1410,7 +2134,8 @@ static inline ParserExitCode parse_additive_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_shift_expression(
+static inline
+ParserExitCode parse_shift_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & shift_expression)
@@ -1421,7 +2146,8 @@ static inline ParserExitCode parse_shift_expression(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -1442,10 +2168,11 @@ static inline ParserExitCode parse_shift_expression(
 						additive_expression)
 					== ParserExitCode::SUCCESS) {
 
-					shift_expression = new AstNode(
-						AstNodeName::SHIFT_EXPRESSION,
-						AstNodeAlt::SHIFT_EXPRESSION_1,
-						NULL);
+					shift_expression 
+						= new AstNode(
+							AstNodeName::SHIFT_EXPRESSION,
+							AstNodeAlt::SHIFT_EXPRESSION_1,
+							NULL);
 					shift_expression->add_child(
 						additive_expression);
 					
@@ -1494,10 +2221,11 @@ static inline ParserExitCode parse_shift_expression(
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_shift_expression;
-						higher_shift_expression = new AstNode(
-							AstNodeName::SHIFT_EXPRESSION,
-							alt,
-							NULL);
+						higher_shift_expression 
+							= new AstNode(
+								AstNodeName::SHIFT_EXPRESSION,
+								alt,
+								NULL);
 						higher_shift_expression->add_child(
 							shift_expression);
 						higher_shift_expression->add_child(
@@ -1520,7 +2248,8 @@ static inline ParserExitCode parse_shift_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_relational_expression(
+static inline
+ParserExitCode parse_relational_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & relational_expression)
@@ -1531,7 +2260,8 @@ static inline ParserExitCode parse_relational_expression(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -1652,7 +2382,8 @@ static inline ParserExitCode parse_relational_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_equality_expression(
+static inline
+ParserExitCode parse_equality_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & equality_expression)
@@ -1663,7 +2394,8 @@ static inline ParserExitCode parse_equality_expression(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -1764,7 +2496,8 @@ static inline ParserExitCode parse_equality_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_and_expression(
+static inline
+ParserExitCode parse_and_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & and_expression)
@@ -1775,7 +2508,8 @@ static inline ParserExitCode parse_and_expression(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -1796,10 +2530,11 @@ static inline ParserExitCode parse_and_expression(
 						equality_expression)
 					== ParserExitCode::SUCCESS) {
 
-					and_expression = new AstNode(
-						AstNodeName::AND_EXPRESSION,
-						AstNodeAlt::AND_EXPRESSION_1,
-						NULL);
+					and_expression
+						= new AstNode(
+							AstNodeName::AND_EXPRESSION,
+							AstNodeAlt::AND_EXPRESSION_1,
+							NULL);
 					and_expression->add_child(
 						equality_expression);
 
@@ -1827,10 +2562,11 @@ static inline ParserExitCode parse_and_expression(
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_and_expression;
-						higher_and_expression = new AstNode(
-							AstNodeName::AND_EXPRESSION,
-							AstNodeAlt::AND_EXPRESSION_2,
-							NULL);
+						higher_and_expression 
+							= new AstNode(
+								AstNodeName::AND_EXPRESSION,
+								AstNodeAlt::AND_EXPRESSION_2,
+								NULL);
 						higher_and_expression->add_child(
 							and_expression);
 						higher_and_expression->add_child(
@@ -1853,7 +2589,8 @@ static inline ParserExitCode parse_and_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_exclusive_or_expression(
+static inline
+ParserExitCode parse_exclusive_or_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & exclusive_or_expression)
@@ -1863,7 +2600,8 @@ static inline ParserExitCode parse_exclusive_or_expression(
 			"parse_exclusive_or_expression", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -1884,10 +2622,11 @@ static inline ParserExitCode parse_exclusive_or_expression(
 						and_expression)
 					== ParserExitCode::SUCCESS) {
 
-					exclusive_or_expression = new AstNode(
-						AstNodeName::EXCLUSIVE_OR_EXPRESSION,
-						AstNodeAlt::EXCLUSIVE_OR_EXPRESSION_1,
-						NULL);
+					exclusive_or_expression 
+						= new AstNode(
+							AstNodeName::EXCLUSIVE_OR_EXPRESSION,
+							AstNodeAlt::EXCLUSIVE_OR_EXPRESSION_1,
+							NULL);
 					exclusive_or_expression->add_child(
 						and_expression);
 
@@ -1915,10 +2654,11 @@ static inline ParserExitCode parse_exclusive_or_expression(
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_exclusive_or_expression;
-						higher_exclusive_or_expression = new AstNode(
-							AstNodeName::EXCLUSIVE_OR_EXPRESSION,
-							AstNodeAlt::EXCLUSIVE_OR_EXPRESSION_2,
-							NULL);
+						higher_exclusive_or_expression 
+							= new AstNode(
+								AstNodeName::EXCLUSIVE_OR_EXPRESSION,
+								AstNodeAlt::EXCLUSIVE_OR_EXPRESSION_2,
+								NULL);
 						higher_exclusive_or_expression->add_child(
 							exclusive_or_expression);
 						higher_exclusive_or_expression->add_child(
@@ -1941,7 +2681,8 @@ static inline ParserExitCode parse_exclusive_or_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_inclusive_or_expression(
+static inline
+ParserExitCode parse_inclusive_or_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & inclusive_or_expression)
@@ -1951,7 +2692,8 @@ static inline ParserExitCode parse_inclusive_or_expression(
 			"parse_inclusive_or_expression", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -1972,10 +2714,11 @@ static inline ParserExitCode parse_inclusive_or_expression(
 						exclusive_or_expression)
 					== ParserExitCode::SUCCESS) {
 
-					inclusive_or_expression = new AstNode(
-						AstNodeName::INCLUSIVE_OR_EXPRESSION,
-						AstNodeAlt::INCLUSIVE_OR_EXPRESSION_1,
-						NULL);
+					inclusive_or_expression 
+						= new AstNode(
+							AstNodeName::INCLUSIVE_OR_EXPRESSION,
+							AstNodeAlt::INCLUSIVE_OR_EXPRESSION_1,
+							NULL);
 					inclusive_or_expression->add_child(
 						exclusive_or_expression);
 
@@ -2003,10 +2746,11 @@ static inline ParserExitCode parse_inclusive_or_expression(
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_inclusive_or_expression;
-						higher_inclusive_or_expression = new AstNode(
-							AstNodeName::INCLUSIVE_OR_EXPRESSION,
-							AstNodeAlt::INCLUSIVE_OR_EXPRESSION_2,
-							NULL);
+						higher_inclusive_or_expression 
+							= new AstNode(
+								AstNodeName::INCLUSIVE_OR_EXPRESSION,
+								AstNodeAlt::INCLUSIVE_OR_EXPRESSION_2,
+								NULL);
 						higher_inclusive_or_expression->add_child(
 							inclusive_or_expression);
 						higher_inclusive_or_expression->add_child(
@@ -2030,7 +2774,8 @@ static inline ParserExitCode parse_inclusive_or_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_logical_and_expression(
+static inline
+ParserExitCode parse_logical_and_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & logical_and_expression)
@@ -2040,7 +2785,8 @@ static inline ParserExitCode parse_logical_and_expression(
 			"parse_logical_and_expression", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -2061,10 +2807,11 @@ static inline ParserExitCode parse_logical_and_expression(
 						inclusive_or_expression)
 					== ParserExitCode::SUCCESS) {
 
-					logical_and_expression = new AstNode(
-						AstNodeName::LOGICAL_AND_EXPRESSION,
-						AstNodeAlt::LOGICAL_AND_EXPRESSION_1,
-						NULL);
+					logical_and_expression 
+						= new AstNode(
+							AstNodeName::LOGICAL_AND_EXPRESSION,
+							AstNodeAlt::LOGICAL_AND_EXPRESSION_1,
+							NULL);
 					logical_and_expression->add_child(
 						inclusive_or_expression);
 
@@ -2092,10 +2839,11 @@ static inline ParserExitCode parse_logical_and_expression(
 						== ParserExitCode::SUCCESS) {
 
 						AstNode* higher_inclusive_or_expression;
-						higher_inclusive_or_expression = new AstNode(
-							AstNodeName::INCLUSIVE_OR_EXPRESSION,
-							AstNodeAlt::LOGICAL_AND_EXPRESSION_2,
-							NULL);
+						higher_inclusive_or_expression 
+							= new AstNode(
+								AstNodeName::INCLUSIVE_OR_EXPRESSION,
+								AstNodeAlt::LOGICAL_AND_EXPRESSION_2,
+								NULL);
 						higher_inclusive_or_expression->add_child(
 							logical_and_expression);
 						higher_inclusive_or_expression->add_child(
@@ -2117,7 +2865,8 @@ static inline ParserExitCode parse_logical_and_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_logical_or_expression(
+static inline
+ParserExitCode parse_logical_or_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & logical_or_expression)
@@ -2127,7 +2876,9 @@ static inline ParserExitCode parse_logical_or_expression(
 			"parse_logical_or_expression", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -2148,10 +2899,11 @@ static inline ParserExitCode parse_logical_or_expression(
 						logical_and_expression)
 					== ParserExitCode::SUCCESS) {
 
-					logical_or_expression = new AstNode(
-						AstNodeName::LOGICAL_OR_EXPRESSION,
-						AstNodeAlt::LOGICAL_OR_EXPRESSION_1,
-						NULL);
+					logical_or_expression 
+						= new AstNode(
+							AstNodeName::LOGICAL_OR_EXPRESSION,
+							AstNodeAlt::LOGICAL_OR_EXPRESSION_1,
+							NULL);
 					logical_or_expression->add_child(
 						logical_and_expression);
 
@@ -2205,7 +2957,8 @@ static inline ParserExitCode parse_logical_or_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_assignment_operator(
+static inline
+ParserExitCode parse_assignment_operator(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & assignment_operator)
@@ -2215,11 +2968,14 @@ static inline ParserExitCode parse_assignment_operator(
 			"parse_assignment_operator", 
 			tokens);
 	}
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[15];
 	int si = 0;
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	bool should_generate = false;
 
@@ -2294,7 +3050,8 @@ static inline ParserExitCode parse_assignment_operator(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_expression(
+static inline
+ParserExitCode parse_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & expression)
@@ -2382,7 +3139,8 @@ static inline ParserExitCode parse_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_conditional_expression(
+static inline
+ParserExitCode parse_conditional_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & conditional_expression)
@@ -2392,7 +3150,9 @@ static inline ParserExitCode parse_conditional_expression(
 			"parse_conditional_expression", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -2461,7 +3221,8 @@ static inline ParserExitCode parse_conditional_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_assignment_expression(
+static inline
+ParserExitCode parse_assignment_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & assignment_expression)
@@ -2564,7 +3325,8 @@ static inline ParserExitCode parse_assignment_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_constant_expression(
+static inline
+ParserExitCode parse_constant_expression(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & constant_expression)
@@ -2575,7 +3337,8 @@ static inline ParserExitCode parse_constant_expression(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[15];
@@ -2612,7 +3375,8 @@ static inline ParserExitCode parse_constant_expression(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_declaration(
+static inline
+ParserExitCode parse_declaration(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & declaration)
@@ -2623,7 +3387,8 @@ static inline ParserExitCode parse_declaration(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -2682,7 +3447,8 @@ static inline ParserExitCode parse_declaration(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_storage_class_specifier(
+static inline
+ParserExitCode parse_storage_class_specifier(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & storage_class_specifier)
@@ -2693,7 +3459,8 @@ static inline ParserExitCode parse_storage_class_specifier(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[15];
@@ -2751,7 +3518,8 @@ static inline ParserExitCode parse_storage_class_specifier(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_function_specifier(
+static inline
+ParserExitCode parse_function_specifier(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & function_specifier)
@@ -2761,7 +3529,8 @@ static inline ParserExitCode parse_function_specifier(
 			"parse_function_specifier", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	if ((tokens->get_name() 
 		 == TokenName::KEYWORD)
@@ -2779,7 +3548,8 @@ static inline ParserExitCode parse_function_specifier(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_declaration_specifiers(
+static inline
+ParserExitCode parse_declaration_specifiers(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & declaration_specifiers)
@@ -2789,7 +3559,9 @@ static inline ParserExitCode parse_declaration_specifiers(
 			"parse_declaration_specifiers", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -2995,7 +3767,8 @@ static inline ParserExitCode parse_declaration_specifiers(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_init_declarator_list(
+static inline
+ParserExitCode parse_init_declarator_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & init_declarator_list)
@@ -3005,7 +3778,9 @@ static inline ParserExitCode parse_init_declarator_list(
 			"parse_init_declarator_list", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -3081,7 +3856,8 @@ static inline ParserExitCode parse_init_declarator_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_init_declarator(
+static inline
+ParserExitCode parse_init_declarator(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & init_declarator)
@@ -3091,13 +3867,16 @@ static inline ParserExitCode parse_init_declarator(
 			"parse_init_declarator", 
 			tokens);
 	}
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
 	AstNode* stack[16];
 	int si = 0;
 
 	bool should_generate = false;
-	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	AstNode* declarator;
 	if (parse_declarator(
@@ -3145,7 +3924,8 @@ static inline ParserExitCode parse_init_declarator(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_enum_specifier(
+static inline
+ParserExitCode parse_enum_specifier(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & enum_specifier)
@@ -3156,7 +3936,8 @@ static inline ParserExitCode parse_enum_specifier(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNode* stack[16];
 	int si = 0;
@@ -3279,7 +4060,8 @@ static inline ParserExitCode parse_enum_specifier(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_typedef_name(
+static inline
+ParserExitCode parse_typedef_name(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & typedef_name)
@@ -3289,7 +4071,9 @@ static inline ParserExitCode parse_typedef_name(
 			"parse_typedef_name", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	bool should_generate = false;
 
@@ -3301,7 +4085,8 @@ static inline ParserExitCode parse_typedef_name(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_type_specifier(
+static inline
+ParserExitCode parse_type_specifier(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & type_specifier)
@@ -3445,7 +4230,8 @@ static inline ParserExitCode parse_type_specifier(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_struct_or_union_specifier(
+static inline
+ParserExitCode parse_struct_or_union_specifier(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & struct_or_union_specifier)
@@ -3456,7 +4242,8 @@ static inline ParserExitCode parse_struct_or_union_specifier(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -3561,7 +4348,8 @@ static inline ParserExitCode parse_struct_or_union_specifier(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_struct_or_union(
+static inline
+ParserExitCode parse_struct_or_union(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & struct_or_union)
@@ -3572,7 +4360,8 @@ static inline ParserExitCode parse_struct_or_union(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
@@ -3617,7 +4406,8 @@ static inline ParserExitCode parse_struct_or_union(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_struct_declaration_list(
+static inline
+ParserExitCode parse_struct_declaration_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & struct_declaration_list)
@@ -3628,7 +4418,8 @@ static inline ParserExitCode parse_struct_declaration_list(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -3710,7 +4501,8 @@ static inline ParserExitCode parse_struct_declaration_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_struct_declaration(
+static inline
+ParserExitCode parse_struct_declaration(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & struct_declaration)
@@ -3721,7 +4513,8 @@ static inline ParserExitCode parse_struct_declaration(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
@@ -3770,7 +4563,8 @@ static inline ParserExitCode parse_struct_declaration(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_specifier_qualifier_list(
+static inline
+ParserExitCode parse_specifier_qualifier_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & specifier_qualifier_list)
@@ -3780,7 +4574,9 @@ static inline ParserExitCode parse_specifier_qualifier_list(
 			"parse_specifier_qualifier_list", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -3854,7 +4650,8 @@ static inline ParserExitCode parse_specifier_qualifier_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_struct_declarator_list(
+static inline
+ParserExitCode parse_struct_declarator_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & struct_declarator_list)
@@ -3865,7 +4662,8 @@ static inline ParserExitCode parse_struct_declarator_list(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -3946,7 +4744,8 @@ static inline ParserExitCode parse_struct_declarator_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_struct_declarator(
+static inline
+ParserExitCode parse_struct_declarator(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & struct_declarator)
@@ -3957,7 +4756,8 @@ static inline ParserExitCode parse_struct_declarator(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -4018,7 +4818,8 @@ static inline ParserExitCode parse_struct_declarator(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_enumeration_constant(
+static inline
+ParserExitCode parse_enumeration_constant(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & enumeration_constant)
@@ -4028,7 +4829,9 @@ static inline ParserExitCode parse_enumeration_constant(
 			"parse_enumerator", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -4049,7 +4852,8 @@ static inline ParserExitCode parse_enumeration_constant(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_enumerator(
+static inline
+ParserExitCode parse_enumerator(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & enumerator)
@@ -4059,7 +4863,9 @@ static inline ParserExitCode parse_enumerator(
 			"parse_enumerator", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -4130,7 +4936,8 @@ static inline ParserExitCode parse_enumerator(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_enumerator_list(
+static inline
+ParserExitCode parse_enumerator_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & enumerator_list)
@@ -4140,7 +4947,8 @@ static inline ParserExitCode parse_enumerator_list(
 			"parse_enumerator_list", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -4215,7 +5023,8 @@ static inline ParserExitCode parse_enumerator_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_enumeration_specifier(
+static inline
+ParserExitCode parse_enumeration_specifier(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & enumeration_specifier)
@@ -4224,13 +5033,16 @@ static inline ParserExitCode parse_enumeration_specifier(
 		parser_report_attempt(
 			"parse_enumeration_specifier",
 			tokens);
-	}
+	}	
+	
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
 	int si = 0;
 
 	bool should_generate = false;
-	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	if ((tokens->get_name() 
 		 == TokenName::KEYWORD)
@@ -4273,6 +5085,7 @@ static inline ParserExitCode parse_enumeration_specifier(
 					should_generate = true;
 				}
 			}
+
 		} else {
 			alt = AstNodeAlt::ENUM_SPECIFIER_3;
 			should_generate = true;
@@ -4293,7 +5106,8 @@ static inline ParserExitCode parse_enumeration_specifier(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_type_qualifier(
+static inline
+ParserExitCode parse_type_qualifier(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & type_qualifier)
@@ -4302,13 +5116,16 @@ static inline ParserExitCode parse_type_qualifier(
 		parser_report_attempt(
 			"parse_type_qualifier", 
 			tokens);
-	}
+	}	
+	
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
 	int si = 0;
 
 	bool should_generate = false;
-	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	if (tokens->get_name() 
 		== TokenName::KEYWORD) {
@@ -4352,12 +5169,20 @@ static inline ParserExitCode parse_type_qualifier(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_parameter_type_list(
+static inline
+ParserExitCode parse_parameter_type_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & parameter_type_list)
 {
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	if (DEBUG_PARSER_SHOW_ATTEMPTS) {
+		parser_report_attempt(
+			"parse_parameter_type_list", 
+			tokens);
+	}
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNode* stack[15];
 	int si = 0;
@@ -4365,11 +5190,6 @@ static inline ParserExitCode parse_parameter_type_list(
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	bool should_generate = false;
 
-	if (DEBUG_PARSER_SHOW_ATTEMPTS) {
-		parser_report_attempt(
-			"parse_parameter_type_list", 
-			tokens);
-	}
 
 	AstNode* parameter_list;
 	if (parse_parameter_list(
@@ -4414,7 +5234,8 @@ static inline ParserExitCode parse_parameter_type_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_direct_declarator(
+static inline
+ParserExitCode parse_direct_declarator(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & direct_declarator)
@@ -4425,7 +5246,8 @@ static inline ParserExitCode parse_direct_declarator(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -4476,7 +5298,8 @@ static inline ParserExitCode parse_direct_declarator(
 								AstNodeName::DIRECT_DECLARATOR,
 								AstNodeAlt::DIRECT_DECLARATOR_2,
 								NULL);
-							direct_declarator->add_child(declarator);
+							direct_declarator->add_child(
+								declarator);
 							state = DIRECT_DECLARATOR;
 							exitcode = ParserExitCode::SUCCESS;
 							continue;
@@ -4636,16 +5459,18 @@ static inline ParserExitCode parse_direct_declarator(
 					}
 					if (should_append) {
 
-						AstNode* higher_direct_declarator = new AstNode(
-							AstNodeName::DIRECT_DECLARATOR,
-							appended_alt,
-							NULL);
+						AstNode* higher_direct_declarator 
+							= new AstNode(
+								AstNodeName::DIRECT_DECLARATOR,
+								appended_alt,
+								NULL);
 						higher_direct_declarator->add_child(
 							direct_declarator);
 						higher_direct_declarator->add_children(
 							stack, 
 							si);
-						direct_declarator = higher_direct_declarator;
+						direct_declarator 
+							= higher_direct_declarator;
 
 						continue;
 
@@ -4667,7 +5492,8 @@ static inline ParserExitCode parse_direct_declarator(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_declarator(
+static inline
+ParserExitCode parse_declarator(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & declarator)
@@ -4678,7 +5504,8 @@ static inline ParserExitCode parse_declarator(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -4728,7 +5555,8 @@ static inline ParserExitCode parse_declarator(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_type_qualifier_list(
+static inline
+ParserExitCode parse_type_qualifier_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & type_qualifier_list)
@@ -4739,7 +5567,8 @@ static inline ParserExitCode parse_type_qualifier_list(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -4770,7 +5599,8 @@ static inline ParserExitCode parse_type_qualifier_list(
 						AstNodeName::TYPE_QUALIFIER_LIST,
 						AstNodeAlt::TYPE_QUALIFIER_LIST_1,
 						NULL);
-					type_qualifier_list->add_child(type_qualifier);
+					type_qualifier_list->add_child(
+						type_qualifier);
 					state = ParsingState::TYPE_QUALIFIER_LIST;
 	
 					exitcode = ParserExitCode::SUCCESS;
@@ -4821,7 +5651,8 @@ static inline ParserExitCode parse_type_qualifier_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_pointer(
+static inline
+ParserExitCode parse_pointer(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & pointer)
@@ -4832,7 +5663,8 @@ static inline ParserExitCode parse_pointer(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -4918,7 +5750,8 @@ static inline ParserExitCode parse_pointer(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_parameter_list(
+static inline
+ParserExitCode parse_parameter_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & parameter_list)
@@ -4928,7 +5761,9 @@ static inline ParserExitCode parse_parameter_list(
 			"parse_parameter_list", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -5007,18 +5842,20 @@ static inline ParserExitCode parse_parameter_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_parameter_declaration(
+static inline
+ParserExitCode parse_parameter_declaration(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & parameter_declaration)
 {
-	ParserExitCode exitcode = ParserExitCode::FAIL;
-
 	if (DEBUG_PARSER_SHOW_ATTEMPTS) {
 		parser_report_attempt(
 			"parse_parameter_declaration",
 			tokens);
 	}
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -5082,7 +5919,8 @@ static inline ParserExitCode parse_parameter_declaration(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_identifier_list(
+static inline
+ParserExitCode parse_identifier_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & identifier_list)
@@ -5092,7 +5930,9 @@ static inline ParserExitCode parse_identifier_list(
 			"parse_identifier_list", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -5114,7 +5954,8 @@ static inline ParserExitCode parse_identifier_list(
 						AstNodeName::IDENTIFIER_LIST,
 						AstNodeAlt::IDENTIFIER_LIST_2,
 						NULL);
-					identifier_list->add_child(identifier);
+					identifier_list->add_child(
+						identifier);
 					exitcode = ParserExitCode::SUCCESS;
 					state = IDENTIFIER_LIST;
 					continue;
@@ -5162,7 +6003,8 @@ static inline ParserExitCode parse_identifier_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_abstract_declarator(
+static inline
+ParserExitCode parse_abstract_declarator(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & abstract_declarator)
@@ -5178,7 +6020,8 @@ static inline ParserExitCode parse_abstract_declarator(
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	bool should_generate = false;
 
@@ -5247,7 +6090,8 @@ static inline ParserExitCode parse_abstract_declarator(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_direct_abstract_declarator(
+static inline
+ParserExitCode parse_direct_abstract_declarator(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & direct_abstract_declarator)
@@ -5258,7 +6102,8 @@ static inline ParserExitCode parse_direct_abstract_declarator(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -5279,8 +6124,10 @@ static inline ParserExitCode parse_direct_abstract_declarator(
 						AstNodeName::DIRECT_ABSTRACT_DECLARATOR,
 						AstNodeAlt::DIRECT_ABSTRACT_DECLARATOR_1,
 						NULL);
+					AstNode* const terminal
+						= construct_terminal(tokens++);
 					direct_abstract_declarator->add_child(
-						construct_terminal(tokens++));
+						terminal);
 
 					exitcode = ParserExitCode::SUCCESS;
 				}
@@ -5460,7 +6307,8 @@ static inline ParserExitCode parse_direct_abstract_declarator(
 							direct_abstract_declarator);
 					}
 					higher_direct_abstract_declarator->add_children(
-						stack, si);
+						stack, 
+						si);
 					if (direct_abstract_declarator) {
 						direct_abstract_declarator 
 							= higher_direct_abstract_declarator;
@@ -5483,7 +6331,8 @@ static inline ParserExitCode parse_direct_abstract_declarator(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_initializer(
+static inline
+ParserExitCode parse_initializer(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & initializer)
@@ -5493,12 +6342,14 @@ static inline ParserExitCode parse_initializer(
 			"parse_initializer", 
 			tokens);
 	}
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNode* stack[16];
 	int si = 0;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
-
-	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	bool should_generate = false;
 
@@ -5573,7 +6424,8 @@ static inline ParserExitCode parse_initializer(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_initializer_list(
+static inline
+ParserExitCode parse_initializer_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & initializer_list)
@@ -5583,7 +6435,9 @@ static inline ParserExitCode parse_initializer_list(
 			"parse_initializer_list", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -5628,7 +6482,9 @@ static inline ParserExitCode parse_initializer_list(
 					AstNodeAlt::INITIALIZER_LIST_1,
 					NULL
 				);
-				initializer_list->add_children(start_stack, start_si);
+				initializer_list->add_children(
+					start_stack, 
+					start_si);
 
 				exitcode = ParserExitCode::SUCCESS;
 				state = INITIALIZER_LIST;
@@ -5696,7 +6552,8 @@ static inline ParserExitCode parse_initializer_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_designation(
+static inline
+ParserExitCode parse_designation(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & designation)
@@ -5707,7 +6564,8 @@ static inline ParserExitCode parse_designation(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNode* stack[15];
 	int si = 0;
@@ -5749,7 +6607,8 @@ static inline ParserExitCode parse_designation(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_designator_list(
+static inline
+ParserExitCode parse_designator_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & designator_list)
@@ -5759,7 +6618,8 @@ static inline ParserExitCode parse_designator_list(
 			"parse_designator_list", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -5831,7 +6691,8 @@ static inline ParserExitCode parse_designator_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_designator(
+static inline
+ParserExitCode parse_designator(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & designator) {
@@ -5842,7 +6703,8 @@ static inline ParserExitCode parse_designator(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNode* stack[15];
 	int si = 0;
@@ -5905,7 +6767,8 @@ static inline ParserExitCode parse_designator(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_labeled_statement(
+static inline
+ParserExitCode parse_labeled_statement(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & labeled_statement)
@@ -5916,7 +6779,8 @@ static inline ParserExitCode parse_labeled_statement(
 			tokens);
 	}
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNode* stack[15];
 	int si = 0;
@@ -6022,7 +6886,8 @@ static inline ParserExitCode parse_labeled_statement(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_statement(
+static inline
+ParserExitCode parse_statement(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & statement)
@@ -6032,12 +6897,15 @@ static inline ParserExitCode parse_statement(
 			"parse_statement", 
 			tokens);
 	}
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNode* stack[16];
 	int si = 0;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	bool should_generate = false;
 	
@@ -6169,7 +7037,8 @@ static inline ParserExitCode parse_statement(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_compound_statement(
+static inline
+ParserExitCode parse_compound_statement(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & compound_statement)
@@ -6180,12 +7049,14 @@ static inline ParserExitCode parse_compound_statement(
 			tokens);
 	}
 
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNode* stack[16];
 	int si = 0;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	bool should_generate = false;
 
@@ -6234,7 +7105,8 @@ static inline ParserExitCode parse_compound_statement(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_block_item_list(
+static inline
+ParserExitCode parse_block_item_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & block_item_list)
@@ -6244,7 +7116,9 @@ static inline ParserExitCode parse_block_item_list(
 			"parse_parameter_list", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -6290,10 +7164,11 @@ static inline ParserExitCode parse_block_item_list(
 						block_item)
 					== ParserExitCode::SUCCESS) {
 
-					AstNode* higher_block_item_list = new AstNode(
-						AstNodeName::BLOCK_ITEM_LIST,
-						AstNodeAlt::BLOCK_ITEM_LIST_2,
-						NULL);
+					AstNode* higher_block_item_list 
+						= new AstNode(
+							AstNodeName::BLOCK_ITEM_LIST,
+							AstNodeAlt::BLOCK_ITEM_LIST_2,
+							NULL);
 					higher_block_item_list->add_child(
 						block_item_list);
 					higher_block_item_list->add_child(
@@ -6315,7 +7190,8 @@ static inline ParserExitCode parse_block_item_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_block_item(
+static inline
+ParserExitCode parse_block_item(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & block_item)
@@ -6326,12 +7202,14 @@ static inline ParserExitCode parse_block_item(
 			tokens);
 	}
 
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNode* stack[16];
 	int si = 0;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	bool should_generate = false;
 
@@ -6405,7 +7283,8 @@ static inline ParserExitCode parse_block_item(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_expression_statement(
+static inline
+ParserExitCode parse_expression_statement(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & expression_statement)
@@ -6416,12 +7295,14 @@ static inline ParserExitCode parse_expression_statement(
 			tokens);
 	}
 
+	ParserExitCode exitcode
+		= ParserExitCode::FAIL;
+
 	AstNode* stack[16];
 	int si = 0;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 
-	ParserExitCode exitcode = ParserExitCode::FAIL;
 
 	bool should_generate = false;
 
@@ -6465,7 +7346,8 @@ static inline ParserExitCode parse_expression_statement(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_selection_statement(
+static inline
+ParserExitCode parse_selection_statement(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & selection_statement)
@@ -6475,14 +7357,16 @@ static inline ParserExitCode parse_selection_statement(
 			"parse_selection_statement", 
 			tokens);
 	}
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
+
 	AstNode* stack[16];
 	int si = 0;
 
 	AstNodeAlt alt 
 		= AstNodeAlt::ERROR;
 
-	ParserExitCode exitcode 
-		= ParserExitCode::FAIL;
 
 	bool should_generate 
 		= false;
@@ -6616,7 +7500,8 @@ static inline ParserExitCode parse_selection_statement(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_iteration_statement(
+static inline
+ParserExitCode parse_iteration_statement(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & iteration_statement)
@@ -6626,7 +7511,9 @@ static inline ParserExitCode parse_iteration_statement(
 			"parse_iteration_statement", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -6934,7 +7821,8 @@ static inline ParserExitCode parse_iteration_statement(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_jump_statement(
+static inline
+ParserExitCode parse_jump_statement(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & jump_statement)
@@ -6944,7 +7832,9 @@ static inline ParserExitCode parse_jump_statement(
 			"parse_jump_statement", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNodeAlt alt = AstNodeAlt::ERROR;
 	AstNode* stack[16];
@@ -7081,7 +7971,8 @@ static inline ParserExitCode parse_jump_statement(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_translation_unit(
+static inline
+ParserExitCode parse_translation_unit(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & translation_unit)
@@ -7091,7 +7982,9 @@ static inline ParserExitCode parse_translation_unit(
 			"parse_translation_unit", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -7164,7 +8057,8 @@ static inline ParserExitCode parse_translation_unit(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_function_definition(
+static inline
+ParserExitCode parse_function_definition(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & function_definition)
@@ -7174,7 +8068,9 @@ static inline ParserExitCode parse_function_definition(
 			"parse_function_definition", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	AstNode* stack[16];
 	int si = 0;
@@ -7243,11 +8139,12 @@ static inline ParserExitCode parse_function_definition(
 		}
 	}
 	if (should_generate) {
-		function_definition = construct_node_from_children(
-			AstNodeName::FUNCTION_DEFINITION,
-			AstNodeAlt::FUNCTION_DEFINITION_1,
-			stack,
-			si);
+		function_definition 
+			= construct_node_from_children(
+				AstNodeName::FUNCTION_DEFINITION,
+				AstNodeAlt::FUNCTION_DEFINITION_1,
+				stack,
+				si);
 		exitcode = ParserExitCode::SUCCESS;
 
 	} else {
@@ -7257,7 +8154,8 @@ static inline ParserExitCode parse_function_definition(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_declaration_list(
+static inline
+ParserExitCode parse_declaration_list(
 	SymbolTable* const& sym,
 	const Token*      & tokens,
 	AstNode*          & declaration_list)
@@ -7267,7 +8165,9 @@ static inline ParserExitCode parse_declaration_list(
 			"parse_declaration_list", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	enum ParsingState {
 		START,
@@ -7338,7 +8238,8 @@ static inline ParserExitCode parse_declaration_list(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_external_declaration(
+static inline
+ParserExitCode parse_external_declaration(
 	const Token* & tokens,
 	AstNode*     & external_declaration)
 {
@@ -7347,7 +8248,9 @@ static inline ParserExitCode parse_external_declaration(
 			"parse_external_declaration",
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	SymbolTable* sym = new SymbolTable();
 
@@ -7431,7 +8334,8 @@ static inline ParserExitCode parse_external_declaration(
 	return exitcode;
 }
 
-static inline ParserExitCode parse_translation_unit(
+static inline
+ParserExitCode parse_translation_unit(
 	const Token* & tokens,
 	AstNode*     & translation_unit)
 {
@@ -7440,7 +8344,9 @@ static inline ParserExitCode parse_translation_unit(
 			"parse_translation_unit", 
 			tokens);
 	}
-	ParserExitCode exitcode = ParserExitCode::FAIL;
+
+	ParserExitCode exitcode 
+		= ParserExitCode::FAIL;
 
 	SymbolTable* sym = new SymbolTable();
 

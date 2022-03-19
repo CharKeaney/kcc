@@ -1,3 +1,9 @@
+/* Authored by Charlie Keaney                      */
+/* annotated-ast-node.h - Responsible for defining 
+                          the annotated ast node, 
+						  which as an ast node  
+						  with various semantic 
+						  information attached.    */
 
 #ifndef ANNOTATED_AST_NODE_H
 #define ANNOTATED_AST_NODE_H 1
@@ -5,6 +11,10 @@
 #include "semantics.h"
 #include "symbol-table.h"
 #include "ast-node.h"
+
+/*****************************************************//**
+*                      Declarations                      *
+/********************************************************/
 
 struct Annotations {
 	SymbolTable* symbol_table;
@@ -28,7 +38,7 @@ public:
 		  parent(NULL),
 		  child(NULL),
 		  sibling(NULL),
-		  annotations({ 0, 0, 0, 0, 0 }) {
+		  annotations({ 0 }) {
 	};
 
 	inline ~AnnotatedAstNode() {
@@ -38,7 +48,8 @@ public:
 			AnnotatedAstNode* next_node
 				= current_node->get_sibling();
 			delete current_node;
-			current_node = next_node;
+			current_node 
+				= next_node;
 		}
 	}
 
@@ -110,6 +121,7 @@ public:
 				&& symtab->get_entry(symbol) == NULL) {
 				symtab = parent->get_symbol_table(symbol);
 			}
+
 		} else if (parent != NULL) {
 			symtab = parent->get_symbol_table(symbol);
 		}
@@ -119,6 +131,20 @@ public:
 	inline const Token* get_terminal() const
 	{
 		return ast_node->get_terminal();
+	}
+
+	inline bool get_is_constant_evaluation() const
+	{
+		const bool constant_eval
+			= annotations.constant_evaluation;
+		return constant_eval;
+	}
+
+	inline void set_is_constant_evaluation(
+		bool const& is_constant_evaluation)
+	{
+		annotations.constant_evaluation 
+			= is_constant_evaluation;
 	}
 
 	inline void set_type(
@@ -136,6 +162,7 @@ public:
 	{
 		if (child == NULL) {
 			child = node;
+
 		} else {
 			AnnotatedAstNode* current = child;
 			while (current->sibling != NULL) {
@@ -163,18 +190,23 @@ public:
 	    string const& parent_prefix = "",
 		string const& child_prefix  = "")
 	{
-		const int name_i         = (int) ast_node->get_name();
-		const int alt_i          = (int) ast_node->get_alt();
-		const char* const name_s = ast_form_string_reprs[name_i];
-		const char* const alt_s  = ast_node_alt_string_reprs[alt_i];
-
- 		cout << parent_prefix
-			 << "name="
-		 	 << name_s
-			 << ",alt="
-			 << alt_s
-		     << ",val="
-			 << get_constant_val();
+		const int name_i         
+			= (int) ast_node->get_name();
+		const int alt_i          
+			= (int) ast_node->get_alt();
+		const char* const name_s 
+			= ast_form_string_reprs[name_i];
+		const char* const alt_s  
+			= ast_node_alt_string_reprs[alt_i];
+		cout << parent_prefix
+			<< "name="
+			<< name_s
+			<< ",alt="
+			<< alt_s;
+		if (get_is_constant_evaluation()) {
+			cout << ", constant_value="
+				 << get_constant_val();
+		}
 		if (annotations.type != NULL) {
 			cout << ",type=";
 			print_type(annotations.type);
@@ -182,19 +214,34 @@ public:
 		cout << endl;
 
 		if (annotations.symbol_table) {
-			annotations.symbol_table->print(child_prefix);
+			annotations.symbol_table->print(
+				child_prefix);
 		}
 
-		AnnotatedAstNode* node = child;
-		for (; node; node = node->sibling) {
+		for (AnnotatedAstNode* node = child;
+			 node; 
+			 node = node->sibling) {
+
 			if (node->sibling) {
-				string appended_p = child_prefix + "|____";
-				string appended_c = child_prefix + "|    ";
-				node->print(appended_p, appended_c);
+				string appended_p 
+					= child_prefix 
+					  + "|____";
+				string appended_c 
+					= child_prefix 
+					  + "|    ";
+				node->print(
+					appended_p, 
+					appended_c);
 			} else {
-				string appended_p = child_prefix + "|____";
-				string appended_c = child_prefix + "     ";
-				node->print(appended_p, appended_c);
+				string appended_p 
+					= child_prefix 
+					  + "|____";
+				string appended_c 
+					= child_prefix 
+					  + "     ";
+				node->print(
+					appended_p, 
+					appended_c);
 			}
 		}
 	}

@@ -1,8 +1,13 @@
+/* Authored By Charlie Keaney            */
+/* semantics.h - Responsible for holding
+                 semantic information.   */
 
 #ifndef SEMANTICS_H
 #define SEMANTICS_H 1
 
-/* Scope */
+/*****************************************************//**
+*                      Declarations                      *
+/********************************************************/
 
 enum class Scope {
 	UNDEFINED = 0,
@@ -12,7 +17,8 @@ enum class Scope {
 	FUNCTION_PROTOTYPE,
 };
 
-static const char* scope_string_repr[]{
+static 
+const char* scope_string_repr[]{
 	"UNDEFINED",
 	"BLOCK",
 	"FILE",
@@ -26,16 +32,21 @@ enum class IdentifierClassifier {
 	FUNCTION,
 	MEMBER,
 	TYPEDEF_NAME,
-	LABEL_NAME
+	LABEL_NAME,
+	MACRO_NAME,
+	MACRO_PARAMETER
 };
 
-static const char* identifier_classifier_string_repr[]{
+static 
+const char* identifier_classifier_string_repr[]{
 	"UNDEFINED",
 	"OBJECT",
 	"FUNCTION",
 	"MEMBER",
 	"TYPEDEF_NAME",
-	"LABEL_NAME"
+	"LABEL_NAME",
+    "MACRO_NAME",
+	"MACRO_PARAMETER"
 };
 
 enum class StorageClassSpecifier {
@@ -205,114 +216,182 @@ struct Type {
 	};
 };
 
-/* Construct types. */
-
-static inline Type* construct_basic_type(
+static inline
+Type* construct_basic_type(
 	BasicTypeName  const& basic_type_name,
-	TypeQualifiers const& qualifier = TypeQualifiers::UNQUALIFIED)
-{
-	Type* output       = new Type();
-	output->classifier = TypeClassifier::OBJECT;
+	TypeQualifiers const& qualifier = TypeQualifiers::UNQUALIFIED);
 
-	ObjectType* const object_type = &output->object_type;
-	object_type->object_type_name  = ObjectTypeName::BASIC_TYPE;
+static inline
+Type* construct_void_type();
 
-	BasicType* const basic_type = &object_type->basic_type;
-	basic_type->name      = basic_type_name;
-	basic_type->qualifier = qualifier;
-
-	return output;
-}
-
-static inline Type* construct_void_type()
-{
-	Type* output = new Type();
-	output->classifier = TypeClassifier::INCOMPLETE;
-	// TODO; stub.
-	return output;
-}
-
-static inline Type* construct_derived_array(
-	Type*          const& basic_type_name,
+static inline
+Type* construct_derived_array(
+	Type* const& basic_type_name,
 	int            const& number_of_elements,
-	TypeQualifiers const& type_qualifier)
-{
-	Type* output       = new Type();
-	output->classifier = TypeClassifier::OBJECT;
-
-	ObjectType* const object_type = &output->object_type;;
-	object_type->object_type_name = ObjectTypeName::ARRAY;
-
-	ArrayType* const array_type    = &object_type->array_type;
-	array_type->element_type       = basic_type_name;
-	array_type->number_of_elements = number_of_elements;
-	array_type->qualifier          = type_qualifier;
-
-	return output;
-}
-
-inline Type* construct_derived_structure(
-	Type*          const& basic_type_name,
-	int            const& number_of_elements,
-	TypeQualifiers const& qualifier = TypeQualifiers::UNQUALIFIED)
-{
-	Type* output = new Type(); 
-	output->classifier = TypeClassifier::OBJECT;
-
-	ObjectType* object_type = &output->object_type;;
-	object_type->object_type_name = ObjectTypeName::STRUCTURE;
-
-	StructureType* structure_type = &object_type->structure_type;
-	structure_type->qualifier = qualifier;
-
-	return output;
-}
+	TypeQualifiers const& type_qualifier);
 
 inline Type* construct_derived_union(
-	Type*          const& basic_type_name,
+	Type* const& basic_type_name,
 	int            const& number_of_elements,
-	TypeQualifiers const& type_qualifier = TypeQualifiers::UNQUALIFIED)
-{
-	Type* output = new Type(); 
-	output->classifier = TypeClassifier::OBJECT;
+	TypeQualifiers const& type_qualifier = TypeQualifiers::UNQUALIFIED);
 
-	ObjectType* object_type = &output->object_type;;
-	object_type->object_type_name = ObjectTypeName::UNION;
-	return output;
-}
+static inline
+Type* construct_function_type(
+	const Type* const& return_type,
+	int              const& number_of_parameters,
+	const Parameter* const& parameter_list);
 
-static inline Type* construct_function_type(
+static inline
+Type* construct_derived_pointer_type(
+	const Type* const& referenced_type,
+	TypeQualifiers  const& qualifier);
+
+static inline
+Type* construct_basic_type(
+	BasicTypeName  const& basic_type_name,
+	TypeQualifiers const& qualifier);
+
+static inline
+Type* construct_derived_structure(
+	const Type*    const& basic_type_name,
+	int            const& number_of_elements,
+	TypeQualifiers const& qualifier);
+
+static inline
+Type* construct_derived_union(
+	const Type*     const& basic_type_name,
+	int            const& number_of_elements,
+	TypeQualifiers const& type_qualifier);
+
+static inline
+Type* construct_function_type(
 	const Type*      const& return_type,
 	int              const& number_of_parameters,
-	const Parameter* const& parameter_list)
-{
-	Type* output       = new Type();
-	output->classifier = TypeClassifier::FUNCTION;
+	const Parameter* const& parameter_list,
+	TypeQualifiers   const& qualifier);
 
-	FunctionType* const function_type   = &output->function_type;
-	function_type->number_of_parameters = number_of_parameters;
-	function_type->parameter_list       = parameter_list;
-	function_type->return_type          = return_type;
+static inline
+Type* construct_derived_pointer_type(
+	const Type*          const& referenced_type,
+	const TypeQualifiers const& qualifier);
 
-	return output;
-}
+static inline
+void print_union_type(
+	const UnionType* const& t);
 
-static inline Type* construct_derived_pointer_type(
-	const Type*     const& referenced_type,
-	TypeQualifiers  const& qualifier)
-{
-	Type* output       = new Type();
-	output->classifier = TypeClassifier::OBJECT;
+static inline
+void print_basic_type(
+	const BasicType* const& t);
 
-	ObjectType* const object_type = &output->object_type;;
-	object_type->object_type_name = ObjectTypeName::POINTER;
+static inline
+void print_parameter(
+	const Parameter* const& t);
 
-	PointerType* const pointer_type = &object_type->pointer_type;
-	pointer_type->referenced_type   = referenced_type;
-	pointer_type->qualifier         = qualifier;
+static inline
+void print_function_type(
+	const FunctionType* const& t);
 
-	return output;
-}
+static inline
+void print_pointer_type(
+	const PointerType* const& t);
+
+static inline
+void print_object_type(
+	const ObjectType* const& t);
+
+static inline
+void print_incomplete_type(
+	const IncompleteType* const& t);
+
+static inline
+void print_array_type(
+	const ArrayType* const& t);
+
+static inline
+void print_member_object(
+	const MemberObject* const& t);
+
+static inline
+void print_structure_type(
+	const StructureType* const& t);
+
+static inline
+void print_type(
+	const Type* const& t);
+
+static inline
+const int get_sizeof_basic_type(
+	const BasicType* const& type);
+
+static inline
+const int get_sizeof_structure_type(
+	const StructureType* const& type);
+
+static inline
+const int get_sizeof_union_type(
+	const UnionType* const& type);
+
+static inline
+const int get_sizeof_incomplete_type(
+	const IncompleteType* const& type);
+
+static inline
+const int get_sizeof_array_type(
+	const ArrayType* const& type);
+
+static inline
+const int get_sizeof_object_type(
+	const ObjectType* const& type);
+
+static inline
+const int get_sizeof_type(
+	const Type* const& type);
+
+static inline
+void duplicate_type(
+	const Type*  const& input,
+	const Type*       & output);
+
+static inline
+bool types_are_equivalent(
+	const Type* const& a,
+	const Type* const& b);
+
+static inline
+bool is_object_type(
+	const Type* const& type);
+
+static inline
+bool is_function_type(
+	const Type* const& type);
+
+static inline
+bool is_incomplete_type(
+	const Type* const& type);
+
+static inline
+bool is_integer_type(
+	const Type* const& type);
+
+static inline
+bool is_real_floating_type(
+	const Type* const& type);
+
+static inline
+bool is_arithmetic_type(
+	const Type* const& type);
+
+static inline
+bool is_pointer_type(
+	const Type* const& type);
+
+static inline
+bool is_scalar_type(
+	const Type* const& type);
+
+static inline
+bool is_declared_as_register(
+	const Type* const& type);
 
 /* Print types. */
 
@@ -350,151 +429,127 @@ static const char* basic_type_string_repr[]{
 	"_complex"
 };
 
-/* Equivalency check forward declarations */
-
-static inline bool basic_types_are_equivalent(
+static inline
+bool basic_types_are_equivalent(
 	const BasicType* const& a,
 	const BasicType* const& b);
 
-static inline bool member_object_types_are_equivalent(
+static inline
+bool member_object_types_are_equivalent(
 	const MemberObject* const& a,
 	const MemberObject* const& b);
 
-static inline bool structure_types_are_equivalent(
+static inline
+bool structure_types_are_equivalent(
 	const StructureType* const& a,
 	const StructureType* const& b);
 
-static inline bool union_types_are_equivalent(
+static inline
+bool union_types_are_equivalent(
 	const UnionType* const& a,
 	const UnionType* const& b);
 
-static inline bool pointer_types_are_equivalent(
+static inline
+bool pointer_types_are_equivalent(
 	const PointerType* const& a,
 	const PointerType* const& b);
 
-
-static inline bool object_types_are_equivalent(
+static inline
+bool object_types_are_equivalent(
 	const ObjectType* const& a,
 	const ObjectType* const& b);
 
-/* Constructor forward declarations */
-
-static inline Type* construct_basic_type(
-	BasicTypeName  const& basic_type_name,
-	TypeQualifiers const& qualifier);
-
-static inline Type* construct_derived_structure(
-	const Type*    const& basic_type_name,
-	int            const& number_of_elements,
-	TypeQualifiers const& qualifier);
-
-static inline Type* construct_derived_union(
-	const Type*     const& basic_type_name,
-	int            const& number_of_elements,
-	TypeQualifiers const& type_qualifier);
-
-static inline Type* construct_function_type(
-	const Type*      const& return_type,
-	int              const& number_of_parameters,
-	const Parameter* const& parameter_list,
-	TypeQualifiers   const& qualifier);
-
-static inline Type* construct_derived_pointer_type(
-	const Type*          const& referenced_type,
-	const TypeQualifiers const& qualifier);
-
-static inline void print_union_type(
-	const UnionType* const& t);
-
-static inline void print_basic_type(
-	const BasicType* const& t);
-
-static inline void print_parameter(
-	const Parameter* const& t);
-
-static inline void print_function_type(
-	const FunctionType* const& t);
-
-static inline void print_pointer_type(
-	const PointerType* const& t);
-
-static inline void print_object_type(
-	const ObjectType* const& t);
-
-static inline void print_incomplete_type(
-	const IncompleteType* const& t);
-
-static inline void print_array_type(
-	const ArrayType* const& t);
-
-static inline void print_member_object(
-	const MemberObject* const& t);
-
-static inline void print_structure_type(
-	const StructureType* const& t);
-
-static inline void print_type(
-	const Type* const& t);
-
-static inline const int get_sizeof_basic_type(
-	const BasicType* const& type);
-
-static inline const int get_sizeof_structure_type(
-	const StructureType* const& type);
-
-static inline const int get_sizeof_union_type(
-	const UnionType* const& type);
-
-static inline const int get_sizeof_incomplete_type(
-	const IncompleteType* const& type);
-
-static inline const int get_sizeof_array_type(
-	const ArrayType* const& type);
-
-static inline const int get_sizeof_object_type(
-	const ObjectType* const& type);
-
-static inline const int get_sizeof_type(
-	const Type* const& type);
-
-static inline void duplicate_type(
-	const Type*  const& input,
-	const Type*       & output);
-
-static inline bool types_are_equivalent(
+static inline
+bool types_are_equivalent(
 	const Type* const& a,
 	const Type* const& b);
 
-static inline bool is_object_type(
+static inline
+bool is_object_type(
 	const Type* const& type);
 
-static inline bool is_function_type(
+static inline
+bool is_function_type(
 	const Type* const& type);
 
-static inline bool is_incomplete_type(
+static inline
+bool is_array_type(
 	const Type* const& type);
 
-static inline bool is_integer_type(
+static inline
+bool is_struct_type(
 	const Type* const& type);
 
-static inline bool is_real_floating_type(
+static inline
+bool is_union_type(
 	const Type* const& type);
 
-static inline bool is_arithmetic_type(
+static inline
+bool is_incomplete_type(
 	const Type* const& type);
 
-static inline bool is_pointer_type(
+static inline
+bool is_void_type(
 	const Type* const& type);
 
-static inline bool is_scalar_type(
+static inline
+bool is_signed_integer_type(
 	const Type* const& type);
 
-static inline bool is_declared_as_register(
+static inline
+bool is_unsigned_integer_type(
 	const Type* const& type);
 
-/* Function Implementations */
+static inline
+bool is_integer_type(
+	const Type* const& type);
 
-static inline bool basic_types_are_equivalent(
+static inline
+bool is_real_floating_type(
+	const Type* const& type);
+
+static inline
+bool is_arithmetic_type(
+	const Type* const& type);
+
+static inline
+bool is_pointer_type(
+	const Type* const& type);
+
+static inline
+bool  is_scalar_type(
+	const Type* const& type);
+
+static inline
+bool is_declared_as_register(
+	const Type* const& type);
+
+static inline
+bool is_lvalue_type(
+	const Type* const& type);
+
+static inline
+bool is_const_qualified_type(
+	const Type* const& type);
+
+static inline
+bool is_container_for_const_qualified_type(
+	const Type* const& type);
+
+static inline
+bool is_parenthesized_incomplete_type(
+	const Type* const& type);
+
+static inline
+bool is_modifiable_lvalue_type(
+	const Type* const& type);
+
+/*****************************************************//**
+*                         Definitions                    *
+/********************************************************/
+
+static inline
+bool basic_types_are_equivalent(
 	const BasicType* const& a,
 	const BasicType* const& b)
 {
@@ -504,18 +559,24 @@ static inline bool basic_types_are_equivalent(
 	return are_equivalent;
 }
 
-static inline bool array_types_are_equivalent(
+static inline
+bool array_types_are_equivalent(
 	const ArrayType* const& a,
 	const ArrayType* const& b)
 {
 	const bool are_equivalent
-		= a->qualifier != b->qualifier
-		  && a->number_of_elements != b->number_of_elements
-	      && types_are_equivalent(a->element_type, b->element_type);
+		= a->qualifier 
+		  != b->qualifier
+		  && a->number_of_elements 
+		     != b->number_of_elements
+	      && types_are_equivalent(
+			     a->element_type, 
+			     b->element_type);
 	return are_equivalent;
 }
 
-static inline bool member_object_types_are_equivalent(
+static inline
+bool member_object_types_are_equivalent(
 	const MemberObject* const& a,
 	const MemberObject* const& b)
 {
@@ -540,7 +601,8 @@ static inline bool member_object_types_are_equivalent(
 	return are_equivalent;
 }
 
-static inline bool structure_types_are_equivalent(
+static inline
+bool structure_types_are_equivalent(
 	const StructureType* const& a,
 	const StructureType* const& b)
 {
@@ -552,7 +614,8 @@ static inline bool structure_types_are_equivalent(
 	return are_equivalent;
 }
 
-static inline bool union_types_are_equivalent(
+static inline
+bool union_types_are_equivalent(
 	const UnionType* const& a,
 	const UnionType* const& b)
 {
@@ -564,7 +627,8 @@ static inline bool union_types_are_equivalent(
 	return are_equivalent;
 }
 
-static inline bool pointer_types_are_equivalent(
+static inline
+bool pointer_types_are_equivalent(
 	const PointerType* const& a,
 	const PointerType* const& b)
 {
@@ -576,7 +640,8 @@ static inline bool pointer_types_are_equivalent(
 	return are_equivalent;
 }
 
-static inline bool object_types_are_equivalent(
+static inline
+bool object_types_are_equivalent(
 	const ObjectType* const& a,
 	const ObjectType* const& b)
 {
@@ -633,7 +698,120 @@ static inline bool object_types_are_equivalent(
 	return are_equivalent;
 }
 
-static inline void print_union_type(
+static inline
+Type* construct_basic_type(
+	BasicTypeName  const& basic_type_name,
+	TypeQualifiers const& qualifier)
+{
+	Type* output = new Type();
+	output->classifier = TypeClassifier::OBJECT;
+
+	ObjectType* const object_type = &output->object_type;
+	object_type->object_type_name = ObjectTypeName::BASIC_TYPE;
+
+	BasicType* const basic_type = &object_type->basic_type;
+	basic_type->name = basic_type_name;
+	basic_type->qualifier = qualifier;
+
+	return output;
+}
+
+static inline
+Type* construct_void_type()
+{
+	Type* output = new Type();
+	output->classifier = TypeClassifier::INCOMPLETE;
+	// TODO; stub.
+	return output;
+}
+
+static inline
+Type* construct_derived_array(
+	Type*          const& basic_type_name,
+	int            const& number_of_elements,
+	TypeQualifiers const& type_qualifier)
+{
+	Type* output       = new Type();
+	output->classifier = TypeClassifier::OBJECT;
+
+	ObjectType* const object_type = &output->object_type;;
+	object_type->object_type_name = ObjectTypeName::ARRAY;
+
+	ArrayType* const array_type    = &object_type->array_type;
+	array_type->element_type       = basic_type_name;
+	array_type->number_of_elements = number_of_elements;
+	array_type->qualifier          = type_qualifier;
+
+	return output;
+}
+
+inline Type* construct_derived_structure(
+	Type*          const& basic_type_name,
+	int            const& number_of_elements,
+	TypeQualifiers const& qualifier = TypeQualifiers::UNQUALIFIED)
+{
+	Type* output = new Type(); 
+	output->classifier = TypeClassifier::OBJECT;
+
+	ObjectType* object_type = &output->object_type;;
+	object_type->object_type_name = ObjectTypeName::STRUCTURE;
+
+	StructureType* structure_type = &object_type->structure_type;
+	structure_type->qualifier = qualifier;
+
+	return output;
+}
+
+inline Type* construct_derived_union(
+	Type*          const& basic_type_name,
+	int            const& number_of_elements,
+	TypeQualifiers const& type_qualifier)
+{
+	Type* output = new Type(); 
+	output->classifier = TypeClassifier::OBJECT;
+
+	ObjectType* object_type = &output->object_type;;
+	object_type->object_type_name = ObjectTypeName::UNION;
+	return output;
+}
+
+static inline
+Type* construct_function_type(
+	const Type*      const& return_type,
+	int              const& number_of_parameters,
+	const Parameter* const& parameter_list)
+{
+	Type* output       = new Type();
+	output->classifier = TypeClassifier::FUNCTION;
+
+	FunctionType* const function_type   = &output->function_type;
+	function_type->number_of_parameters = number_of_parameters;
+	function_type->parameter_list       = parameter_list;
+	function_type->return_type          = return_type;
+
+	return output;
+}
+
+static inline
+Type* construct_derived_pointer_type(
+	const Type*     const& referenced_type,
+	TypeQualifiers  const& qualifier)
+{
+	Type* output       = new Type();
+	output->classifier = TypeClassifier::OBJECT;
+
+	ObjectType* const object_type = &output->object_type;;
+	object_type->object_type_name = ObjectTypeName::POINTER;
+
+	PointerType* const pointer_type = &object_type->pointer_type;
+	pointer_type->referenced_type   = referenced_type;
+	pointer_type->qualifier         = qualifier;
+
+	return output;
+}
+
+static inline
+void print_union_type(
 	const UnionType* const& t)
 {
 	print_type_qualifier(t->qualifier);
@@ -643,14 +821,16 @@ static inline void print_union_type(
 	cout << " }";
 }
 
-static inline void print_basic_type(
+static inline
+void print_basic_type(
 	const BasicType* const& t)
 {
 	print_type_qualifier(t->qualifier);
 	cout << basic_type_string_repr[(int)t->name];
 }
 
-static inline void print_parameter(
+static inline
+void print_parameter(
 	const Parameter* const& t) 
 {
 	print_type(t->parameter_type);
@@ -662,7 +842,8 @@ static inline void print_parameter(
 	}
 }
 
-static inline void print_function_type(
+static inline
+void print_function_type(
 	const FunctionType* const& t)
 {
 	print_type(t->return_type);
@@ -671,7 +852,8 @@ static inline void print_function_type(
 	cout << " )";
 }
 
-static inline void print_pointer_type(
+static inline
+void print_pointer_type(
 	const PointerType* const& t)
 {
 	print_type_qualifier(t->qualifier);
@@ -681,7 +863,8 @@ static inline void print_pointer_type(
 
 }
 
-static inline void print_object_type(
+static inline
+void print_object_type(
 	const ObjectType* const& t)
 {
 	switch (t->object_type_name) {
@@ -716,13 +899,15 @@ static inline void print_object_type(
 	}
 }
 
-static inline void print_incomplete_type(
+static inline
+void print_incomplete_type(
 	const IncompleteType* const& t)
 {
 	// TODO;
 }
 
-static inline void print_array_type(
+static inline
+void print_array_type(
 	const ArrayType* const& t)
 {
 	cout << type_qualifier_string_repr[(int)t->qualifier]
@@ -732,7 +917,8 @@ static inline void print_array_type(
 		 << t->number_of_elements;
 }
 
-static inline void print_member_object(
+static inline
+void print_member_object(
 	const MemberObject* const& t)
 {
 	print_object_type(t->object_type);
@@ -744,7 +930,8 @@ static inline void print_member_object(
 	}
 }
 
-static inline void print_structure_type(
+static inline
+void print_structure_type(
 	const StructureType* const& t)
 {
 	print_type_qualifier(t->qualifier);
@@ -754,7 +941,8 @@ static inline void print_structure_type(
 	cout << " }";
 }
 
-static inline void print_type(
+static inline
+void print_type(
 	const Type* const& t)
 {
 	switch (t->classifier) {
@@ -781,7 +969,8 @@ static inline void print_type(
 	}
 }
 
-static inline const int get_sizeof_basic_type(
+static inline
+const int get_sizeof_basic_type(
 	const BasicType* const& type)
 {
 	 static const int sizeof_basic_type_map[] = {
@@ -793,7 +982,7 @@ static inline const int get_sizeof_basic_type(
 		sizeof(signed int),			//SIGNED_INT,
 		sizeof(unsigned int),		//UNSIGNED_INT,
 		sizeof(signed long),		//SIGNED_LONG,
-		sizeof(unsigned long),		//UNSIGNED_LONG,
+		sizeof(unsigned long),	    //UNSIGNED_LONG,
 		sizeof(signed long long),	//SIGNED_LONG_LONG,
 		sizeof(unsigned long long), //UNSIGNED_LONG_LONG,
 		sizeof(float),				//FLOAT,
@@ -807,7 +996,8 @@ static inline const int get_sizeof_basic_type(
 	return sizeof_basic_type;
 }
 
-static inline const int get_sizeof_structure_type(
+static inline
+const int get_sizeof_structure_type(
 	const StructureType* const& type)
 {
 	int size_required = 0;
@@ -820,7 +1010,8 @@ static inline const int get_sizeof_structure_type(
 	return size_required;
 }
 
-static inline const int get_sizeof_union_type(
+static inline
+const int get_sizeof_union_type(
 	const UnionType* const& type)
 {
 	int size_required = 0;
@@ -837,7 +1028,8 @@ static inline const int get_sizeof_union_type(
 	return size_required;
 }
 
-static inline const int get_sizeof_incomplete_type(
+static inline
+const int get_sizeof_incomplete_type(
 	const IncompleteType* const& type)
 {
 	int sizeof_type = 0;
@@ -845,7 +1037,8 @@ static inline const int get_sizeof_incomplete_type(
 	return sizeof_type;
 }
 
-static inline const int get_sizeof_array_type(
+static inline
+const int get_sizeof_array_type(
 	const ArrayType* const& type)
 {
 	const int sizeof_array_type =
@@ -854,7 +1047,8 @@ static inline const int get_sizeof_array_type(
 	return sizeof_array_type;
 }
 
-static inline const int get_sizeof_object_type(
+static inline
+const int get_sizeof_object_type(
 	const ObjectType* const& type)
 {
 	int sizeof_type = 0;
@@ -890,7 +1084,8 @@ static inline const int get_sizeof_object_type(
 	return sizeof_type;
 }
 
-static inline const int get_sizeof_type(
+static inline
+const int get_sizeof_type(
 	const Type* const& type)
 {
 	int sizeof_type = 0;
@@ -917,7 +1112,8 @@ static inline const int get_sizeof_type(
 /* 
 	Assumes type is a pointer type.
 */
-static inline const Type* dereference_type(
+static inline
+const Type* dereference_type(
 	const Type* const& type)
 {
 	const Type* const derefed_type 
@@ -927,7 +1123,8 @@ static inline const Type* dereference_type(
 	return derefed_type;
 }
 
-static inline const Type* get_function_return_type(
+static inline
+const Type* get_function_return_type(
 	const Type* const& type)
 {
 	const Type* const return_type
@@ -935,7 +1132,8 @@ static inline const Type* get_function_return_type(
 	return return_type;
 }
 
-static inline const Type* get_element_type(
+static inline
+const Type* get_element_type(
 	const Type* const& type)
 {
 	const Type* const return_type
@@ -943,14 +1141,16 @@ static inline const Type* get_element_type(
 	return return_type;
 }
 
-static inline void duplicate_type(
+static inline
+void duplicate_type(
 	const Type* const& input,
 	const Type*      &  output)
 {
 	output = input;
 }
 
-static inline bool parameters_are_equivalent(
+static inline
+bool parameters_are_equivalent(
 	const Parameter* const& a,
 	const Parameter* const& b)
 {
@@ -960,7 +1160,8 @@ static inline bool parameters_are_equivalent(
 	return are_equivalent;
 }
 
-static inline bool function_types_are_equivalent(
+static inline
+bool function_types_are_equivalent(
 	const FunctionType* const& a,
 	const FunctionType* const& b)
 {
@@ -971,7 +1172,8 @@ static inline bool function_types_are_equivalent(
 	return are_equivalent;
 }
 
-static inline bool incomplete_types_are_equivalent(
+static inline
+bool incomplete_types_are_equivalent(
 	const IncompleteType* const& a,
 	const IncompleteType* const& b)
 {
@@ -981,7 +1183,8 @@ static inline bool incomplete_types_are_equivalent(
 	return are_equivalent;
 }
 
-static inline bool types_are_equivalent(
+static inline
+bool types_are_equivalent(
 	const Type* const& a,
 	const Type* const& b)
 {
@@ -1025,7 +1228,8 @@ static inline bool types_are_equivalent(
 	return are_equivalent;
 }
 
-static inline bool is_object_type(
+static inline
+bool is_object_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1033,7 +1237,8 @@ static inline bool is_object_type(
 	return retval;
 }
 
-static inline bool is_function_type(
+static inline
+bool is_function_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1041,7 +1246,8 @@ static inline bool is_function_type(
 	return retval;
 }
 
-static inline bool is_array_type(
+static inline
+bool is_array_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1050,7 +1256,8 @@ static inline bool is_array_type(
 	return retval;
 }
 
-static inline bool is_struct_type(
+static inline
+bool is_struct_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1059,7 +1266,8 @@ static inline bool is_struct_type(
 	return retval;
 }
 
-static inline bool is_union_type(
+static inline
+bool is_union_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1068,7 +1276,8 @@ static inline bool is_union_type(
 	return retval;
 }
 
-static inline bool is_incomplete_type(
+static inline
+bool is_incomplete_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1077,7 +1286,8 @@ static inline bool is_incomplete_type(
 
 }
 
-static inline bool is_void_type(
+static inline
+bool is_void_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1086,7 +1296,8 @@ static inline bool is_void_type(
 	return retval;
 }
 
-static inline bool is_signed_integer_type(
+static inline
+bool is_signed_integer_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1100,7 +1311,8 @@ static inline bool is_signed_integer_type(
 	return retval;
 }
 
-static inline bool is_unsigned_integer_type(
+static inline
+bool is_unsigned_integer_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1115,7 +1327,8 @@ static inline bool is_unsigned_integer_type(
 }
 
 
-static inline bool is_integer_type(
+static inline
+bool is_integer_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1124,7 +1337,8 @@ static inline bool is_integer_type(
 	return retval;
 }
 
-static inline bool is_real_floating_type(
+static inline
+bool is_real_floating_type(
 	const Type* const& type)
 {
 	const bool retval 
@@ -1136,7 +1350,8 @@ static inline bool is_real_floating_type(
 	return retval;
 }
 
-static inline bool is_arithmetic_type(
+static inline
+bool is_arithmetic_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1145,7 +1360,8 @@ static inline bool is_arithmetic_type(
 	return retval;
 }
 
-static inline bool is_pointer_type(
+static inline
+bool is_pointer_type(
 	const Type* const& type)
 {
 	const bool retval 
@@ -1154,7 +1370,8 @@ static inline bool is_pointer_type(
 	return retval;
 }
 
-static inline bool  is_scalar_type(
+static inline
+bool  is_scalar_type(
 	const Type* const& type)
 {
 	const bool retval
@@ -1163,13 +1380,15 @@ static inline bool  is_scalar_type(
 	return retval;
 }
 
-static inline bool is_declared_as_register(
+static inline
+bool is_declared_as_register(
 	const Type* const& type)
 {
 	return false;
 }
 
-static inline bool is_lvalue_type(
+static inline
+bool is_lvalue_type(
 	const Type* const& type) 
 {
 	const bool retval 
@@ -1179,7 +1398,8 @@ static inline bool is_lvalue_type(
 	return retval;
 }
 
-static inline bool is_const_qualified_type(
+static inline
+bool is_const_qualified_type(
 	const Type* const& type)
 {
 	const bool retval = false;
@@ -1187,7 +1407,8 @@ static inline bool is_const_qualified_type(
 	return retval;
 }
 
-static inline bool is_container_for_const_qualified_type(
+static inline
+bool is_container_for_const_qualified_type(
 	const Type* const& type)
 {
 	const bool retval = false;
@@ -1195,7 +1416,8 @@ static inline bool is_container_for_const_qualified_type(
 	return retval;
 }
 
-static inline bool is_parenthesized_incomplete_type(
+static inline
+bool is_parenthesized_incomplete_type(
 	const Type* const& type)
 {
 	const bool retval = false;
@@ -1203,7 +1425,8 @@ static inline bool is_parenthesized_incomplete_type(
 	return retval;
 }
 
-static inline bool is_modifiable_lvalue_type(
+static inline
+bool is_modifiable_lvalue_type(
 	const Type* const& type) {
 	const bool retval
 		= is_lvalue_type(type)

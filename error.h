@@ -1,3 +1,6 @@
+/* Authored by Charlie Keaney                */
+/* error.h - Responsible for defining error
+			 codes.                          */
 
 #ifndef ERROR_H
 #define ERROR_H
@@ -14,6 +17,19 @@
 
 #define MSG_COLOUR_START    "\x1B[33m"
 #define MSG_COLOUR_FINISHED "\033[0m"
+
+/*****************************************************//**
+*                      Declarations                      *
+/********************************************************/
+
+/* Error messages consist of format : err-solutions */
+static
+const char* err_messages[] = {
+	"Could not recognise this token (). Did you mispell it?"
+	"Could not recognise this identifier ()."
+	"Did you forget to declare it or mispell it?",
+	"Expected a semicolon here. Did you forget to put it in?",
+};
 
 enum class ErrorCode {
 	UNDEFINED,
@@ -42,6 +58,91 @@ struct Error {
 	Error*                 next_error;
 };
 
+enum class WarningCode {
+	UNDEFINED
+};
+
+struct Warning {
+	WarningCode            warning_code;
+	const char*            warning_message;
+	FileLocationDescriptor fld;
+	Warning*               next_warning;
+};
+
+enum class MessageCode {
+	UNDEFINED
+};
+
+struct Message {
+	MessageCode            message_code;
+	const char*            message;
+	FileLocationDescriptor fld;
+	Message*               next_message;
+};
+
+Error* construct_error_book(
+	ErrorCode              const& error_code,
+	const char*            const& error_message,
+	FileLocationDescriptor const& fld);
+
+static inline
+const char* construct_invalid_constant_error_message(
+	const char* const& error_lexeme);
+
+static inline
+void display_pointer_to_input_position(
+	FileLocationDescriptor const& fld,
+	const char*            const& input);
+
+static inline
+void print_error_book(
+	Error*      const& error_book,
+	const char* const& input);
+
+static inline
+void print_warning_book(
+	Warning*    const& warning_book,
+	const char* const& input);
+
+static inline
+void print_message_book(
+	Message*    const& message_book,
+	const char* const& input);
+
+class AlertList {
+private:
+	Error* error;
+	Warning* warning;
+	Message* message;
+public:
+	inline void add_error(
+		Error* const& new_error)
+	{
+		if (error == NULL) {
+			error = new_error;
+		}
+		else {
+			Error* last_error = error;
+			while (last_error->next_error != NULL) {
+				last_error = last_error->next_error;
+			}
+			last_error->next_error = new_error;
+		}
+	}
+
+	/* The messages reference the input, so we will need the input to be passed in too.*/
+	inline void print(const char* input)
+	{
+		print_error_book(error, input);
+		print_warning_book(warning, input);
+		print_message_book(message, input);
+	}
+};
+
+/*****************************************************//**
+*                         Definitions                    *
+/********************************************************/
+
 Error* construct_error_book(
 	ErrorCode              const& error_code,
 	const char*            const& error_message,
@@ -57,13 +158,15 @@ Error* construct_error_book(
 	return error;
 }
 
-static inline const char* construct_invalid_constant_error_message(
+static inline
+const char* construct_invalid_constant_error_message(
 	const char* const& error_lexeme)
 {
 	return NULL;
 }
 
-static inline void display_pointer_to_input_position(
+static inline
+void display_pointer_to_input_position(
 	FileLocationDescriptor const& fld,
 	const char*            const& input)
 {
@@ -98,7 +201,8 @@ static inline void display_pointer_to_input_position(
 		 << endl;
 }
 
-static inline void print_error_book(
+static inline
+void print_error_book(
 	Error*      const& error_book,
 	const char* const& input)
 {
@@ -122,18 +226,8 @@ static inline void print_error_book(
 	}
 }
 
-enum class WarningCode {
-	UNDEFINED
-};
-
-struct Warning {
-	WarningCode            warning_code;
-	const char*            warning_message;
-	FileLocationDescriptor fld;
-	Warning*               next_warning;
-};
-
-static inline void print_warning_book(
+static inline
+void print_warning_book(
 	Warning*    const& warning_book,
 	const char* const& input)
 {
@@ -156,18 +250,9 @@ static inline void print_warning_book(
 	}
 }
 
-enum class MessageCode {
-	UNDEFINED
-};
 
-struct Message {
-	MessageCode            message_code;
-	const char*            message;
-	FileLocationDescriptor fld;
-	Message*               next_message;
-};
-
-static inline void print_message_book(
+static inline
+void print_message_book(
 	Message*    const& message_book,
 	const char* const& input)
 {
@@ -189,42 +274,5 @@ static inline void print_message_book(
 		e = e->next_message;
 	}
 }
-
-class AlertList {
-private:
-	Error*   error;
-	Warning* warning;
-	Message* message;
-public:
-	inline void add_error(
-		Error* const& new_error)
-	{
-		if (error == NULL) {
-			error = new_error;
-		} else {
-			Error* last_error = error;
-			while (last_error->next_error != NULL) {
-				last_error = last_error->next_error;
-			}
-			last_error->next_error = new_error;
-		}
-	}
-
-	/* The messages reference the input, so we will need the input to be passed in too.*/
-	inline void print(const char* input)
-	{          
-		print_error_book(error,     input);
-		print_warning_book(warning, input);
-		print_message_book(message, input);
-	}
-};
-
-/* Error messages consist of format : err-solutions */
-static const char* err_messages[] = {
-	"Could not recognise this token (). Did you mispell it?"
-	"Could not recognise this identifier ()."
-	"Did you forget to declare it or mispell it?",
-	"Expected a semicolon here. Did you forget to put it in?",
-};
 
 #endif

@@ -1,7 +1,11 @@
+/* Authored by Charlie Keaney                 */
+/* driver.h - Responsible for driving the kcc
+			  compiler, taking in arguments.  */
 
 #ifndef DRIVER_H
 #define DRIVER_H 1
 
+#include "lexema-pool.h"
 #include "preprocessor.h"
 #include "lexer.h"
 #include "parser.h"
@@ -11,9 +15,20 @@
 
 #include "kcc-tester.h"
 
-#define NUM_INPUT_CHARACTERS	 1028
-#define NUM_PREPROCESSING_TOKENS 1028
-#define NUM_ASSEMBLY_TOKENS		 1028
+#define NUM_INPUT_CHARACTERS	  1028
+#define NUM_PREPROCESSING_TOKENS  1028
+#define NUM_ASSEMBLY_TOKENS		  1028
+
+#define DEBUG_DISPLAY_LEXEMA_POOL 0
+
+/*****************************************************//**
+*                      Declarations                      *
+/********************************************************/
+
+enum class KccExitCode {
+	SUCCESS,
+	FAIL
+};
 
 enum class CompilerFlag {
 	DISPLAY_PPTOKENS,
@@ -36,12 +51,7 @@ struct CompilerFlags {
 
 struct CompilerArgs {
 	CompilerFlags flags;
-	const char* dest;
-};
-
-enum class KccExitCode {
-	SUCCESS,
-	FAIL
+	const char*   dest;
 };
 
 const char* help_msg 
@@ -60,39 +70,52 @@ const char* help_msg
 	  "\t-l : Display produced lexer tokens.\n"
 	  "\t-t : Display produced abstract syntax tree.\n"
 	  "\t-s : Display produced abstract syntax tree"
-	  " with semantic annotations.\n"
+	        " with semantic annotations.\n"
 	  "\t-p : Display produced x86 code.\n"
 	  "\t-m : Mute (display nothing) (default).\n";
 
-static inline void print_help() {
-	cout << help_msg;
-}
-
 struct CompilationEnvironment {
-	PreprocessingToken*      ppts;
-	const char**             lexema;
-	Token*                   tokens;
-	AstNode*                 ast_root;
-	AnnotatedAstNode*        anno_ast_root;
-	x86_Asm_IR* instrs;
-	AlertList                bkl;
+	PreprocessingToken* ppts;
+	LexemaPool*         lexema;
+	Token*              tokens;
+	AstNode*            ast_root;
+	AnnotatedAstNode*   anno_ast_root;
+	x86_Asm_IR*         instrs;
+	AlertList           bkl;
 };
 
-static inline void free_compilation_environment(
-	CompilationEnvironment& environment) 
+static inline
+void free_compilation_environment(
+	CompilationEnvironment& environment);
+
+static inline
+void print_help();
+
+static inline
+KccExitCode drive(
+	const char*         const& filename,
+	const char*         const& input,
+	const CompilerFlags const& flags);
+
+static inline
+void interpret_args(
+	const char** const& argv,
+	int          const& argc);
+
+/*****************************************************//**
+*                         Definitions                    *
+/********************************************************/
+
+static inline
+void free_compilation_environment(
+	CompilationEnvironment& environment)
 {
 	if (environment.ppts) {
 		delete[] environment.ppts;
 		environment.ppts = NULL;
 	}
 	if (environment.lexema) {
-		for (const char** l = environment.lexema;
-			*l != NULL;
-			l++) {
-			delete* l;
-			*l = NULL;
-		}
-		delete[] environment.lexema;
+		delete environment.lexema;
 		environment.lexema = NULL;
 	}
 	if (environment.tokens) {
@@ -113,7 +136,13 @@ static inline void free_compilation_environment(
 	}
 }
 
-static inline KccExitCode drive(
+static inline 
+void print_help() {
+	cout << help_msg;
+}
+
+static inline 
+KccExitCode drive(
 	const char*         const& filename,
 	const char*         const& input,
 	const CompilerFlags const& flags)
@@ -122,31 +151,34 @@ static inline KccExitCode drive(
 		print_help();
 	}
 
-	KccExitCode exitcode = KccExitCode::FAIL;
+	KccExitCode exitcode 
+		= KccExitCode::FAIL;
 
-	CompilationEnvironment environment = CompilationEnvironment({ 0 });
-	environment.bkl = AlertList();
+	CompilationEnvironment environment 
+		= CompilationEnvironment({ 0 });
+	environment.bkl 
+		= AlertList();
 
 	/* Preprocessing. */
 	environment.ppts 
 		= new PreprocessingToken[NUM_PREPROCESSING_TOKENS] { };
 	environment.lexema 
-		= new const char* [NUM_PREPROCESSING_TOKENS] { };
-	const char** lexema_produced_ptr 
-		= environment.lexema;
+		= new LexemaPool();
 	PreprocessingToken* ppts_ptr 
 		= environment.ppts;
 
 	const char* input_ptr = input;
 	if (preprocess(
 		input_ptr,
-		lexema_produced_ptr,
+		*environment.lexema,
 		filename,
 		environment.bkl,
-		ppts_ptr
-		)
+		ppts_ptr)
 		== PreprocessorExitCode::SUCCESS) {
 
+		if (DEBUG_DISPLAY_LEXEMA_POOL) {
+			print_lexema_pool(*(environment.lexema));
+		}
 		int count_pptokens 
 			= ppts_ptr - environment.ppts;
 
@@ -173,8 +205,8 @@ static inline KccExitCode drive(
 			if (flags.display_tokens) {
 
 				for (Token* t = environment.tokens;
-					t < environment.tokens + count_tokens;
-					t++) {
+					 t < environment.tokens + count_tokens;
+					 t++) {
 					t->print();
 					cout << endl;
 				}
@@ -255,7 +287,8 @@ static inline KccExitCode drive(
 	-<arg>
 */
 
-static inline void interpret_args(
+static inline 
+void interpret_args(
 	const char** const& argv, 
 	int          const& argc) 
 {
@@ -280,7 +313,6 @@ static inline void interpret_args(
 	args.flags = flags;
 	/* Fill args.dest */
 	args.dest = argv[2];
-
 }
 
 #endif

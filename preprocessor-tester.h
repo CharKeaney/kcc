@@ -1,3 +1,7 @@
+/* Authored By Charlie Keaney                   */
+/* preprocessor.h - Responsible for testing the
+					preprocessor.
+					Note: Temporarily defunct.  */
 
 #ifdef PREPROCESSOR_TESTER_CPP
 #define PREPROCESSOR_TESTER_CPP 1

@@ -1,3 +1,7 @@
+/* Authored By Charlie Keaney                    */
+/* parser-tester.h - Responsible for testing the 
+					 parser.
+					 Temporarily defunct.		 */
 
 #ifdef PARSER_TESTER_H
 #define PARSER_TESTER_H 1

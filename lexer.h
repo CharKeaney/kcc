@@ -1,3 +1,7 @@
+/* Authored by Charlie Keaney                   */
+/* lexer.h - Responsible for taking in 
+             preprocessed-tokens and converting 
+			 them to regular tokens.            */
 
 #ifndef LEXER_H
 #define LEXER_H 1
@@ -47,7 +51,58 @@ enum class LexerExitCode {
 			 << endl;									\
 	}
 
-static inline LexerExitCode lex_keyword(
+/*****************************************************//**
+*                      Declarations                      *
+/********************************************************/
+
+static inline
+LexerExitCode lex_keyword(
+	PreprocessingToken* const& pp_token,
+	Token*                   & identifier_output,
+	AlertList                & bookkeeping_list);
+
+static inline
+LexerExitCode lex_identifier(
+	PreprocessingToken* const& pp_token,
+	Token*                   & identifier_output,
+	AlertList                & bookkeeping_list);
+
+static inline
+bool lex_recognise_character_constant(
+	PreprocessingToken* const& pp_token,
+	bool                     & end_success);
+
+static inline
+LexerExitCode lex_constant(
+	PreprocessingToken* const& pp_token,
+	Token*                   & identifier_output,
+	AlertList                & bookkeeping_list);
+
+static inline
+LexerExitCode lex_string_literal(
+	PreprocessingToken* const& pp_token,
+	Token*                   & identifier_output,
+	AlertList                & bookkeeping_list);
+
+static inline
+LexerExitCode lex_punctuator(
+	PreprocessingToken* const& pp_token,
+	Token*                   & identifier_output,
+	AlertList                & bookkeeping_list);
+
+static inline
+LexerExitCode lex(
+	PreprocessingToken*      & pp_tokens,
+	Token*                   & identifier_output,
+	int                 const& count,
+	AlertList                & bookkeeping_list);
+
+/*****************************************************//**
+*                         Definitions                    *
+/********************************************************/
+
+static inline
+LexerExitCode lex_keyword(
 	PreprocessingToken* const& pp_token,
 	Token*                   & identifier_output,
 	AlertList                & bookkeeping_list)
@@ -1113,7 +1168,8 @@ static inline LexerExitCode lex_keyword(
 	return exitcode;
 }
 
-static inline LexerExitCode lex_identifier(
+static inline
+LexerExitCode lex_identifier(
 	PreprocessingToken* const& pp_token,
 	Token*                   & identifier_output,
 	AlertList                & bookkeeping_list)
@@ -1301,7 +1357,8 @@ static inline LexerExitCode lex_identifier(
 	return exitcode;
 }
 
-static inline bool lex_recognise_character_constant(
+static inline
+bool lex_recognise_character_constant(
 	PreprocessingToken* const& pp_token,
 	bool                     & end_success)
 {
@@ -1408,7 +1465,8 @@ static inline bool lex_recognise_character_constant(
 	return end_success;
 }
 
-static inline LexerExitCode lex_constant(
+static inline
+LexerExitCode lex_constant(
 	PreprocessingToken* const& pp_token,
 	Token*                   & identifier_output,
 	AlertList                & bookkeeping_list)
@@ -2008,7 +2066,8 @@ static inline LexerExitCode lex_constant(
 
 }
 
-static inline LexerExitCode lex_string_literal(
+static inline
+LexerExitCode lex_string_literal(
 	PreprocessingToken* const& pp_token,
 	Token*                   & identifier_output,
 	AlertList                & bookkeeping_list)
@@ -2162,7 +2221,8 @@ static inline LexerExitCode lex_string_literal(
 	return exitcode;
 }
 
-static inline LexerExitCode lex_punctuator(
+static inline
+LexerExitCode lex_punctuator(
 	PreprocessingToken* const& pp_token,
 	Token*                   & identifier_output,
 	AlertList                & bookkeeping_list)
@@ -2627,7 +2687,8 @@ static inline LexerExitCode lex_punctuator(
 	return exitcode;
 }
 
-static inline LexerExitCode lex(
+static inline
+LexerExitCode lex(
 	PreprocessingToken*      & pp_tokens,
 	Token*                   & identifier_output,
 	int                 const& count,

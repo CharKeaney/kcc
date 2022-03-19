@@ -1,9 +1,19 @@
+/* Authored By Charlie Keaney                        */
+/* preprocessor.h - Responsible for preprocessing a 
+					provided character string into 
+					an array of preprocessing tokens.
+
+					Implementation Notes: 
+					The preprocessor has an internal
+					ast tree to represent directives
+					etc.                             */
 
 #ifndef PREPROCESSOR_H
 #define PREPROCESSOR_H 1
 
 #include <iostream>
 
+#include "lexema-pool.h"
 #include "preprocessing-token.h"
 #include "error.h"
 
@@ -43,6 +53,10 @@ using namespace std;
 
 
 #define pp_free_stack(s, si) while (si > 0) { delete s[--si]; } 
+
+/*****************************************************//**
+*                      Declarations                      *
+/********************************************************/
 
 /* Used to store the result of a preprocessor procedure */
 enum class PreprocessorExitCode {
@@ -164,13 +178,20 @@ enum class PreprocessingAstNodeAlt {
 	PP_TOKENS_1,
 	PP_TOKENS_2,
 	PREPROCESSING_TOKEN_1,
+	PREPROCESSING_TOKEN_2,
+	PREPROCESSING_TOKEN_3,
+	PREPROCESSING_TOKEN_4,
+	PREPROCESSING_TOKEN_5,
+	PREPROCESSING_TOKEN_6,
+	PREPROCESSING_TOKEN_7,
 	NEW_LINE_1,
 	IDENTIFIER_LIST_1,
 	IDENTIFIER_LIST_2,
 	CONSTANT_EXPRESSION_1
 };
 
-static const char* preprocessing_ast_form_string_reprs[]{
+static 
+const char* preprocessing_ast_form_string_reprs[] {
 	"ERROR",
 	"PREPROCESSING_FILE_1",
 	"GROUP_1",
@@ -205,12 +226,26 @@ static const char* preprocessing_ast_form_string_reprs[]{
 	"PP_TOKENS_1",
 	"PP_TOKENS_2",
 	"PREPROCESSING_TOKEN_1",
+	"PREPROCESSING_TOKEN_2",
+	"PREPROCESSING_TOKEN_3",
+	"PREPROCESSING_TOKEN_4",
+	"PREPROCESSING_TOKEN_5",
+	"PREPROCESSING_TOKEN_6",
+	"PREPROCESSING_TOKEN_7",
 	"NEW_LINE_1",
 	"IDENTIFIER_LIST_1",
 	"IDENTIFIER_LIST_2",
 	"CONSTANT_EXPRESSION_1"
 };
 
+/**
+* Represents an ast node used for preprocessing.
+* Describes a preprocessing-file in terms of groups
+* which can include directives, text lines, etc.
+* This ast node can be executed to execute directives
+* and invocate macros.
+* Exists completely independent of C ast nodes.
+**/
 class PreprocessingAstNode {
 private:
 	PreprocessingAstNodeName name;
@@ -220,7 +255,8 @@ private:
 	PreprocessingAstNode*    sibling;
 	uint64_t                 val;
 public:
-	inline PreprocessingAstNode(
+	inline 
+	PreprocessingAstNode(
 		PreprocessingAstNodeName const& n,
 		PreprocessingAstNodeAlt  const& a,
 		PreprocessingToken*      const& t) :
@@ -231,7 +267,15 @@ public:
 		sibling(NULL) {
 	}
 
-	inline PreprocessingAstNode() :
+	inline 
+	void set_val(
+		uint64_t const& v) 
+	{
+		val = v;
+	};
+
+	inline 
+	PreprocessingAstNode() :
 		name(PreprocessingAstNodeName::ERROR),
 		alt(PreprocessingAstNodeAlt::ERROR),
 		terminal(NULL),
@@ -239,37 +283,48 @@ public:
 		sibling(NULL) {
 	}
 
-	inline PreprocessingAstNodeName get_name() const
+	inline
+	PreprocessingAstNodeName get_name() const
 	{
 		return name;
 	};
 
-	inline PreprocessingAstNodeAlt get_alt() const
+	inline 
+	PreprocessingAstNodeAlt get_alt() const
 	{
 		return alt;
 	};
 
-	inline PreprocessingToken* get_terminal() const
+	inline 
+	PreprocessingToken* get_terminal() const
 	{
 		return terminal;
 	};
 
-	inline PreprocessingAstNode* get_child() const
+	inline 
+	uint64_t get_val() const
+	{
+		return val;
+	};
+
+	inline 
+	PreprocessingAstNode* get_child() const
 	{
 		return child;
 	};
 
-	inline PreprocessingAstNode* get_sibling() const
+	inline 
+	PreprocessingAstNode* get_sibling() const
 	{
 		return sibling;
 	};
 
-	inline void add_child(PreprocessingAstNode* node)
+	inline 
+	void add_child(PreprocessingAstNode* node)
 	{
 		if (child == NULL) {
 			child = node;
-		}
-		else {
+		} else {
 			PreprocessingAstNode* current = child;
 			while (current->sibling) {
 				current = current->sibling;
@@ -278,7 +333,8 @@ public:
 		}
 	}
 
-	inline void add_children(
+	inline
+	void add_children(
 		PreprocessingAstNode** const& nodes,
 		int                    const& count)
 	{
@@ -290,338 +346,1294 @@ public:
 		/*print();*/
 	}
 
-	inline void print(
-		string parent_prefix = "",
-		string child_prefix  = "")
+	inline 
+	void print(
+		string const& parent_prefix = "",
+		string const& child_prefix  = "")
 	{
+		const int name_i 
+			= (int) name;
+		const char* const name_s
+			= preprocessing_ast_name_string_reprs[name_i];
+		const int alt_i
+			= (int) alt;
+		const char* const alt_s
+			= preprocessing_ast_form_string_reprs[alt_i];
+		
 		cout << parent_prefix
 			 << "name="
-			 << preprocessing_ast_name_string_reprs[(int)name]
+			 << name_s
 			 << ",alt="
-			 << preprocessing_ast_form_string_reprs[(int)alt];
+			 << alt_s;
 		if (terminal) terminal->print();
 		cout << endl;
+
 		PreprocessingAstNode* node = child;
-		for (; node; node = node->sibling) {
+		for (; 
+			node; 
+			node = node->sibling) {
+
 			if (node->sibling) {
-				string appended_p = child_prefix + "|____";
-				string appended_c = child_prefix + "|    ";
-				node->print(appended_p, appended_c);
+				string appended_p 
+					= child_prefix 
+					  + "|____";
+				string appended_c 
+					= child_prefix 
+					  + "|    ";
+				node->print(
+					appended_p, 
+					appended_c);
 			} else {
-				string appended_p = child_prefix + "|____";
-				string appended_c = child_prefix + "     ";
-				node->print(appended_p, appended_c);
+				string appended_p 
+					= child_prefix 
+					  + "|____";
+				string appended_c 
+					= child_prefix 
+					  + "     ";
+				node->print(
+					appended_p, 
+					appended_c);
 			}
 		}
 	}
 };
 
-static inline PreprocessingAstNode* construct_node_from_children(
+/**
+* Constructs a preprocessing ast node with given 
+* name and alt containing the given children whose 
+* number is described in count.
+* 
+* @param name The given name.
+* @param alt The given alt.
+* @param children Pointer to array of children.
+* @param count The number of children.
+* @return The node constructed and heap allocated.
+**/
+static inline
+PreprocessingAstNode* construct_node_from_children(
 	PreprocessingAstNodeName const& name,
 	PreprocessingAstNodeAlt  const& alt,
 	PreprocessingAstNode**   const& children,
-	int                      const& count)
-{
-	PreprocessingAstNode* node = new PreprocessingAstNode(
-		name,
-		alt,
-		NULL
-	);
-	node->add_children(
-		children, 
-		count);
-	return node;
-}
+	int                      const& count);
 
-static inline const char* construct_lexeme(
+/**
+* Constructs a lexeme from a section of a string.
+* i.e. Creates a new string from a given substring.
+* 
+* @param lexeme_start Pointer to the start of the data.
+* @param lexeme_end Pointer to the end of the data.
+* @return The lexema constructed.
+**/
+static inline
+const char* construct_lexeme(
 	const char* const& lexeme_start,
 	const char* const& lexeme_end);
 
-static inline PreprocessorExitCode pp_lex_header_name(
+struct LexemaPool;
+
+/**
+* Takes a given lexeme substring and, if that substring
+* is not already present in the pool, inserts it into
+* the pool
+* 
+* @param lexeme_start Pointer to the start of the data.
+* @param lexeme_end Pointer to 
+**/
+static inline void ensure_lexeme_substring_in_pool(
+	LexemaPool       & lexema_pool,
+	const char* const& lexeme_start,
+	const char* const& lexeme_end);
+
+/**
+* Used to lexically preprocess a header name.
+* 
+* @param input The input from which to preprocess.
+* @param fld The input's file location descriptor.
+* @param header_name The produced pp-number header_name.
+* @return Returns an exitcode for success or failure.
+**/
+static inline
+PreprocessorExitCode pp_lex_header_name(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
 	PreprocessingToken*    & header_name);
 
-static inline PreprocessorExitCode pp_lex_identifier_name(
+/**
+* Used to lexically preprocess an identifier.
+* 
+* @param input The input from which to preprocess.
+* @param fld The input's file location descriptor.
+* @param pp_number The produced pp-number pptoken.
+* @return Returns an exitcode for success or failure.
+**/
+static inline
+PreprocessorExitCode pp_lex_identifier_name(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
 	PreprocessingToken*    & identifier_name,
 	AlertList              & bkl);
 
-static inline  PreprocessorExitCode pp_lex_pp_number(
+/**
+* Used to lexically preprocess a pp-number.
+* 
+* @param input The input from which to preprocess.
+* @param fld The input's file location descriptor.
+* @param pp_number The produced pp-number pptoken.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+ PreprocessorExitCode pp_lex_pp_number(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
 	PreprocessingToken*    & pp_number,
 	AlertList              & bkl);
 
-static inline PreprocessorExitCode pp_lex_character_constant(
+/**
+* Used to lexically preprocess a character-constant.
+* 
+* @param input The input from which to preprocess.
+* @param fld The file location descriptor for the input.
+* @param character_constant The reference to where to place
+*        the produced character_constant pptoken.
+* @param bkl The location to send error alerts to.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_lex_character_constant(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
 	PreprocessingToken*    & identifier_output,
 	AlertList              & bkl);
 
-static inline PreprocessorExitCode pp_lex_string_literal(
+/**
+* Used to lexically preprocess a string-literal.
+* 
+* @param input The input from which to preprocess.
+* @param fld The file location descriptor for the input.
+* @param string_literal The reference to where to place
+*        the produced string-literal pptoken.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_lex_string_literal(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
 	PreprocessingToken*    & string_literal,
 	AlertList              & bkl);
 
-static inline  PreprocessorExitCode pp_lex_punctuator(
+/**
+* Used to lexically preprocess a punctuator.
+* 
+* @param input The input from which to preprocess.
+* @param fld The file location descriptor for the input.
+* @param punctuator The reference to where to place
+*        the produced punctuator pptoken.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+ PreprocessorExitCode pp_lex_punctuator(
 	const char*            & input,
-	const char**           & produced_lexema,
-	FileLocationDescriptor & fld,
+	LexemaPool             & lexema_pool,
+    FileLocationDescriptor & fld,
 	PreprocessingToken*    & punctuator,
 	AlertList              & bkl);
 
-static inline PreprocessorExitCode preprocess(
-	const char*              & input,
-	const char**             & produced_lexema,
-	const char*         const& filename,
-	AlertList                & bkl,
-	PreprocessingToken*      & output);
-
-static inline PreprocessorExitCode pp_parse_pp_tokens(
+/**
+* Used to preprocess a character string (char*) input.
+* 
+* @param input The input from which to preprocess.
+* @param fld The file location descriptor for the input.
+* @param punctuator The reference to where to place
+*					the produced pptokens.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_pp_tokens(
 	const char*                 & input,
-	const char**                & produced_lexema,
+	LexemaPool                  & lexema_pool,
 	FileLocationDescriptor      & file_location_descriptor,
 	PreprocessingAstNode*       & pp_tokens,
 	AlertList                   & bkl,
 	bool			       const& in_directive);
 
-static inline PreprocessorExitCode pp_parse_preprocessing_file(
+/**
+* Used to performing a preprocessing parse on a 
+* preprocessing-file.
+* 
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param preprocessing_file Reference to where to store
+*                           the produced preprocessing-file
+* 							preprocessing ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_preprocessing_file(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & preprocessing_file);
 
-static inline PreprocessorExitCode pp_parse_group(
+/**
+* Used to performing a preprocessing parse on a
+* group.
+* 
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param group Reference to where to store the
+*              produced group preprocessing ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_group(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & group);
 
-static inline PreprocessorExitCode pp_parse_group_part(
+/**
+* Used to performing a preprocessing parse on a
+* group-part.
+* 
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param group_part Reference to where to store the
+*                   produced group-part preprocessing
+*                   ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_group_part(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & group_part);
 
-static inline PreprocessorExitCode pp_parse_if_section(
+/**
+* Used to performing a preprocessing parse on an
+* if-section.
+* 
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param if_section Reference to where to store the
+*                   produced if-section preprocessing
+*                    ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_if_section(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & if_section);
 
-static inline PreprocessorExitCode pp_parse_if_group(
+/**
+* Used to performing a preprocessing parse on an
+* if-group.
+* 
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param if_group Reference to where to store the
+*                 produced if-group preprocessing
+*                    ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_if_group(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & if_group);
 
-static inline PreprocessorExitCode pp_parse_elif_groups(
+/**
+* Used to performing a preprocessing parse on an
+* elif-groups.
+* 
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param elif_groups Reference to where to store the
+*                    produced elif-groups preprocessing
+*                    ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_elif_groups(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & elif_groups);
 
-static inline PreprocessorExitCode pp_parse_constant_expression(
+/**
+* Used to performing a preprocessing parse on an
+* constant-expression.
+* 
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param constant_expression Reference to where to store the
+*                            produced constant-expression 
+*                            preprocessing ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_constant_expression(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & constant_expression);
 
-static inline PreprocessorExitCode pp_parse_elif_group(
+/**
+* Used to performing a preprocessing parse on an
+* elif-group.
+* 
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param bkl The location to send alerts to.
+* @param elif_group Reference to where to store the
+*                   produced elif-group preprocessing 
+*                   ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_elif_group(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & elif_group);
 
-static inline PreprocessorExitCode pp_parse_else_group(
+/**
+* Used to performing a preprocessing parse on an
+* else-group.
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param bkl The location to send alerts to.
+* @param else_group Reference to where to store the
+*                   produced else-group preprocessing
+*                   ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_else_group(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & else_group);
 
-static inline PreprocessorExitCode pp_parse_endif_line(
+/**
+* Used to performing a preprocessing parse on an
+* endif-line.
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param bkl The location to send alerts to.
+* @param endif_line Reference to where to store the
+*                   produced endif-line preprocessing
+*                   ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_endif_line(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & endif_line);
 
-static inline PreprocessorExitCode pp_parse_control_line(
+/**
+* Used to performing a preprocessing parse on an
+* control-line.
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param bkl The location to send alerts to.
+* @param control_line Reference to where to store the
+*                     produced control-line preprocessing
+*                     ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_control_line(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & control_line);
 
-static inline PreprocessorExitCode pp_parse_text_line(
+/**
+* Used to performing a preprocessing parse on a
+* text-line.
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param bkl The location to send alerts to.
+* @param text_line Reference to where to store the
+*                  produced control-line preprocessing
+*                  ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_text_line(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & text_line);
 
-static inline PreprocessorExitCode pp_parse_new_line(
+/**
+* Used to performing a preprocessing parse on a
+* new-line.
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param bkl The location to send alerts to.
+* @param new_line Reference to where to store the
+*                 produced control-line preprocessing
+*                 ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_new_line(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & new_line);
 
-static inline PreprocessorExitCode pp_parse_non_directive(
+/**
+* Used to performing a preprocessing parse on a
+* non-directive.
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param bkl The location to send alerts to.
+* @param non_directive Reference to where to store the
+*                      produced non-directive preprocessing
+*                      ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_non_directive(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & non_directive);
 
-static inline PreprocessorExitCode pp_parse_lparen(
+/**
+* Used to performing a preprocessing parse on an
+* lparen.
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param bkl The location to send alerts to.
+* @param lparen Reference to where to store the
+*               produced lparenpreprocessing ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_lparen(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & lparen);
 
-static inline PreprocessorExitCode pp_parse_replacement_list(
+/**
+* Used to performing a preprocessing parse on a
+* replacement-list.
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema are allocated.
+* @param fld The file location descriptor for the input.
+* @param bkl The location to send alerts to.
+* @param replacement_list Reference to where to store the
+*                         produced replacement-list 
+*                         preprocessing ast node.
+* @return Returns an exit code describing how the parse went.
+**/
+static inline
+PreprocessorExitCode pp_parse_replacement_list(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & replacement_list);
 
-static inline PreprocessorExitCode pp_gen_preprocessing_file(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_group(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_group_part(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_if_section(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_elif_groups(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_elif_group(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_else_group(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_endif(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_control_line(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_text_line(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_non_directive(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_lparen(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_replacement_list(
-	PreprocessingAstNode* const& replacement_list,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_pp_tokens(
-	PreprocessingAstNode* const& pp_tokens,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_new_line(
-	PreprocessingAstNode* const& new_line,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
-
-static inline PreprocessorExitCode pp_gen_preprocessing_token(
-	PreprocessingAstNode* const& preprocessing_token,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl);
+/**
+* Used to execute directives and invocate macros within
+* a preprocessing-file preprocessing ast node.
+* This will change the contents of this preprocessing-ast
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* @param preprocessing_file The preprocessing-file 
+*							preprocessing ast node to 
+*                           execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_preprocessing_file(
+	PreprocessingAstNode* & preprocessing_file,
+	AlertList             & bkl,
+	PreprocessingAstNode* & executed_preprocessing_file);
 
 /**
-* Used to construct a lexeme from the characters between
-* the start and and of a given (input) string.
-* @param lexeme_start The start of the slice.
-* @param lexeme_start The end of the slice.
-* @return Returns the constructed lexeme.
+* Used to execute directives and invocate macros within
+* a group preprocessing ast node.
+* This will change the contents of this group so that when 
+* preprocessing-tokens are generated from it, the relevant 
+* directives etc will have been performed.
+* @param group The group preprocessing ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
 **/
-static inline const char* construct_lexeme(
+static inline
+PreprocessorExitCode pp_execute_group(
+	PreprocessingAstNode* & group,
+	AlertList             & bkl,
+	SymbolTable           & symtab,
+	PreprocessingAstNode* & executed_group);
+
+/**
+* Used to execute directives and invocate macros within
+* a group-part preprocessing ast node.
+* This will change the contents of this group-part so that 
+* when preprocessing-tokens are generated from it, the 
+* relevant directives etc will have been performed.
+* 
+* @param group The group preprocessing ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_group_part(
+	PreprocessingAstNode* & group_part,
+	AlertList             & bkl,
+	SymbolTable           & symtab,
+	PreprocessingAstNode* & executed_group_part);
+
+/**
+* Used to execute directives and invocate macros within
+* a group-part preprocessing ast node.
+* This will change the contents of this group-part so that
+* when preprocessing-tokens are generated from it, the
+* relevant directives etc will have been performed.
+* 
+* @param group The group preprocessing ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_if_section(
+	PreprocessingAstNode* & if_section,
+	AlertList             & bkl,
+	SymbolTable           & symtab,
+	PreprocessingAstNode* & executed_group_part);
+
+/**
+* Used to execute directives and invocate macros within
+* an if-group preprocessing ast node.
+* This will change the contents of this if-group so that
+* when preprocessing-tokens are generated from it, the
+* relevant directives etc will have been performed.
+* 
+* @param if_group The if-group preprocessing ast node 
+*                 to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_if_group(
+	PreprocessingAstNode* & if_group,
+	AlertList             & bkl,
+	SymbolTable           & symtab,
+	PreprocessingAstNode* & executed_group_part);
+
+/**
+* Used to execute directives and invocate macros within
+* an elif-groups preprocessing ast node.
+* This will change the contents of this elif-groups so that
+* when preprocessing-tokens are generated from it, the
+* relevant directives etc will have been performed.
+* 
+* @param elif_groups The elif-groups preprocessing ast node
+*                    to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_elif_groups(
+	PreprocessingAstNode* & elif_groups,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* an identifier-list preprocessing ast node.
+* This will change the contents of this identifier-list 
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param identifier_list The identifier-list preprocessing 
+*                        ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_identifier_list(
+	PreprocessingAstNode* & identifier_list,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* an constant-expression preprocessing ast node.
+* This will change the contents of this identifier-list
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param constant_expression The constant-expression 
+*                            preprocessing ast node 
+*							 to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_constant_expression(
+	PreprocessingAstNode* & constant_expression,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* an elif-group preprocessing ast node.
+* This will change the contents of this elif-group
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param elif_group The elif-group preprocessing ast node
+*				    to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_elif_group(
+	PreprocessingAstNode* & elif_group,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* an else-group preprocessing ast node.
+* This will change the contents of this else-group
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param else_group The else-group preprocessing ast node
+*				    to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_else_group(
+	PreprocessingAstNode* & else_group,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* an endif-line preprocessing ast node.
+* This will change the contents of this endif-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param endif_line The endif-line preprocessing ast node
+*				    to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_endif_line(
+	PreprocessingAstNode* & endif_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a control-line with alternative 1 (CONTROL_LINE_1).
+* This will change the contents of this control-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param control_line The control-line preprocessing 
+*                     ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_control_line_1(
+	PreprocessingAstNode* & control_line,
+	PreprocessingAstNode* & preprocessing_file,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a control-line with alternative 2 (CONTROL_LINE_2).
+* This will change the contents of this control-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param control_line The control-line preprocessing
+*                     ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_control_line_2(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a control-line with alternative 3 (CONTROL_LINE_3).
+* This will change the contents of this control-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param control_line The control-line preprocessing
+*                     ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_control_line_3(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a control-line with alternative 4 (CONTROL_LINE_4).
+* This will change the contents of this control-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param control_line The control-line preprocessing
+*                     ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_control_line_4(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a control-line with alternative 5 (CONTROL_LINE_5).
+* This will change the contents of this control-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param control_line The control-line preprocessing
+*                     ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_control_line_5(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a control-line with alternative 6 (CONTROL_LINE_6).
+* This will change the contents of this control-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param control_line The control-line preprocessing
+*                     ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_control_line_6(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable			  & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a control-line with alternative 7 (CONTROL_LINE_7).
+* This will change the contents of this control-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param control_line The control-line preprocessing
+*                     ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_control_line_7(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a control-line with alternative 8 (CONTROL_LINE_8).
+* This will change the contents of this control-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param control_line The control-line preprocessing
+*                     ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_control_line_8(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* an control-line preprocessing ast node.
+* This will change the contents of this control-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param control_line The control-line preprocessing ast 
+*                     node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_control_line(
+	PreprocessingAstNode* & control_line,
+	PreprocessingAstNode* & group_part,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros 
+* within a text-line preprocessing ast node.
+* This will change the contents of this text-line
+* so that when preprocessing-tokens are generated 
+* from it, the relevant directives etc will have 
+* been performed.
+* 
+* @param text_line The text-line preprocessing 
+*                  ast node to execute.
+* @param lexema_pool The pool in which lexema 
+                     are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the 
+*         execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_text_line(
+	PreprocessingAstNode* & text_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a new-line preprocessing ast node.
+* This will change the contents of this new-line
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param new_line The new-line preprocessing ast
+*                 node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_new_line(
+	PreprocessingAstNode* & new_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a non-directive preprocessing ast node.
+* This will change the contents of this non-directive
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param non_directive The non-directive preprocessing ast
+*                      node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_non_directive(
+	PreprocessingAstNode* & non_directive,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* an lparen preprocessing ast node.
+* This will change the contents of this lparen
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param lparen The lparen preprocessing ast
+*               node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_lparen(
+	PreprocessingAstNode* & lparen,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a replacement-list preprocessing ast node.
+* This will change the contents of this replacement-list
+* so that when preprocessing-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param replacement_list The replacement-list 
+*                         preprocessing ast node to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_replacement_list(
+	PreprocessingAstNode* & replacement_list,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+static inline
+PreprocessorExitCode pp_insert_macro_replacement_list(
+	PreprocessingAstNode* & replacement_list,
+	PreprocessingAstNode* & pp_tokens,
+	SymbolTable           & symtab);
+
+/**
+* Used to execute directives and invocate macros within
+* a pp-tokens preprocessing ast node.
+* This will change the contents of this replacement-list
+* so that when pp-tokens are generated from it,
+* the relevant directives etc will have been performed.
+* 
+* @param pp_tokens The pp-tokens preprocessing ast node 
+*                  to execute.
+* @param lexema_pool The pool in which lexema are allocated.
+* @param bkl The location to send alerts to.
+* @return Returns an exit code for how the execution went.
+**/
+static inline
+PreprocessorExitCode pp_execute_pp_tokens(
+	PreprocessingAstNode* & pp_tokens,
+	AlertList             & bkl,
+	SymbolTable           & symtab);
+
+/**
+* Generates a list of preprocessing tokens from
+* a given preprocessing-file.
+* Essentially 'flattens' the tree.
+* Useful as it allows you to convert back to 
+* preprocessing-tokens after performing directive
+* executions and macro invocations.
+* 
+* @param preprocessing_file The preprocessing-file
+*						    from which to generate
+*							preprocessing-tokens.
+* @param output The location to place the preprocessing
+*               tokens into.
+* @param bkl The location to send alerts to.
+* @param symtab The symbol table to use to detect macros etc.
+* @return Returns an exit code for how the generation went.
+**/
+static inline
+PreprocessorExitCode pp_gen_preprocessing_file(
+	PreprocessingAstNode* const& preprocessing_file,
+	PreprocessingToken*        & output,
+	AlertList                  & bkl,
+	SymbolTable                & symtab);
+
+/**
+* Generates a list of preprocessing tokens from
+* a given group.
+* Essentially 'flattens' the tree.
+* Useful as it allows you to convert back to
+* preprocessing-tokens after performing directive
+* executions and macro invocations.
+* 
+* @param group The group from which to generate
+*			   preprocessing-tokens.
+* @param output The location to place the preprocessing
+*               tokens into.
+* @param bkl The location to send alerts to.
+* @param symtab The symbol table to use to detect macros etc.
+* @return Returns an exit code for how the generation went.
+**/
+static inline
+PreprocessorExitCode pp_gen_group(
+	PreprocessingAstNode* const& group,
+	PreprocessingToken*        & output,
+	AlertList                  & bkl,
+	SymbolTable                & symtab);
+
+/**
+* Generates a list of preprocessing tokens from
+* a given group-part.
+* Essentially 'flattens' the tree.
+* Useful as it allows you to convert back to
+* preprocessing-tokens after performing directive
+* executions and macro invocations.
+* 
+* @param group_part The group-part from which to generate
+*			   preprocessing-tokens.
+* @param output The location to place the preprocessing
+*               tokens into.
+* @param bkl The location to send alerts to.
+* @param symtab The symbol table to use to detect macros etc.
+* @return Returns an exit code for how the generation went.
+**/
+static inline
+PreprocessorExitCode pp_gen_group_part(
+	PreprocessingAstNode* const& group_part,
+	PreprocessingToken*        & output,
+	AlertList                  & bkl,
+	SymbolTable                & symtab);
+
+/**
+* Generates a list of preprocessing tokens from
+* a given text-line preprocessing ast node.
+* Essentially 'flattens' the tree.
+* Useful as it allows you to convert back to
+* preprocessing-tokens after performing directive
+* executions and macro invocations.
+* 
+* @param text_line The text-line from which to 
+*                  generate preprocessing-tokens.
+* @param output The location to place the 
+*               preprocessing tokens into.
+* @param bkl The location to send alerts to.
+* @param symtab The symbol table to use to detect
+*               macros etc.
+* @return Returns an exit code for how the 
+*         generation went.
+**/
+static inline
+PreprocessorExitCode pp_gen_text_line(
+	PreprocessingAstNode* const& text_line,
+	PreprocessingToken*        & output,
+	AlertList                  & bkl,
+	SymbolTable                & symtab);
+
+/**
+* Generates a list of preprocessing tokens from
+* a given non-directive ast node.
+* Essentially 'flattens' the tree.
+* Useful as it allows you to convert back to
+* preprocessing-tokens after performing directive
+* executions and macro invocations.
+* 
+* @param non_directive The non-directive from 
+*                      which to generate 
+*                      preprocessing-tokens.
+* @param output The location to place the 
+*               preprocessing tokens into.
+* @param bkl The location to send alerts to.
+* @param symtab The symbol table to use to 
+*               detect macros etc.
+* @return Returns an exit code for how the 
+*         generation went.
+**/
+static inline
+PreprocessorExitCode pp_gen_non_directive(
+	PreprocessingAstNode* const& preprocessing_file,
+	PreprocessingToken*        & output,
+	AlertList                  & bkl,
+	SymbolTable                & symtab);
+
+/**
+* Generates a list of preprocessing tokens from
+* a given pp-tokens ast node.
+* Essentially 'flattens' the tree.
+* Useful as it allows you to convert back to
+* preprocessing-tokens after performing directive
+* executions and macro invocations.
+* 
+* @param pp_tokens The pp-tokens from which to generate
+*                  preprocessing-tokens.
+* @param output The location to place the preprocessing
+*               tokens into.
+* @param bkl The location to send alerts to.
+* @param symtab The symbol table to use to detect macros etc.
+* @return Returns an exit code for how the generation went.
+**/
+static inline
+PreprocessorExitCode pp_gen_pp_tokens(
+	PreprocessingAstNode* const& pp_tokens,
+	PreprocessingToken*        & output,
+	AlertList                  & bkl,
+	SymbolTable                & symtab);
+
+/**
+* Generates a list of preprocessing tokens from
+* a given preprocessing-token ast node.
+* Essentially 'flattens' the tree.
+* Useful as it allows you to convert back to
+* preprocessing-tokens after performing directive
+* executions and macro invocations.
+* 
+* @param preprocessing_token The preprocessing-token from 
+*                            which to generate 
+*							 preprocessing-tokens.
+* @param output The location to place the preprocessing
+*               tokens into.
+* @param bkl The location to send alerts to.
+* @param symtab The symbol table to use to detect macros etc.
+* @return Returns an exit code for how the generation went.
+**/
+static inline
+PreprocessorExitCode pp_gen_preprocessing_token(
+	PreprocessingAstNode* const& preprocessing_token,
+	PreprocessingToken*        & output,
+	AlertList                  & bkl,
+	SymbolTable                & symtab);
+
+/**
+* Used to preprocess input.
+* 
+* @param input The input from which to preprocess.
+* @param lexema_pool The pool where lexema will be allocated. 
+* @param filename The input file name.
+* @param bkl The location to send alerts to.
+* @return An exitcode describing how preprocessing went.
+**/
+static inline
+PreprocessorExitCode preprocess(
+	const char*              & input,
+	LexemaPool               & lexema_pool,
+	const char*         const& filename,
+	AlertList                & bkl,
+	PreprocessingToken*      & output);
+
+/*****************************************************//**
+*                         Definitions                    *
+/********************************************************/
+
+static inline
+PreprocessingAstNode* construct_node_from_children(
+	PreprocessingAstNodeName const& name,
+	PreprocessingAstNodeAlt  const& alt,
+	PreprocessingAstNode**   const& children,
+	int                      const& count)
+{
+	PreprocessingAstNode* node
+		= new PreprocessingAstNode(
+			name,
+			alt,
+			NULL);
+	node->add_children(
+		children,
+		count);
+	return node;
+}
+
+static inline
+const char* construct_lexeme(
 	const char* const& lexeme_start,
 	const char* const& lexeme_end)
 {
 	char* lexeme = new char[lexeme_end - lexeme_start + 1];
-	for (int i = 0; i < lexeme_end - lexeme_start + 1; i++) {
+	for (int i = 0; 
+		 i < lexeme_end - lexeme_start + 1; 
+		 i++) {
 		*(lexeme + i) = *(lexeme_start + i);
 	}
 	*(lexeme + (lexeme_end - lexeme_start)) = NULL;
 	return lexeme;
 }
 
-/**
-* Used to preprocess a header name.
-* @param input The input to preprocess.
-* @param fld The input's file location descriptor.
-* @param header_name The produced header_name pptoken.
-**/
-static inline  PreprocessorExitCode pp_lex_header_name(
+static inline void ensure_lexeme_substring_in_pool(
+	LexemaPool       & lexema_pool,
+	const char* const& lexeme_start,
+	const char* const& lexeme_end)
+{
+	const char* lexeme
+		= construct_lexeme(lexeme_start, lexeme_end);
+	if (lookup_lexeme_in_pool(lexema_pool, lexeme)) {
+		delete lexeme;
+	} else {
+		insert_lexeme_into_pool(lexema_pool, lexeme);
+	}
+}
+
+static inline
+PreprocessorExitCode pp_lex_header_name(
 	const char*            & input, 
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
 	PreprocessingToken*    & header_name)
 {
 	enum PreprocessingState {
 		START,
-
 		HEADER_NAME_1,
 		HEADER_NAME_2,
-
 		END_FAIL,
 		END_SUCCESS
 	};
@@ -701,15 +1713,21 @@ static inline  PreprocessorExitCode pp_lex_header_name(
 
 			case END_SUCCESS:
 			{
-				char* const lexeme 
-					= new char[chr - input + 1];
+				const char* lexeme
+					= construct_lexeme(
+						  input, 
+						  chr);
 
-				const char* input_ptr  = input;
-			    char*       buffer_ptr = lexeme;
-				while (input_ptr < chr) {
-					*buffer_ptr++ = *input_ptr++;
-				}
-				(*(lexeme + (chr - input))) = 0;
+				LexemaEntry* e
+					= lookup_lexeme_in_pool(
+						lexema_pool,
+						lexeme);
+					if (e) {
+						delete lexeme;
+						lexeme = e->lexeme;
+					} else {
+						insert_lexeme_into_pool(lexema_pool, lexeme);
+					}
 
 				preprocessor_report_success(
 					"preprocess_header_name",
@@ -751,10 +1769,13 @@ static inline  PreprocessorExitCode pp_lex_header_name(
 					PreprocessingTokenName::ERROR,
 					fld,
 					form);
+				const char* const err_msg 
+					= "This header name could not be recognised. "
+					  "Did you mispell it?";
 				Error* error
 					= construct_error_book(
 						ErrorCode::ERR_PP_INVALID_HEADER,
-						"This header name could not be recognised. Did you mispell it?",
+						err_msg,
 						fld);
 				fld.character_number += (chr - input);
 
@@ -767,15 +1788,10 @@ static inline  PreprocessorExitCode pp_lex_header_name(
 	return exitcode;
 }
 
-/**
-* Used to preprocess an identifier name.
-* @param input The input to preprocess.
-* @param fld The input's file location descriptor.
-* @param identifier_name The produced identifier_name pptoken.
-**/
-static inline PreprocessorExitCode pp_lex_identifier_name(
+static inline
+PreprocessorExitCode pp_lex_identifier_name(
 	const char*            & input, 
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
 	PreprocessingToken*    & identifier_name,
 	AlertList              & bkl)
@@ -833,6 +1849,7 @@ static inline PreprocessorExitCode pp_lex_identifier_name(
 					case 'V': case 'W': case 'X':
 					case 'Y': case 'Z':
 						input++;
+						form = PreprocessingTokenForm::IDENTIFIER_1;
 						state = IDENTIFIER_NONDIGIT;
 						continue;
 
@@ -867,13 +1884,16 @@ static inline PreprocessorExitCode pp_lex_identifier_name(
 					case 'S': case 'T': case 'U':
 					case 'V': case 'W': case 'X':
 					case 'Y': case 'Z':
+						form = PreprocessingTokenForm::IDENTIFIER_2;
+						input++;
+						continue;
 
 					case '1': case '2': case '3':
 					case '4': case '5': case '6':
 					case '7': case '8': case '9':
 					case '0':
-
 						// TODO: UNIVERSAL-CHARACTER-NAME
+						form = PreprocessingTokenForm::IDENTIFIER_3;
 						input++;
 						continue;
 
@@ -892,29 +1912,59 @@ static inline PreprocessorExitCode pp_lex_identifier_name(
 	}
 
 	if (preprocessed_identifier) {
+
 		const char* lexeme
-			= construct_lexeme(lexeme_start, input);
-		*produced_lexema++ = lexeme;
+			= construct_lexeme(
+				lexeme_start,
+				input);
+
+		LexemaEntry* e
+			= lookup_lexeme_in_pool(
+				lexema_pool,
+				lexeme);
+		if (e) {
+			delete lexeme;
+			lexeme = e->lexeme;
+		} else {
+			insert_lexeme_into_pool(lexema_pool, lexeme);
+		}
 
 		preprocessor_report_success(
 			"preprocess_identifier_name",
 			form,
 			lexeme);
 
-		fld.lexeme_length = input - lexeme_start;
-		*identifier_name = PreprocessingToken(
-			lexeme,
-			PreprocessingTokenName::IDENTIFIER,
-			fld,
-			form);
-		fld.character_number += (input - lexeme_start);
+		fld.lexeme_length 
+			= input - lexeme_start;
+
+		*identifier_name 
+			= PreprocessingToken(
+			      lexeme,
+				  PreprocessingTokenName::IDENTIFIER,
+				  fld,
+				  form);
+
+		fld.character_number 
+			+= (input - lexeme_start);
 
 
 		exitcode = PreprocessorExitCode::SUCCESS;
 	} else {
 		const char* lexeme
-			= construct_lexeme(lexeme_start, input);
-		*produced_lexema++ = lexeme;
+			= construct_lexeme(
+				lexeme_start, 
+				input);
+
+		LexemaEntry* e
+			= lookup_lexeme_in_pool(
+				lexema_pool,
+				lexeme);
+		if (e) {
+			delete lexeme;
+			lexeme = e->lexeme;
+		} else {
+			insert_lexeme_into_pool(lexema_pool, lexeme);
+		}
 
 		preprocessor_report_failure(
 			"preprocess_identifier_name",
@@ -927,10 +1977,13 @@ static inline PreprocessorExitCode pp_lex_identifier_name(
 			PreprocessingTokenName::ERROR,
 			fld,
 			form);
+		const char* const err_msg
+			= "This identifier could not be recognised. "
+			  "Did you mispell it?";
 		Error* error
 			= construct_error_book(
 				ErrorCode::ERR_PP_INVALID_IDENTIFIER,
-				"This identifier could not be recognised. Did you mispell it?",
+				err_msg,
 				fld);
 		fld.character_number += (input - lexeme_start);
 
@@ -939,15 +1992,10 @@ static inline PreprocessorExitCode pp_lex_identifier_name(
 	return exitcode;
 }
 
-/**
-* Used to preprocess a pp-number.
-* @param input The input from which to preprocess.
-* @param fld The input's file location descriptor.
-* @param pp_number The produced pp-number pptoken.
-**/
-static inline  PreprocessorExitCode pp_lex_pp_number(
+static inline
+PreprocessorExitCode pp_lex_pp_number(
 	const char*            & input, 
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
 	PreprocessingToken*    & pp_number,
 	AlertList              & bkl)
@@ -981,13 +2029,16 @@ static inline  PreprocessorExitCode pp_lex_pp_number(
 				if (*input >= '0' 
 					&& *input <= '9') {
 					input++;
+					form = PreprocessingTokenForm::PP_NUMBER_1;
 					state = PP_NUMBER;
 					continue;
+
 				} else if (*input == '.') {
 					input++;
 					if (*input >= '0' 
 						&& *input <= '9') {
 						input++;
+						form = PreprocessingTokenForm::PP_NUMBER_2;
 						state = PP_NUMBER;
 						continue;
 					}
@@ -1002,6 +2053,7 @@ static inline  PreprocessorExitCode pp_lex_pp_number(
 					case '4': case '5': case '6':
 					case '7': case '8': case '9':
 					case '0':
+						form = PreprocessingTokenForm::PP_NUMBER_3;
 						input++;
 						continue;
 
@@ -1025,10 +2077,38 @@ static inline  PreprocessorExitCode pp_lex_pp_number(
 					case 'V': case 'W': case 'X':
 					case 'Y': case 'Z':
 						input++;
+						form = PreprocessingTokenForm::PP_NUMBER_4;
 						continue;
 
-					case 'e': case 'E':
-					case 'p': case 'P':
+					case 'e': 
+						form = PreprocessingTokenForm::PP_NUMBER_5;
+						input++;
+						if (*input == '+'
+							|| *input == '-') {
+							input++;
+						}
+						continue;
+
+					case 'E':
+						form = PreprocessingTokenForm::PP_NUMBER_6;
+						input++;
+						if (*input == '+'
+							|| *input == '-') {
+							input++;
+						}
+						continue;
+
+					case 'p': 
+						form = PreprocessingTokenForm::PP_NUMBER_7;
+						input++;
+						if (*input == '+'
+							|| *input == '-') {
+							input++;
+						}
+						continue;
+
+					case 'P':
+						form = PreprocessingTokenForm::PP_NUMBER_8;
 						input++;
 						if (*input == '+'
 							|| *input == '-') {
@@ -1037,6 +2117,7 @@ static inline  PreprocessorExitCode pp_lex_pp_number(
 						continue;
 
 					case '.':
+						form = PreprocessingTokenForm::PP_NUMBER_9;
 						input++;
 						continue;
 
@@ -1051,9 +2132,19 @@ static inline  PreprocessorExitCode pp_lex_pp_number(
 			{
 				const char* lexeme
 					= construct_lexeme(
-						lexeme_start, 
+						lexeme_start,
 						input);
-				*produced_lexema++ = lexeme;
+
+				LexemaEntry* e
+					= lookup_lexeme_in_pool(
+						lexema_pool,
+						lexeme);
+				if (e) {
+					delete lexeme;
+					lexeme = e->lexeme;
+				} else {
+					insert_lexeme_into_pool(lexema_pool, lexeme);
+				}
 
 				preprocessor_report_success(
 					"preprocess_pp_number",
@@ -1078,12 +2169,22 @@ static inline  PreprocessorExitCode pp_lex_pp_number(
 			case END_FAIL:
 			default:
 			{
+
 				const char* lexeme
 					= construct_lexeme(
-						lexeme_start, 
+						lexeme_start,
 						input);
-				*produced_lexema++ 
-					= lexeme;
+
+				LexemaEntry* e
+					= lookup_lexeme_in_pool(
+						lexema_pool,
+						lexeme);
+				if (e) {
+					delete lexeme;
+					lexeme = e->lexeme;
+				} else {
+					insert_lexeme_into_pool(lexema_pool, lexeme);
+				}
 
 				preprocessor_report_failure(
 					"preprocess_pp_number",
@@ -1120,18 +2221,12 @@ static inline  PreprocessorExitCode pp_lex_pp_number(
 						 && (c >= 'a' && c <= 'f')	\
 						 && (c >= 'A' && c <= 'F'))
 
-/**
-* Used to preprocess a character-constant.
-* @param input The input from which to preprocess.
-* @param fld The file location descriptor for the input.
-* @param character_constant The reference to where to place
-*        the produced character_constant pptoken.
-**/
-static inline PreprocessorExitCode pp_lex_character_constant(
+static inline
+PreprocessorExitCode pp_lex_character_constant(
 	const char*            & input, 
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
-	PreprocessingToken*    & identifier_output,
+	PreprocessingToken*    & character_constant,
 	AlertList              & bkl)
 {
 	PreprocessorExitCode exitcode
@@ -1142,11 +2237,10 @@ static inline PreprocessorExitCode pp_lex_character_constant(
 	bool found_preprocess 
 		= false;
 
-	PreprocessingTokenForm form
-		= PreprocessingTokenForm::UNDEFINED;
-
+	bool encountered_l = false;
 	if (*input == 'L') {
 		input++;
+		encountered_l = true;
 	}
 	if (*input == '\'') {
 		input++;
@@ -1203,7 +2297,7 @@ static inline PreprocessorExitCode pp_lex_character_constant(
 							int num_encountered = 1;
 
 							while (!(*input >= '0'
-								&& *input <= '7')) {
+								     && *input <= '7')) {
 								input++;
 								num_encountered++;
 							}
@@ -1237,12 +2331,27 @@ static inline PreprocessorExitCode pp_lex_character_constant(
 		}
 	}
 	if (found_preprocess) {
+
 		const char* lexeme
 			= construct_lexeme(
-				lexeme_start, 
+				lexeme_start,
 				input);
-		*produced_lexema++ 
-			= lexeme;
+
+		LexemaEntry* e
+			= lookup_lexeme_in_pool(
+				lexema_pool,
+				lexeme);
+		if (e) {
+			delete lexeme;
+			lexeme = e->lexeme;
+		} else {
+			insert_lexeme_into_pool(lexema_pool, lexeme);
+		}
+
+		PreprocessingTokenForm form
+			= encountered_l
+			  ? PreprocessingTokenForm::CHARACTER_CONSTANT_2
+			  : PreprocessingTokenForm::CHARACTER_CONSTANT_1;
 
 		preprocessor_report_success(
 			"preprocess_header_name",
@@ -1251,7 +2360,7 @@ static inline PreprocessorExitCode pp_lex_character_constant(
 
 		fld.lexeme_length 
 			= input - lexeme_start;
-		*identifier_output 
+		*character_constant
 			= PreprocessingToken(
 			      lexeme,
 			      PreprocessingTokenName::CHARACTER_CONSTANT,
@@ -1263,26 +2372,36 @@ static inline PreprocessorExitCode pp_lex_character_constant(
 		exitcode = PreprocessorExitCode::SUCCESS;
 
 	} else {
+
 		const char* lexeme
 			= construct_lexeme(
-				  lexeme_start, 
-			      input);		
-		*produced_lexema++ 
-			= lexeme;
+				lexeme_start,
+				input);
 
+		LexemaEntry* e
+			= lookup_lexeme_in_pool(
+				lexema_pool,
+				lexeme);
+		if (e) {
+			delete lexeme;
+			lexeme = e->lexeme;
+		} else {
+			insert_lexeme_into_pool(lexema_pool, lexeme);
+		}
+		 
 		preprocessor_report_failure(
 			"preprocess_pp_number",
-			form,
+			PreprocessingTokenForm::UNDEFINED,
 			lexeme);
 
 		fld.lexeme_length 
 			= input - lexeme_start;
-		*identifier_output 
+		*character_constant
 			= PreprocessingToken(
 			      lexeme,
 			      PreprocessingTokenName::ERROR,
 			      fld,
-			      form);
+			      PreprocessingTokenForm::UNDEFINED);
 		Error* error
 			= construct_error_book(
 				ErrorCode::ERR_PP_INVALID_CONSTANT,
@@ -1296,16 +2415,10 @@ static inline PreprocessorExitCode pp_lex_character_constant(
 	return exitcode;
 }
 
-/**
-* Used to preprocess a string-literal.
-* @param input The input from which to preprocess.
-* @param fld The file location descriptor for the input.
-* @param string_literal The reference to where to place
-*        the produced string-literal pptoken.
-**/
-static inline PreprocessorExitCode pp_lex_string_literal(
+static inline
+PreprocessorExitCode pp_lex_string_literal(
 	const char*            & input, 
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
 	PreprocessingToken*    & string_literal,
 	AlertList              & bkl)
@@ -1317,10 +2430,10 @@ static inline PreprocessorExitCode pp_lex_string_literal(
 
 	PreprocessorExitCode exitcode
 		= PreprocessorExitCode::FAILURE;
-	PreprocessingTokenForm form
-		= PreprocessingTokenForm::UNDEFINED;
 
+	bool encountered_l = false;
 	if (*input == 'L') {
+		encountered_l = true;
 		input++;
 
 	} if (*input == '\"') {
@@ -1334,61 +2447,61 @@ static inline PreprocessorExitCode pp_lex_string_literal(
 					input++;
 					switch (*input) {
 
-					case '\'':
-					case '\"':
-					case '?':
-					case '\\':
-					case 'a':
-					case 'b':
-					case 'f':
-					case 'n':
-					case 'r':
-					case 't':
-					case 'v':
-						input++;
-						continue;
+						case '\'':
+						case '\"':
+						case '?':
+						case '\\':
+						case 'a':
+						case 'b':
+						case 'f':
+						case 'n':
+						case 'r':
+						case 't':
+						case 'v':
+							input++;
+							continue;
 
-					case 'x':
-					{
-						bool found_hex = false;
-						while (is_hex_digit(*input)) {
-							input++;
-							found_hex = true;
-						}
-						if (found_hex) {
-							input++;
-							if (*input == NULL) {
+						case 'x':
+						{
+							bool found_hex = false;
+							while (is_hex_digit(*input)) {
 								input++;
-								found_preprocess = true;
+								found_hex = true;
 							}
+							if (found_hex) {
+								input++;
+								if (*input == NULL) {
+									input++;
+									found_preprocess = true;
+								}
+							}
+							continue;
 						}
-						continue;
-					}
 
-					case '0':
-					case '1': case '2': case '3':
-					case '4': case '5': case '6':
-					case '7':
-					{
-						input++;
-						int num_encountered = 1;
-
-						while (!(*input >= '0'
-							&& *input <= '7')) {
+						case '0':
+						case '1': case '2': case '3':
+						case '4': case '5': case '6':
+						case '7':
+						{
 							input++;
-							num_encountered++;
+							int num_encountered = 1;
+
+							while (!(*input >= '0'
+								&& *input <= '7')) {
+								input++;
+								num_encountered++;
+							}
+
+							if (num_encountered >= 3) {
+								found_preprocess = false;
+							}
+							break;
 						}
 
-						if (num_encountered >= 3) {
-							found_preprocess = false;
-						}
-						break;
+						default:
+							break;
 					}
-
-					default:
-						break;
-				}
-				continue;
+					continue;
 
 				case '\n':
 					found_preprocess = false;
@@ -1407,10 +2520,27 @@ static inline PreprocessorExitCode pp_lex_string_literal(
 		}
 	}
 	if (found_preprocess) {
+
 		const char* lexeme
-			= construct_lexeme(lexeme_start, input);
-		*produced_lexema++ 
-			= lexeme;
+			= construct_lexeme(
+				lexeme_start,
+				input);
+
+		LexemaEntry* e
+			= lookup_lexeme_in_pool(
+				lexema_pool,
+				lexeme);
+		if (e) {
+			delete lexeme;
+			lexeme = e->lexeme;
+		} else {
+			insert_lexeme_into_pool(lexema_pool, lexeme);
+		}
+
+		PreprocessingTokenForm form
+			= encountered_l
+			  ? PreprocessingTokenForm::STRING_LITERAL_2
+			  : PreprocessingTokenForm::STRING_LITERAL_1; 
 
 		preprocessor_report_success(
 			"preprocess_header_name",
@@ -1418,7 +2548,8 @@ static inline PreprocessorExitCode pp_lex_string_literal(
 			lexeme);
 
 		fld.lexeme_length 
-			= input - lexeme_start;
+			= input 
+			  - lexeme_start;
 		*string_literal = PreprocessingToken(
 			lexeme,
 			PreprocessingTokenName::STRING_LITERAL,
@@ -1430,13 +2561,26 @@ static inline PreprocessorExitCode pp_lex_string_literal(
 		exitcode = PreprocessorExitCode::SUCCESS;
 
 	} else {
+
 		const char* lexeme
-			= construct_lexeme(lexeme_start, input);
-		*produced_lexema++ = lexeme;
+			= construct_lexeme(
+				lexeme_start,
+				input);
+
+		LexemaEntry* e
+			= lookup_lexeme_in_pool(
+				lexema_pool,
+				lexeme);
+		if (e) {
+			delete lexeme;
+			lexeme = e->lexeme;
+		} else {
+			insert_lexeme_into_pool(lexema_pool, lexeme);
+		}
 
 		preprocessor_report_failure(
 			"preprocess_pp_number",
-			form,
+			PreprocessingTokenForm::UNDEFINED,
 			lexeme);
 
 		fld.lexeme_length 
@@ -1445,7 +2589,7 @@ static inline PreprocessorExitCode pp_lex_string_literal(
 			lexeme,
 			PreprocessingTokenName::ERROR,
 			fld,
-			form);
+			PreprocessingTokenForm::UNDEFINED);
 		Error* error
 			= construct_error_book(
 				ErrorCode::ERR_PP_INVALID_STRING_LITERAL,
@@ -1459,16 +2603,10 @@ static inline PreprocessorExitCode pp_lex_string_literal(
 	return exitcode;
 }
 
-/**
-* Used to preprocess a punctuator.
-* @param input The input from which to preprocess.
-* @param fld The file location descriptor for the input.
-* @param punctuator The reference to where to place
-*        the produced punctuator pptoken.
-**/
-static inline  PreprocessorExitCode pp_lex_punctuator(
+static inline
+PreprocessorExitCode pp_lex_punctuator(
 	const char*            & input,
-	const char**           & lexeme_pool,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & fld,
 	PreprocessingToken*    & punctuator,
 	AlertList              & bkl)
@@ -1681,7 +2819,6 @@ static inline  PreprocessorExitCode pp_lex_punctuator(
 				} else {
 					form = PreprocessingTokenForm::LEFT_SHIFT;
 					found_punctuator = true;
-
 				}
 
 			} else if (*input == '=') {
@@ -1802,10 +2939,22 @@ static inline  PreprocessorExitCode pp_lex_punctuator(
 			break;
 	};
 	if (found_punctuator) {
+
 		const char* lexeme
-			= construct_lexeme(lexeme_start, input);
-		*lexeme_pool++ 
-			= lexeme;
+			= construct_lexeme(
+				lexeme_start,
+				input);
+
+		LexemaEntry* e
+			= lookup_lexeme_in_pool(
+				lexema_pool,
+				lexeme);
+		if (e) {
+			delete lexeme;
+			lexeme = e->lexeme;
+		} else {
+			insert_lexeme_into_pool(lexema_pool, lexeme);
+		}
 
 		preprocessor_report_success(
 			"preprocess_punctuator",
@@ -1823,12 +2972,24 @@ static inline  PreprocessorExitCode pp_lex_punctuator(
 			+= (input - lexeme_start);
 
 		exitcode = PreprocessorExitCode::SUCCESS;
+
 	} else {
+
 		const char* lexeme
 			= construct_lexeme(
-				lexeme_start, 
+				lexeme_start,
 				input);
-		*lexeme_pool++ = lexeme;
+
+		LexemaEntry* e
+			= lookup_lexeme_in_pool(
+				lexema_pool,
+				lexeme);
+		if (e) {
+			delete lexeme;
+			lexeme = e->lexeme;
+		} else {
+			insert_lexeme_into_pool(lexema_pool, lexeme);
+		}
 
 		preprocessor_report_failure(
 			"preprocess_punctuator",
@@ -1859,15 +3020,18 @@ static inline  PreprocessorExitCode pp_lex_punctuator(
 }
 
 /**
-* Used to preprocess a character string (char*) input.
+* Used to perform a preprocessing parse on a token.
 * @param input The input from which to preprocess.
 * @param fld The file location descriptor for the input.
 * @param punctuator The reference to where to place
 *					the produced pptokens.
+* @param bkl The location to send alerts to.
+* @param preprocessing_token The output preprocessing token.
 **/
-static inline PreprocessorExitCode pp_parse_preprocessing_token(
+static inline
+PreprocessorExitCode pp_parse_preprocessing_token(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & preprocessing_token)
@@ -1878,6 +3042,9 @@ static inline PreprocessorExitCode pp_parse_preprocessing_token(
 		= false;
 	PreprocessingToken* token 
 		= new PreprocessingToken();
+
+	PreprocessingAstNodeAlt form
+		= PreprocessingAstNodeAlt::ERROR;
 
 	bool finished_preprocessed_word = false;
 	while (!finished_preprocessed_word) {
@@ -1904,37 +3071,39 @@ static inline PreprocessorExitCode pp_parse_preprocessing_token(
 			case 'Y': case 'Z':
 				if (pp_lex_identifier_name(
 					input,
-					produced_lexema,
+					lexema_pool,
 					file_location_descriptor,
 					token,
 					bkl)
 					== PreprocessorExitCode::SUCCESS) {
+					form = PreprocessingAstNodeAlt::PREPROCESSING_TOKEN_2;
 					finished_preprocessed_word = true;
 					should_generate = true;
 				}
 				break;
 
 			case 'L':
-				if (*(input + 1) == '\"') {
+				if (*(input + 1) != '\"') {
 					if (pp_lex_identifier_name(
 						input,
-						produced_lexema,
+						lexema_pool,
 						file_location_descriptor,
 						token,
 						bkl) 
 						== PreprocessorExitCode::SUCCESS) {
+						form = PreprocessingAstNodeAlt::PREPROCESSING_TOKEN_2;
 						finished_preprocessed_word = true;
 						should_generate = true;
 					}
-				}
-				else {
+				} else {
 					if (pp_lex_string_literal(
 						input,
-						produced_lexema,
+						lexema_pool,
 						file_location_descriptor,
 						token,
 						bkl) 
 						== PreprocessorExitCode::SUCCESS) {
+						form = PreprocessingAstNodeAlt::PREPROCESSING_TOKEN_5;
 						finished_preprocessed_word = true;
 						should_generate = true;
 					}
@@ -1947,11 +3116,12 @@ static inline PreprocessorExitCode pp_parse_preprocessing_token(
 			case '0':
 				if (pp_lex_pp_number(
 					input,
-					produced_lexema,
+					lexema_pool,
 					file_location_descriptor,
 					token,
 					bkl) 
 					== PreprocessorExitCode::SUCCESS) {
+					form = PreprocessingAstNodeAlt::PREPROCESSING_TOKEN_3;
 					finished_preprocessed_word = true;
 					should_generate = true;
 				}
@@ -1960,11 +3130,12 @@ static inline PreprocessorExitCode pp_parse_preprocessing_token(
 			case '\'':
 				if (pp_lex_character_constant(
 					input,
-					produced_lexema,
+					lexema_pool,
 					file_location_descriptor,
 					token,
 					bkl) 
 					== PreprocessorExitCode::SUCCESS) {
+					form = PreprocessingAstNodeAlt::PREPROCESSING_TOKEN_4;
 					finished_preprocessed_word = true;
 					should_generate = true;
 				}
@@ -1973,49 +3144,34 @@ static inline PreprocessorExitCode pp_parse_preprocessing_token(
 			case '\"':
 				if (pp_lex_string_literal(
 					input,
-					produced_lexema,
+					lexema_pool,
 					file_location_descriptor,
 					token,
 					bkl) 
 					== PreprocessorExitCode::SUCCESS) {
+					form = PreprocessingAstNodeAlt::PREPROCESSING_TOKEN_5;
 					finished_preprocessed_word = true;
 					should_generate = true;
 				}
 				break;
 
 			case '/':
-				if (*(input + 1) == '*') {
-					input += 2;
-					while ((*input != '*')
-						|| (*(input + 1) != '/')) {
-						input++;
-					}
-					input += 2;
-
-				} else if (*(input + 1) == '/') {
-					input += 2;
-					while (*input != '\n') {
-						input++;
-					}
-					input++;
-
-				} else {
-					if (pp_lex_punctuator(
-						input,
-						produced_lexema,
-						file_location_descriptor,
-						token,
-						bkl) 
-						== PreprocessorExitCode::SUCCESS) {
-						finished_preprocessed_word = true;
-						should_generate = true;
-					}
+				if (pp_lex_punctuator(
+					input,
+					lexema_pool,
+					file_location_descriptor,
+					token,
+					bkl) 
+					== PreprocessorExitCode::SUCCESS) {
+					form = PreprocessingAstNodeAlt::PREPROCESSING_TOKEN_6;
+					finished_preprocessed_word = true;
+					should_generate = true;
 				}
 				break;
 
 			case '[': case ']':
 			case '(': case ')':
-			case '{':  case '}': case ':':
+			case '{': case '}': case ':':
 			case '.':
 			case '&': case '+': case '-':
 			case '~': case '!': case '#':
@@ -2025,20 +3181,14 @@ static inline PreprocessorExitCode pp_parse_preprocessing_token(
 			case '*':
 				if (pp_lex_punctuator(
 					input,
-					produced_lexema,
+					lexema_pool,
 					file_location_descriptor,
 					token,
 					bkl) 
 					== PreprocessorExitCode::SUCCESS) {
+					form = PreprocessingAstNodeAlt::PREPROCESSING_TOKEN_6;
 					finished_preprocessed_word = true;
 					should_generate = true;
-				}
-				break;
-
-			case '\\':
-				input++;
-				if (*input == '\n') {
-					break;
 				}
 				break;
 
@@ -2068,16 +3218,10 @@ static inline PreprocessorExitCode pp_parse_preprocessing_token(
 	return exitcode;
 }
 
-/**
-* Used to preprocess a character string (char*) input.
-* @param input The input from which to preprocess.
-* @param fld The file location descriptor for the input.
-* @param punctuator The reference to where to place
-*					the produced pptokens.
-**/
-static inline PreprocessorExitCode pp_parse_pp_tokens(
+static inline
+PreprocessorExitCode pp_parse_pp_tokens(
 	const char*                 & input,
-	const char**                & produced_lexema,
+	LexemaPool                  & lexema_pool,
 	FileLocationDescriptor      & file_location_descriptor,
 	PreprocessingAstNode*       & pp_tokens,
 	AlertList                   & bkl,
@@ -2105,11 +3249,10 @@ static inline PreprocessorExitCode pp_parse_pp_tokens(
 			{
 				bool terminated = false;
 				while (!terminated) {
+
 					switch (*input) {
 
 						case '\n':
-							file_location_descriptor.line_number++;
-							file_location_descriptor.character_number = 0;
 							terminated = true;
 							break;
 
@@ -2119,7 +3262,9 @@ static inline PreprocessorExitCode pp_parse_pp_tokens(
 							break;
 
 						case '\t':
-							file_location_descriptor.character_number += 4;
+							file_location_descriptor.character_number 
+								+= file_location_descriptor.character_number
+								   % 4;
 							input++;
 							break;
 
@@ -2128,11 +3273,39 @@ static inline PreprocessorExitCode pp_parse_pp_tokens(
 							input++;
 							break;
 
+						case '/':
+							if (*(input + 1) == '*') {
+								input += 2;
+								file_location_descriptor.character_number += 2;
+
+								while ((*input != '*')
+									|| (*(input + 1) != '/')) {
+									input++;
+									file_location_descriptor.character_number++;
+
+								}
+								input += 2;								
+								file_location_descriptor.character_number += 2;
+
+							} else if (*(input + 1) == '/') {
+								input += 2;
+								file_location_descriptor.character_number += 2;
+
+								while (*input != '\n') {
+									input++;
+									file_location_descriptor.character_number++;
+
+								}
+								continue;
+							
+							}
+							break;
+
 						default:
 							PreprocessingAstNode* preprocessing_token;
 							if (pp_parse_preprocessing_token(
 								input,
-								produced_lexema,
+								lexema_pool,
 								file_location_descriptor,
 								bkl,
 								preprocessing_token)
@@ -2159,61 +3332,83 @@ static inline PreprocessorExitCode pp_parse_pp_tokens(
 			}
 
 			case PP_TOKENS:
-			{				
-				bool terminated = false;
+			{
+				switch (*input) {
 
-				while (!terminated) {
+					case '\n':
+						break;
 
-					switch (*input) {
+					case ' ':
+						file_location_descriptor.character_number++;
+						input++;
+						continue;
 
-						case '\n':
-							file_location_descriptor.line_number++;
-							file_location_descriptor.character_number = 0;
-							terminated = true;
-							break;
+					case '\t':
+						file_location_descriptor.character_number += 4;
+						input++;
+						continue;
 
-						case ' ':
-							file_location_descriptor.character_number++;
-							input++;
-							break;
+					case '\r':
+						file_location_descriptor.character_number = 0;
+						input++;
+						continue;
 
-						case '\t':
-							file_location_descriptor.character_number += 4;
-							input++;
-							break;
+					case '/':
+						if (*(input + 1) == '*') {
+							input += 2;
+							file_location_descriptor.character_number += 2;
 
-						case '\r':
-							file_location_descriptor.character_number = 0;
-							input++;
-							break;
+							while ((*input != '*')
+								|| (*(input + 1) != '/')) {
+								input++;
+								file_location_descriptor.character_number++;
 
-						default:
-							PreprocessingAstNode* preprocessing_token;
-							if (pp_parse_preprocessing_token(
-								input,
-								produced_lexema,
-								file_location_descriptor,
-								bkl,
-								preprocessing_token)
-								== PreprocessorExitCode::SUCCESS) {
-
-								PreprocessingAstNode* higher_pp_tokens;
-								higher_pp_tokens
-									= new PreprocessingAstNode(
-										PreprocessingAstNodeName::PP_TOKENS,
-										PreprocessingAstNodeAlt::PP_TOKENS_2,
-										NULL);
-								higher_pp_tokens->add_child(
-									pp_tokens);
-								higher_pp_tokens->add_child(
-									preprocessing_token);
-								pp_tokens =
-									higher_pp_tokens;
-
-							} else {
-								terminated = true;
 							}
-					}
+							input += 2;
+							file_location_descriptor.character_number += 2;
+
+						}
+						else if (*(input + 1) == '/') {
+							input += 2;
+							file_location_descriptor.character_number += 2;
+
+							while (*input != '\n') {
+								input++;
+								file_location_descriptor.character_number++;
+
+							}
+							continue;
+
+						}
+						break;
+
+					default:
+						PreprocessingAstNode* preprocessing_token;
+						if (pp_parse_preprocessing_token(
+							input,
+							lexema_pool,
+							file_location_descriptor,
+							bkl,
+							preprocessing_token)
+							== PreprocessorExitCode::SUCCESS) {
+
+							PreprocessingAstNode* higher_pp_tokens;
+							higher_pp_tokens
+								= new PreprocessingAstNode(
+									PreprocessingAstNodeName::PP_TOKENS,
+									PreprocessingAstNodeAlt::PP_TOKENS_2,
+									NULL);
+							higher_pp_tokens->add_child(
+								pp_tokens);
+							higher_pp_tokens->add_child(
+								preprocessing_token);
+							pp_tokens =
+								higher_pp_tokens;
+							continue;
+
+						} else {
+							break;
+						}
 				}
 				break;
 			}
@@ -2226,9 +3421,10 @@ static inline PreprocessorExitCode pp_parse_pp_tokens(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_preprocessing_file(
+static inline
+PreprocessorExitCode pp_parse_preprocessing_file(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & preprocessing_file)
@@ -2244,7 +3440,7 @@ static inline PreprocessorExitCode pp_parse_preprocessing_file(
 	PreprocessingAstNode* group;
 	if (pp_parse_group(
 		input,
-		produced_lexema,
+		lexema_pool,
 		file_location_descriptor,
 		bkl,
 		group)
@@ -2257,9 +3453,10 @@ static inline PreprocessorExitCode pp_parse_preprocessing_file(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_group(
+static inline
+PreprocessorExitCode pp_parse_group(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & group)
@@ -2287,7 +3484,7 @@ static inline PreprocessorExitCode pp_parse_group(
 				PreprocessingAstNode* group_part;
 				if (pp_parse_group_part(
 					input,
-					produced_lexema,
+					lexema_pool,
 					file_location_descriptor,
 					bkl,
 					group_part)
@@ -2312,7 +3509,7 @@ static inline PreprocessorExitCode pp_parse_group(
 				PreprocessingAstNode* group_part;
 				if (pp_parse_group_part(
 					input,
-					produced_lexema,
+					lexema_pool,
 					file_location_descriptor,
 					bkl,
 					group_part)
@@ -2345,9 +3542,10 @@ static inline PreprocessorExitCode pp_parse_group(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_group_part(
+static inline
+PreprocessorExitCode pp_parse_group_part(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & group_part)
@@ -2373,7 +3571,7 @@ static inline PreprocessorExitCode pp_parse_group_part(
 		PreprocessingAstNode* pp_token;
 		if (pp_parse_if_section(
 				input, 
-				produced_lexema,
+				lexema_pool,
 				file_location_descriptor,
 				bkl,
 				if_section)
@@ -2385,7 +3583,7 @@ static inline PreprocessorExitCode pp_parse_group_part(
 
 		} else if (pp_parse_control_line(
 			           input,
-			           produced_lexema,
+			           lexema_pool,
 			           file_location_descriptor,
 			           bkl, 
 			           control_line)
@@ -2397,7 +3595,7 @@ static inline PreprocessorExitCode pp_parse_group_part(
 
 		} else if (pp_parse_preprocessing_token(
 			           input,
-			           produced_lexema,
+			           lexema_pool,
 			           file_location_descriptor,
 			           bkl, 
 			           pp_token)
@@ -2410,7 +3608,7 @@ static inline PreprocessorExitCode pp_parse_group_part(
 				
 				if (pp_parse_non_directive(
 					input,
-					produced_lexema,
+					lexema_pool,
 					file_location_descriptor,
 					bkl,
 					non_directive)
@@ -2428,7 +3626,7 @@ static inline PreprocessorExitCode pp_parse_group_part(
 		PreprocessingAstNode* text_line;
 		if (pp_parse_text_line(
 				input,
-				produced_lexema,
+				lexema_pool,
 				file_location_descriptor,
 				bkl, 
 				text_line)
@@ -2455,9 +3653,10 @@ static inline PreprocessorExitCode pp_parse_group_part(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_if_section(
+static inline
+PreprocessorExitCode pp_parse_if_section(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & if_section)
@@ -2472,7 +3671,7 @@ static inline PreprocessorExitCode pp_parse_if_section(
 	PreprocessingAstNode* if_group;
 	if (pp_parse_if_group(
 		input, 
-		produced_lexema,
+		lexema_pool,
 		file_location_descriptor,
 		bkl, 
 		if_group)
@@ -2482,7 +3681,7 @@ static inline PreprocessorExitCode pp_parse_if_section(
 		PreprocessingAstNode* elif_groups;
 		if (pp_parse_elif_groups(
 			input,
-			produced_lexema,
+			lexema_pool,
 			file_location_descriptor,
 			bkl, 
 			elif_groups)
@@ -2493,7 +3692,7 @@ static inline PreprocessorExitCode pp_parse_if_section(
 		PreprocessingAstNode* else_group;
 		if (pp_parse_else_group(
 			input,
-			produced_lexema,
+			lexema_pool,
 			file_location_descriptor,
 			bkl, 
 			else_group)
@@ -2504,7 +3703,7 @@ static inline PreprocessorExitCode pp_parse_if_section(
 		PreprocessingAstNode* endif_line;
 		if (pp_parse_endif_line(
 			input,
-			produced_lexema,
+			lexema_pool,
 			file_location_descriptor,
 			bkl, 
 			endif_line)
@@ -2527,9 +3726,10 @@ static inline PreprocessorExitCode pp_parse_if_section(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_if_group(
+static inline
+PreprocessorExitCode pp_parse_if_group(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & if_group)
@@ -2546,30 +3746,27 @@ static inline PreprocessorExitCode pp_parse_if_group(
 
 	PreprocessingAstNode* preprocessing_token_1;
 	if (pp_parse_preprocessing_token(
-		input, 
-		produced_lexema, 
-		file_location_descriptor, 
-		bkl, 
-		preprocessing_token_1) 
+			input, 
+			lexema_pool, 
+			file_location_descriptor, 
+			bkl, 
+			preprocessing_token_1) 
 		== PreprocessorExitCode::SUCCESS
 		&& preprocessing_token_1->get_terminal()->get_name() 
 		   == PreprocessingTokenName::PUNCTUATOR
 		&& preprocessing_token_1->get_terminal()->get_form() 
 		   == PreprocessingTokenForm::HASHTAG) {
-		stack[si++] = preprocessing_token_1;
 
 		PreprocessingAstNode* preprocessing_token_2;
 		if (pp_parse_preprocessing_token(
 			input,
-			produced_lexema,
+			lexema_pool,
 			file_location_descriptor,
 			bkl,
 			preprocessing_token_2) == PreprocessorExitCode::SUCCESS
 			&& preprocessing_token_2->get_terminal()
 			                        ->get_name() 
 			   == PreprocessingTokenName::IDENTIFIER) {
-			stack[si++] = preprocessing_token_2;
-
 			const char* lexeme 
 				= preprocessing_token_2->get_terminal()
 				                       ->get_lexeme();
@@ -2577,31 +3774,31 @@ static inline PreprocessorExitCode pp_parse_if_group(
 
 				PreprocessingAstNode* constant_expression;
 				if (pp_parse_constant_expression(
-					input, 
-					produced_lexema,
-					file_location_descriptor,
-					bkl,
-					constant_expression)
+						input, 
+						lexema_pool,
+						file_location_descriptor,
+						bkl,
+						constant_expression)
 					== PreprocessorExitCode::SUCCESS) {
 					stack[si++] = constant_expression;
 
 					PreprocessingAstNode* new_line;
 					if (pp_parse_new_line(
-						input,
-						produced_lexema,
-						file_location_descriptor,
-						bkl, 
-						new_line) 
+							input,
+							lexema_pool,
+							file_location_descriptor,
+							bkl, 
+							new_line) 
 						== PreprocessorExitCode::SUCCESS) {
 						stack[si++] = new_line;
 
 						PreprocessingAstNode* group;
 						if (pp_parse_group(
-							input,
-							produced_lexema,
-							file_location_descriptor,
-							bkl, 
-							group)
+								input,
+								lexema_pool,
+								file_location_descriptor,
+								bkl, 
+								group)
 							== PreprocessorExitCode::SUCCESS) {
 							stack[si++] = group;
 						}
@@ -2614,27 +3811,27 @@ static inline PreprocessorExitCode pp_parse_if_group(
 
 				PreprocessingAstNode* preprocessing_token;
 				if (pp_parse_preprocessing_token(input,
-					produced_lexema,
-					file_location_descriptor,
-					bkl,
-					preprocessing_token) 
+						lexema_pool,
+						file_location_descriptor,
+						bkl,
+						preprocessing_token) 
 					== PreprocessorExitCode::SUCCESS) {
 					stack[si++];
 
 					PreprocessingAstNode* new_line;
 					if (pp_parse_new_line(
-						input,
-						produced_lexema,
-						file_location_descriptor,
-						bkl, 
-						new_line) 
+							input,
+							lexema_pool,
+							file_location_descriptor,
+							bkl, 
+							new_line) 
 						== PreprocessorExitCode::SUCCESS) {
 						stack[si++] = new_line;
 
 						PreprocessingAstNode* group;
 						if (pp_parse_group(
 							input,
-							produced_lexema,
+							lexema_pool,
 							file_location_descriptor,
 							bkl, 
 							group) 
@@ -2650,11 +3847,11 @@ static inline PreprocessorExitCode pp_parse_if_group(
 
 				PreprocessingAstNode* preprocessing_token;
 				if (pp_parse_preprocessing_token(
-					input,
-					produced_lexema,
-					file_location_descriptor,
-					bkl, 
-					preprocessing_token) 
+						input,
+						lexema_pool,
+						file_location_descriptor,
+						bkl, 
+						preprocessing_token) 
 					== PreprocessorExitCode::SUCCESS
 					&& (preprocessing_token->get_terminal()
 					                       ->get_name() 
@@ -2663,21 +3860,21 @@ static inline PreprocessorExitCode pp_parse_if_group(
 
 					PreprocessingAstNode* new_line;
 					if (pp_parse_new_line(
-						input,
-						produced_lexema,
-						file_location_descriptor,
-						bkl, 
-						new_line) 
+							input,
+							lexema_pool,
+							file_location_descriptor,
+							bkl, 
+							new_line) 
 						== PreprocessorExitCode::SUCCESS) {
 						stack[si++] = new_line;
 
 						PreprocessingAstNode* group;
 						if (pp_parse_group(
-							input,
-							produced_lexema,
-							file_location_descriptor,
-							bkl, 
-							group) 
+								input,
+								lexema_pool,
+								file_location_descriptor,
+								bkl, 
+								group) 
 							== PreprocessorExitCode::SUCCESS) {
 							stack[si++] = group;
 						}
@@ -2706,9 +3903,10 @@ static inline PreprocessorExitCode pp_parse_if_group(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_elif_groups(
+static inline
+PreprocessorExitCode pp_parse_elif_groups(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & elif_groups)
@@ -2737,11 +3935,11 @@ static inline PreprocessorExitCode pp_parse_elif_groups(
 			{
 				PreprocessingAstNode* elif_group;
 				if (pp_parse_elif_group(
-					input,
-					produced_lexema,
-					file_location_descriptor,
-					bkl,
-					elif_group)
+						input,
+						lexema_pool,
+						file_location_descriptor,
+						bkl,
+						elif_group)
 					== PreprocessorExitCode::SUCCESS) {
 
 					elif_groups = new PreprocessingAstNode(
@@ -2762,11 +3960,11 @@ static inline PreprocessorExitCode pp_parse_elif_groups(
 			{
 				PreprocessingAstNode* elif_group;
 				if (pp_parse_elif_group(
-					input,
-					produced_lexema,
-					file_location_descriptor,
-					bkl,
-					elif_group)
+						input,
+						lexema_pool,
+						file_location_descriptor,
+						bkl,
+						elif_group)
 					== PreprocessorExitCode::SUCCESS) {
 
 					PreprocessingAstNode* higher_elif_groups
@@ -2794,9 +3992,10 @@ static inline PreprocessorExitCode pp_parse_elif_groups(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_identifier_list(
+static inline
+PreprocessorExitCode pp_parse_identifier_list(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & identifier_list)
@@ -2818,11 +4017,11 @@ static inline PreprocessorExitCode pp_parse_identifier_list(
 			{
 				PreprocessingAstNode* preprocessing_token;
 				if (pp_parse_preprocessing_token(
-					input,
-					produced_lexema,
-					file_location_descriptor,
-					bkl,
-					preprocessing_token) 
+						input,
+						lexema_pool,
+						file_location_descriptor,
+						bkl,
+						preprocessing_token) 
 					== PreprocessorExitCode::SUCCESS) {
 
 					identifier_list = new PreprocessingAstNode(
@@ -2844,20 +4043,20 @@ static inline PreprocessorExitCode pp_parse_identifier_list(
 			{
 				PreprocessingAstNode* preprocessing_token;
 				if (pp_parse_preprocessing_token(
-					input,
-					produced_lexema,
-					file_location_descriptor,
-					bkl,
-					preprocessing_token)
+						input,
+						lexema_pool,
+						file_location_descriptor,
+						bkl,
+						preprocessing_token)
 					== PreprocessorExitCode::SUCCESS) {
 
 					PreprocessingAstNode* preprocessing_token;
 					if (pp_parse_preprocessing_token(
-						input,
-						produced_lexema,
-						file_location_descriptor,
-						bkl,
-						preprocessing_token)
+							input,
+							lexema_pool,
+							file_location_descriptor,
+							bkl,
+							preprocessing_token)
 						== PreprocessorExitCode::SUCCESS) {
 
 						PreprocessingAstNode* higher_identifier_list;
@@ -2887,62 +4086,10 @@ static inline PreprocessorExitCode pp_parse_identifier_list(
 	return exitcode;
 }
 
-//PreprocessingToken preprocessing_tokens[16]
-//= { };
-//PreprocessingToken* preprocessing_tokens_ptr
-//= preprocessing_tokens;
-//
-///* Get the Tokens within the conditional expression. */
-//pp_gen_pp_tokens(
-//	pp_ast_pp_tokens,
-//	preprocessing_tokens_ptr,
-//	bkl);
-//int num_preprocessing_tokens
-//= preprocessing_tokens_ptr - preprocessing_tokens;
-//
-//preprocessing_tokens_ptr
-//= preprocessing_tokens;
-//Token tokens[16]
-//= { };
-//Token* tokens_ptr
-//= tokens;
-//
-//lex(
-//	preprocessing_tokens_ptr,
-//	tokens_ptr,
-//	num_preprocessing_tokens,
-//	bkl);
-//
-///* Get the Abstract Syntax Tree associated
-//	with the conditional expression. */
-//const Token* new_tokens_ptr
-//= tokens;
-//AstNode* ast_constant_expression;
-//parse_constant_expression(
-//	NULL,
-//	new_tokens_ptr,
-//	ast_constant_expression);
-//
-///* Annotate the abstract syntax tree associated
-//	with the conditional expression. */
-//AnnotatedAstNode* anno_ast_constant_expression;
-//construct_unatrributed_annotated_ast(
-//	ast_constant_expression,
-//	anno_ast_constant_expression);
-//SymbolTable* symtab = new SymbolTable();
-//visit_constant_expression_1(
-//	anno_ast_constant_expression,
-//	symtab);
-//
-//uint64_t constant_expression_val
-//= 0;
-//constant_expression_val
-//= anno_ast_constant_expression->get_constant_val()
-//!= 0;
-
-static inline PreprocessorExitCode pp_parse_constant_expression(
+static inline
+PreprocessorExitCode pp_parse_constant_expression(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & constant_expression)
@@ -2960,12 +4107,12 @@ static inline PreprocessorExitCode pp_parse_constant_expression(
 		the conditional expression. */
 	PreprocessingAstNode* pp_ast_pp_tokens; 
 	if (pp_parse_pp_tokens(
-		input,
-		produced_lexema,
-		file_location_descriptor,
-		pp_ast_pp_tokens,
-		bkl,
-		true) 
+			input,
+			lexema_pool,
+			file_location_descriptor,
+			pp_ast_pp_tokens,
+			bkl,
+			true) 
 		== PreprocessorExitCode::SUCCESS) {
 		stack[si++] = pp_ast_pp_tokens;
 
@@ -2980,9 +4127,10 @@ static inline PreprocessorExitCode pp_parse_constant_expression(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_elif_group(
+static inline
+PreprocessorExitCode pp_parse_elif_group(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & elif_group)
@@ -3001,7 +4149,7 @@ static inline PreprocessorExitCode pp_parse_elif_group(
 	PreprocessingAstNode* preprocessing_token_1;
 	if (pp_parse_preprocessing_token(
 		input,
-		produced_lexema,
+		lexema_pool,
 		file_location_descriptor,
 		bkl,
 		preprocessing_token_1) 
@@ -3014,11 +4162,11 @@ static inline PreprocessorExitCode pp_parse_elif_group(
 
 		PreprocessingAstNode* preprocessing_token_2;
 		if (pp_parse_preprocessing_token(
-			input,
-			produced_lexema,
-			file_location_descriptor,
-			bkl,
-			preprocessing_token_2) 
+				input,
+				lexema_pool,
+				file_location_descriptor,
+				bkl,
+				preprocessing_token_2) 
 			== PreprocessorExitCode::SUCCESS
 			&& preprocessing_token_2->get_terminal()
 			                        ->get_name() 
@@ -3035,18 +4183,18 @@ static inline PreprocessorExitCode pp_parse_elif_group(
 
 				PreprocessingAstNode* constant_expression;
 				if (pp_parse_constant_expression(
-					input, 
-					produced_lexema,
-					file_location_descriptor,
-					bkl, 
-					constant_expression)
+						input, 
+						lexema_pool,
+						file_location_descriptor,
+						bkl, 
+						constant_expression)
 					== PreprocessorExitCode::SUCCESS) {
 					stack[si++] = constant_expression;
 
 					PreprocessingAstNode* new_line;
 					if (pp_parse_new_line(
 						input, 
-						produced_lexema,
+						lexema_pool,
 						file_location_descriptor,
 						bkl, 
 						new_line) == PreprocessorExitCode::SUCCESS) {
@@ -3055,7 +4203,7 @@ static inline PreprocessorExitCode pp_parse_elif_group(
 						PreprocessingAstNode* group;
 						if (pp_parse_group(
 							input, 
-							produced_lexema,
+							lexema_pool,
 							file_location_descriptor,
 							bkl, 
 							group)
@@ -3084,9 +4232,10 @@ static inline PreprocessorExitCode pp_parse_elif_group(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_else_group(
+static inline
+PreprocessorExitCode pp_parse_else_group(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & else_group)
@@ -3105,11 +4254,11 @@ static inline PreprocessorExitCode pp_parse_else_group(
 
 	PreprocessingAstNode* preprocessing_token_1;
 	if (pp_parse_preprocessing_token(
-		input,
-		produced_lexema,
-		file_location_descriptor,
-		bkl,
-		preprocessing_token_1) 
+			input,
+			lexema_pool,
+			file_location_descriptor,
+			bkl,
+			preprocessing_token_1) 
 		== PreprocessorExitCode::SUCCESS
 		&& (preprocessing_token_1->get_terminal()->get_name()
 		    == PreprocessingTokenName::PUNCTUATOR)
@@ -3119,11 +4268,11 @@ static inline PreprocessorExitCode pp_parse_else_group(
 
 		PreprocessingAstNode* preprocessing_token_2;
 		if (pp_parse_preprocessing_token(
-			input,
-			produced_lexema,
-			file_location_descriptor,
-			bkl,
-			preprocessing_token_2) 
+				input,
+				lexema_pool,
+				file_location_descriptor,
+				bkl,
+				preprocessing_token_2) 
 			== PreprocessorExitCode::SUCCESS
 			&& preprocessing_token_2->get_terminal()->get_name() 
 			   == PreprocessingTokenName::IDENTIFIER) {
@@ -3139,19 +4288,21 @@ static inline PreprocessorExitCode pp_parse_else_group(
 
 				PreprocessingAstNode* new_line;
 				if (pp_parse_new_line(
-					input, 
-					produced_lexema,
-					file_location_descriptor,
-					bkl, 
-					new_line) == PreprocessorExitCode::SUCCESS) {
+						input, 
+						lexema_pool,
+						file_location_descriptor,
+						bkl, 
+						new_line) 
+					== PreprocessorExitCode::SUCCESS) {
 					stack[si++] = new_line;
 
 					PreprocessingAstNode* group;
 					if (pp_parse_group(
-						input, produced_lexema,
-						file_location_descriptor,
-						bkl, 
-						group)
+							input, 
+							lexema_pool,
+							file_location_descriptor,
+							bkl, 
+							group)
 						== PreprocessorExitCode::SUCCESS) {
 						stack[si++] = group;
 					}
@@ -3175,9 +4326,10 @@ static inline PreprocessorExitCode pp_parse_else_group(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_endif_line(
+static inline
+PreprocessorExitCode pp_parse_endif_line(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & endif_line)
@@ -3193,7 +4345,7 @@ static inline PreprocessorExitCode pp_parse_endif_line(
 	PreprocessingAstNode* preprocessing_token_1;
 	if (pp_parse_preprocessing_token(
 		input,
-		produced_lexema,
+		lexema_pool,
 		file_location_descriptor,
 		bkl,
 		preprocessing_token_1) 
@@ -3207,7 +4359,7 @@ static inline PreprocessorExitCode pp_parse_endif_line(
 		PreprocessingAstNode* preprocessing_token_2;
 		if (pp_parse_preprocessing_token(
 			input,
-			produced_lexema,
+			lexema_pool,
 			file_location_descriptor,
 			bkl,
 			preprocessing_token_2) 
@@ -3227,9 +4379,11 @@ static inline PreprocessorExitCode pp_parse_endif_line(
 				PreprocessingAstNode* new_line;
 				if (pp_parse_new_line(
 					input, 
-					produced_lexema,
+					lexema_pool,
 					file_location_descriptor,
-					bkl, new_line) == PreprocessorExitCode::SUCCESS) {
+					bkl, 
+					new_line) 
+					== PreprocessorExitCode::SUCCESS) {
 
 					endif_line
 						= new PreprocessingAstNode(
@@ -3245,9 +4399,10 @@ static inline PreprocessorExitCode pp_parse_endif_line(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_control_line(
+static inline
+PreprocessorExitCode pp_parse_control_line(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & control_line)
@@ -3267,11 +4422,11 @@ static inline PreprocessorExitCode pp_parse_control_line(
 
 	PreprocessingAstNode* preprocessing_token;
 	if (pp_parse_preprocessing_token(
-		input, 
-		produced_lexema, 
-		file_location_descriptor, 
-		bkl, 
-		preprocessing_token) 
+			input, 
+			lexema_pool, 
+			file_location_descriptor, 
+			bkl, 
+			preprocessing_token) 
 		== PreprocessorExitCode::SUCCESS) {
 		stack[si++] = preprocessing_token;
 
@@ -3280,11 +4435,11 @@ static inline PreprocessorExitCode pp_parse_control_line(
 		PreprocessingAstNode* preprocessing_token_1;
 		PreprocessingAstNode* preprocessing_token_2;
 		if (pp_parse_preprocessing_token(
-			input,
-			produced_lexema,
-			file_location_descriptor,
-			bkl,
-			preprocessing_token_2) 
+				input,
+				lexema_pool,
+				file_location_descriptor,
+				bkl,
+				preprocessing_token_2) 
 			== PreprocessorExitCode::SUCCESS
 			&& preprocessing_token_2->get_terminal()->get_name() 
 			   == PreprocessingTokenName::IDENTIFIER) {
@@ -3299,22 +4454,22 @@ static inline PreprocessorExitCode pp_parse_control_line(
 
 				PreprocessingAstNode* pp_tokens;
 				if (pp_parse_pp_tokens(
-					input,
-					produced_lexema,
-					file_location_descriptor,
-					pp_tokens,
-					bkl,
-					true)
+						input,
+						lexema_pool,
+						file_location_descriptor,
+						pp_tokens,
+						bkl,
+						true)
 					== PreprocessorExitCode::SUCCESS) {
 					stack[si++] = pp_tokens;
 
 					PreprocessingAstNode* new_line;
 					if (pp_parse_new_line(
-						input,
-						produced_lexema,
-						file_location_descriptor,
-						bkl,
-						new_line) 
+							input,
+							lexema_pool,
+							file_location_descriptor,
+							bkl,
+							new_line) 
 						== PreprocessorExitCode::SUCCESS) {
 						stack[si++] = new_line;
 
@@ -3327,32 +4482,32 @@ static inline PreprocessorExitCode pp_parse_control_line(
 
 				PreprocessingAstNode* identifier;
 				if (pp_parse_preprocessing_token(
-					input,
-					produced_lexema,
-					file_location_descriptor,
-					bkl,
-					identifier)
+						input,
+						lexema_pool,
+						file_location_descriptor,
+						bkl,
+						identifier)
 					== PreprocessorExitCode::SUCCESS) {
 					stack[si++] = identifier;
 
 					PreprocessingAstNode* replacement_list;
 					PreprocessingAstNode* lparen;
 					if (pp_parse_replacement_list(
-						input,
-						produced_lexema,
-						file_location_descriptor,
-						bkl,
-						replacement_list)
+							input,
+							lexema_pool,
+							file_location_descriptor,
+							bkl,
+							replacement_list)
 						== PreprocessorExitCode::SUCCESS) {
 						stack[si++] = replacement_list;
 
 						PreprocessingAstNode* new_line;
 						if (pp_parse_new_line(
-							input,
-							produced_lexema,
-							file_location_descriptor,
-							bkl, 
-							new_line)
+								input,
+								lexema_pool,
+								file_location_descriptor,
+								bkl, 
+								new_line)
 							== PreprocessorExitCode::SUCCESS) {
 							stack[si++] = new_line;
 
@@ -3361,21 +4516,21 @@ static inline PreprocessorExitCode pp_parse_control_line(
 						}
 
 					} else if (pp_parse_lparen(
-						input,
-						produced_lexema,
-						file_location_descriptor,
-						bkl,
-						lparen)
+							       input,
+								   lexema_pool,
+								   file_location_descriptor,
+								   bkl,
+								   lparen)
 						== PreprocessorExitCode::SUCCESS) {
 						stack[si++] = lparen;
 
 						PreprocessingAstNode* identifier_list;
 						if (pp_parse_identifier_list(
-							input,
-							produced_lexema,
-							file_location_descriptor,
-							bkl, 
-							identifier_list)
+								input,
+								lexema_pool,
+								file_location_descriptor,
+								bkl, 
+								identifier_list)
 							== PreprocessorExitCode::SUCCESS) {
 							stack[si++] = identifier_list;
 
@@ -3387,20 +4542,20 @@ static inline PreprocessorExitCode pp_parse_control_line(
 								input += 5;
 
 								if (pp_parse_replacement_list(
-									input,
-									produced_lexema,
-									file_location_descriptor,
-									bkl, 
-									replacement_list)
+										input,
+										lexema_pool,
+										file_location_descriptor,
+										bkl, 
+										replacement_list)
 									== PreprocessorExitCode::SUCCESS) {
 									stack[si++] = replacement_list;
 
 									PreprocessingAstNode* new_line;
 									if (pp_parse_new_line(input,
-										produced_lexema,
-										file_location_descriptor,
-										bkl,
-										new_line) 
+											lexema_pool,
+											file_location_descriptor,
+											bkl,
+											new_line) 
 										== PreprocessorExitCode::SUCCESS) {
 										stack[si++] = new_line;
 
@@ -3413,21 +4568,21 @@ static inline PreprocessorExitCode pp_parse_control_line(
 								input++;
 
 								if (pp_parse_replacement_list(
-									input,
-									produced_lexema,
-									file_location_descriptor,
-									bkl, 
-									replacement_list)
+										input,
+										lexema_pool,
+										file_location_descriptor,
+										bkl, 
+										replacement_list)
 									== PreprocessorExitCode::SUCCESS) {
 									stack[si++] = replacement_list;
 
 									PreprocessingAstNode* new_line;
 									if (pp_parse_new_line(
-										input,
-										produced_lexema,
-										file_location_descriptor,
-										bkl, 
-										new_line) 
+											input,
+											lexema_pool,
+											file_location_descriptor,
+											bkl, 
+											new_line) 
 										== PreprocessorExitCode::SUCCESS) {
 										stack[si++] = new_line;
 
@@ -3447,21 +4602,21 @@ static inline PreprocessorExitCode pp_parse_control_line(
 
 								PreprocessingAstNode* replacement_list;
 								if (pp_parse_replacement_list(
-									input,
-									produced_lexema,
-									file_location_descriptor,
-									bkl, 
-									replacement_list)
+										input,
+										lexema_pool,
+										file_location_descriptor,
+										bkl, 
+										replacement_list)
 									== PreprocessorExitCode::SUCCESS) {
 									stack[si++] = replacement_list;
 
 									PreprocessingAstNode* new_line;
 									if (pp_parse_new_line(
-										input,
-										produced_lexema,
-										file_location_descriptor,
-										bkl,
-										new_line) 
+											input,
+											lexema_pool,
+											file_location_descriptor,
+											bkl,
+											new_line) 
 										== PreprocessorExitCode::SUCCESS) {
 										stack[si++] = new_line;
 
@@ -3475,18 +4630,18 @@ static inline PreprocessorExitCode pp_parse_control_line(
 								input++;
 
 								if (pp_parse_replacement_list(
-									input,
-									produced_lexema, 
-									file_location_descriptor,
-									bkl,
-									replacement_list)
+										input,
+										lexema_pool, 
+										file_location_descriptor,
+										bkl,
+										replacement_list)
 									== PreprocessorExitCode::SUCCESS) {
 									stack[si++] = replacement_list;
 
 									PreprocessingAstNode* new_line;
 									if (pp_parse_new_line(
 											input,
-											produced_lexema,
+											lexema_pool,
 											file_location_descriptor,
 											bkl,
 											new_line)
@@ -3501,20 +4656,20 @@ static inline PreprocessorExitCode pp_parse_control_line(
 						}
 						PreprocessingAstNode* replacement_list;
 						if (pp_parse_replacement_list(input,
-							produced_lexema,
-							file_location_descriptor,
-							bkl,
-							replacement_list)
+								lexema_pool,
+								file_location_descriptor,
+								bkl,
+								replacement_list)
 							== PreprocessorExitCode::SUCCESS) {
 							stack[si++] = replacement_list;
 
 							PreprocessingAstNode* new_line;
 							if (pp_parse_new_line(
-								input,
-								produced_lexema,
-								file_location_descriptor,
-								bkl,
-								new_line)
+									input,
+									lexema_pool,
+									file_location_descriptor,
+									bkl,
+									new_line)
 								== PreprocessorExitCode::SUCCESS) {
 								stack[si++] = new_line;
 
@@ -3531,11 +4686,11 @@ static inline PreprocessorExitCode pp_parse_control_line(
 				
 				PreprocessingAstNode* preprocessing_token;
 				if (pp_parse_preprocessing_token(
-					input, 
-					produced_lexema,
-					file_location_descriptor,
-					bkl, 
-					preprocessing_token)
+						input, 
+						lexema_pool,
+						file_location_descriptor,
+						bkl, 
+						preprocessing_token)
 					== PreprocessorExitCode::SUCCESS
 					&& preprocessing_token->get_terminal()->get_name() 
 						== PreprocessingTokenName::IDENTIFIER) {
@@ -3543,11 +4698,11 @@ static inline PreprocessorExitCode pp_parse_control_line(
 
 					PreprocessingAstNode* new_line;
 					if (pp_parse_new_line(
-						input, 
-						produced_lexema,
-						file_location_descriptor,
-						bkl,
-						new_line)
+							input, 
+							lexema_pool,
+							file_location_descriptor,
+							bkl,
+							new_line)
 						== PreprocessorExitCode::SUCCESS) {
 						stack[si++] = new_line;
 
@@ -3560,21 +4715,22 @@ static inline PreprocessorExitCode pp_parse_control_line(
 
 				PreprocessingAstNode* pp_tokens;
 				if (pp_parse_pp_tokens(
-					input, 
-					produced_lexema,
-					file_location_descriptor,
-					pp_tokens,
-					bkl,
-					true)
+						input, 
+						lexema_pool,
+						file_location_descriptor,
+						pp_tokens,
+						bkl,
+						true)
 					== PreprocessorExitCode::SUCCESS) {
 					stack[si++] = pp_tokens;
 
 					PreprocessingAstNode* new_line;
 					if (pp_parse_new_line(
-						input, 
-						produced_lexema,
-						file_location_descriptor,
-						bkl, new_line)
+							input, 
+							lexema_pool,
+							file_location_descriptor,
+							bkl, 
+							new_line)
 						== PreprocessorExitCode::SUCCESS) {
 						stack[si++] = new_line;
 
@@ -3587,22 +4743,22 @@ static inline PreprocessorExitCode pp_parse_control_line(
 
 				PreprocessingAstNode* pp_tokens;
 				if (pp_parse_pp_tokens(
-					input, 
-					produced_lexema,
-					file_location_descriptor,
-					pp_tokens,
-					bkl,
-					true)
+						input, 
+						lexema_pool,
+						file_location_descriptor,
+						pp_tokens,
+						bkl,
+						true)
 					== PreprocessorExitCode::SUCCESS) {
 					stack[si++] = pp_tokens;
 				}
 				PreprocessingAstNode* new_line;
 				if (pp_parse_new_line(
-					input,
-					produced_lexema,
-					file_location_descriptor,
-					bkl, 
-					new_line)
+						input,
+						lexema_pool,
+						file_location_descriptor,
+						bkl, 
+						new_line)
 					== PreprocessorExitCode::SUCCESS) {
 					stack[si++] = new_line;
 
@@ -3614,21 +4770,22 @@ static inline PreprocessorExitCode pp_parse_control_line(
 
 				PreprocessingAstNode* pp_tokens;
 				if (pp_parse_pp_tokens(
-					input,
-					produced_lexema,
-					file_location_descriptor,
-					pp_tokens,
-					bkl,
-					true)
+						input,
+						lexema_pool,
+						file_location_descriptor,
+						pp_tokens,
+						bkl,
+						true)
 					== PreprocessorExitCode::SUCCESS) {
 					stack[si++] = pp_tokens;
 				}
 				PreprocessingAstNode* new_line;
 				if (pp_parse_new_line(
-					input, 
-					produced_lexema,
-					file_location_descriptor,
-					bkl, new_line)
+						input, 
+						lexema_pool,
+						file_location_descriptor,
+						bkl, 
+						new_line)
 					== PreprocessorExitCode::SUCCESS) {
 					should_generate = true;
 					alt = PreprocessingAstNodeAlt::CONTROL_LINE_9;
@@ -3636,26 +4793,16 @@ static inline PreprocessorExitCode pp_parse_control_line(
 			}
 
 		} else if (pp_parse_new_line(
-			           input,
-			           produced_lexema,
-			           file_location_descriptor,
-			           bkl, 
-			           new_line) 
-			       == PreprocessorExitCode::SUCCESS) {
+				       input,
+					   lexema_pool,
+					   file_location_descriptor,
+					   bkl,
+					   new_line)
+				   == PreprocessorExitCode::SUCCESS) { 
+			stack[si++] = new_line;
 
-			PreprocessingAstNode* new_line;
-			if (pp_parse_new_line(
-				input,
-				produced_lexema,
-				file_location_descriptor,
-				bkl, 
-				new_line)
-				== PreprocessorExitCode::SUCCESS) {
-				stack[si++] = new_line;
-
-				should_generate = true;
-				alt = PreprocessingAstNodeAlt::CONTROL_LINE_10;
-			}
+			should_generate = true;
+			alt = PreprocessingAstNodeAlt::CONTROL_LINE_10;
 		}
 	}
 	if (should_generate) {
@@ -3673,9 +4820,10 @@ static inline PreprocessorExitCode pp_parse_control_line(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_text_line(
+static inline
+PreprocessorExitCode pp_parse_text_line(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & text_line)
@@ -3688,19 +4836,19 @@ static inline PreprocessorExitCode pp_parse_text_line(
 
 	PreprocessingAstNode* pp_tokens;
 	if (pp_parse_pp_tokens(
-		input,
-		produced_lexema,
-		file_location_descriptor,
-		pp_tokens,
-		bkl,
-		false)
+			input,
+			lexema_pool,
+			file_location_descriptor,
+			pp_tokens,
+			bkl,
+			false)
 		== PreprocessorExitCode::SUCCESS) {
 		stack[si++] = pp_tokens;
 	}
 	PreprocessingAstNode* new_line;
 	if (pp_parse_new_line(
 			input,
-			produced_lexema,
+			lexema_pool,
 			file_location_descriptor,
 			bkl,
 			new_line)
@@ -3722,9 +4870,10 @@ static inline PreprocessorExitCode pp_parse_text_line(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_new_line(
+static inline
+PreprocessorExitCode pp_parse_new_line(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & new_line)
@@ -3737,13 +4886,16 @@ static inline PreprocessorExitCode pp_parse_new_line(
 			PreprocessingAstNodeName::NEW_LINE,
 			PreprocessingAstNodeAlt::NEW_LINE_1,
 			NULL);
+		file_location_descriptor.line_number++;
+		file_location_descriptor.character_number = 0;
 		input++;
 		exitcode = PreprocessorExitCode::SUCCESS;
 	}
 	return exitcode;
 }
 
-static inline bool is_directive(
+static inline
+bool is_directive(
 	const char* input)
 {
 	bool retval = false;
@@ -3868,8 +5020,8 @@ static inline bool is_directive(
 		&& *(input + 4) == 'm'
 		&& *(input + 5) == 'a'
 		&& (*(input + 6) == ' '
-		    || *(input + 6) == '\t')
-		    || *(input + 6) == '\n') {
+		    || *(input + 6) == '\t'
+		    || *(input + 6) == '\n')) {
 		retval = true;
 
 	} else {
@@ -3878,9 +5030,10 @@ static inline bool is_directive(
 	return retval;
 }
 
-static inline PreprocessorExitCode pp_parse_non_directive(
+static inline
+PreprocessorExitCode pp_parse_non_directive(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & non_directive)
@@ -3899,7 +5052,7 @@ static inline PreprocessorExitCode pp_parse_non_directive(
 	if (!is_directive(input) 
 		&& pp_parse_pp_tokens(
 		       input,
-		       produced_lexema,
+		       lexema_pool,
 		       file_location_descriptor,
 		       pp_tokens,
 		       bkl,
@@ -3910,7 +5063,7 @@ static inline PreprocessorExitCode pp_parse_non_directive(
 		PreprocessingAstNode* new_line;
 		if (pp_parse_new_line(
 			input,
-			produced_lexema,
+			lexema_pool,
 			file_location_descriptor,
 			bkl,
 			new_line)
@@ -3934,9 +5087,10 @@ static inline PreprocessorExitCode pp_parse_non_directive(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_lparen(
+static inline
+PreprocessorExitCode pp_parse_lparen(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & lparen)
@@ -3946,7 +5100,7 @@ static inline PreprocessorExitCode pp_parse_lparen(
 
 	PreprocessingAstNode* preprocessing_token;
 	if (pp_parse_preprocessing_token(input,
-		produced_lexema,
+		lexema_pool,
 		file_location_descriptor,
 		bkl,
 		preprocessing_token)
@@ -3962,9 +5116,10 @@ static inline PreprocessorExitCode pp_parse_lparen(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_parse_replacement_list(
+static inline
+PreprocessorExitCode pp_parse_replacement_list(
 	const char*            & input,
-	const char**           & produced_lexema,
+	LexemaPool             & lexema_pool,
 	FileLocationDescriptor & file_location_descriptor,
 	AlertList              & bkl,
 	PreprocessingAstNode*  & replacement_list)
@@ -3979,7 +5134,7 @@ static inline PreprocessorExitCode pp_parse_replacement_list(
 	PreprocessingAstNode* pp_tokens;
 	if (pp_parse_pp_tokens(
 		input,
-		produced_lexema,
+		lexema_pool,
 		file_location_descriptor,
 		pp_tokens,		
 		bkl,
@@ -3993,278 +5148,214 @@ static inline PreprocessorExitCode pp_parse_replacement_list(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_execute_preprocessing_file(
+static inline
+PreprocessorExitCode pp_execute_preprocessing_file(
 	PreprocessingAstNode* & preprocessing_file,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
+	AlertList             & bkl,
+	PreprocessingAstNode* & executed_preprocessing_file)
 {
 	PreprocessorExitCode exitcode 
 		= PreprocessorExitCode::SUCCESS;
-	return exitcode;
-}
 
-static inline PreprocessorExitCode pp_execute_group(
-	PreprocessingAstNode* & group,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_group_part(
-	PreprocessingAstNode* & group_part,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_if_section(
-	PreprocessingAstNode* & if_section,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_if_group(
-	PreprocessingAstNode* & if_group,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_elif_groups(
-	PreprocessingAstNode* & elif_groups,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_identifier_list(
-	PreprocessingAstNode* & identifier_list,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_constant_expression(
-	PreprocessingAstNode* & constant_expression,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_elif_group(
-	PreprocessingAstNode* & elif_group,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_else_group(
-	PreprocessingAstNode* & else_group,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_endif_line(
-	PreprocessingAstNode* & endif_line,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_control_line(
-	PreprocessingAstNode* & control_line,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode = PreprocessorExitCode::FAILURE;
-	switch (control_line->get_alt()) {
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_1:
-			break;
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_2:
-			break;
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_3:
-			break;
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_4:
-			break;
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_5:
-			break;
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_6:
-			break;
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_7:
-			break;
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_8:
-			break;
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_9:
-			break;
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_10:
-			break;
-	
-	}
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_text_line(
-	PreprocessingAstNode* & text_line,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::SUCCESS;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_new_line(
-	PreprocessingAstNode* & new_line,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::SUCCESS;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_non_directive(
-	PreprocessingAstNode* & non_directive,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::SUCCESS;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_lparen(
-	PreprocessingAstNode* & lparen,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::SUCCESS;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_execute_replacement_list(
-	PreprocessingAstNode* & replacement_list,
-	const char**          & produced_lexema,
-	AlertList             & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::SUCCESS;
-	
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_gen_preprocessing_file(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::SUCCESS;
-	
-	PreprocessingAstNode* group 
+	PreprocessingAstNode* group
 		= preprocessing_file->get_child();
+	SymbolTable symtab
+		= SymbolTable();
+
+	executed_preprocessing_file = new PreprocessingAstNode(
+		PreprocessingAstNodeName::PREPROCESSING_FILE,
+		PreprocessingAstNodeAlt::PREPROCESSING_FILE_1,
+		NULL);
+
 	if (group) {
-		 pp_gen_group(
-			 group, 
-			 output, 
-			 bkl);
+		PreprocessingAstNode* executed_group;
+		pp_execute_group(
+			group,
+			bkl,
+			symtab,
+			executed_group);
+		executed_preprocessing_file->add_child(executed_group);
+
 	}
 
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_gen_group(
-	PreprocessingAstNode* const& group,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
+static inline
+PreprocessorExitCode pp_insert_group_into_group(
+	PreprocessingAstNode* & former_group,
+	PreprocessingAstNode* & latter_group,
+	SymbolTable           & symtab)
 {
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::SUCCESS;
+	PreprocessorExitCode exitcode
+		= PreprocessorExitCode::FAILURE;
 
-	switch (group->get_alt()) {
+	switch (latter_group->get_alt()) {
 
 		case PreprocessingAstNodeAlt::GROUP_1:
 		{
-			PreprocessingAstNode* group_part
-				= group->get_child();
-			pp_gen_group_part(
-				group_part,
-				output,
-				bkl);
+			PreprocessingAstNode* latter_group_group_part
+				= latter_group->get_child();
+			PreprocessingAstNode* higher_group
+				= new PreprocessingAstNode(
+					PreprocessingAstNodeName::GROUP,
+					PreprocessingAstNodeAlt::GROUP_2,
+					NULL);
+			higher_group->add_child(
+				former_group);
+			higher_group->add_child(
+				latter_group_group_part);
+			former_group
+				= higher_group;
+			exitcode
+				= PreprocessorExitCode::SUCCESS;
 			break;
 		}
 
-		case PreprocessingAstNodeAlt::GROUP_2:
+		case PreprocessingAstNodeAlt::PP_TOKENS_2:
 		{
-			PreprocessingAstNode* lesser_group
-				= group->get_child();
-			PreprocessingAstNode* group_part
-				= lesser_group->get_sibling();
-			pp_gen_group(
-				lesser_group,
-				output,
-				bkl);
-			pp_gen_group_part(
-				group_part,
-				output,
-				bkl);
+			PreprocessingAstNode* latter_group_group
+				= latter_group->get_child();
+			PreprocessingAstNode* latter_group_group_part
+				= latter_group_group->get_sibling();
+
+			pp_insert_group_into_group(
+				former_group,
+				latter_group_group,
+				symtab);
+			PreprocessingAstNode* higher_group
+				= new PreprocessingAstNode(
+					PreprocessingAstNodeName::GROUP,
+					PreprocessingAstNodeAlt::GROUP_2,
+					NULL);
+			higher_group->add_child(
+				former_group);
+			higher_group->add_child(
+				latter_group_group_part);
+			former_group
+				= higher_group;
+			exitcode
+				= PreprocessorExitCode::SUCCESS;
 			break;
 		}
 
 		default:
 			break;
 	}
+
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_gen_group_part(
-	PreprocessingAstNode* const& group_part,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
+static inline
+PreprocessorExitCode pp_execute_group(
+	PreprocessingAstNode* & group,
+	AlertList             & bkl,
+	SymbolTable           & symtab,
+	PreprocessingAstNode* & executed_group)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+
+	switch (group->get_alt()) {
+	
+		case PreprocessingAstNodeAlt::GROUP_1:
+		{	
+			PreprocessingAstNode* group_part			
+				= group->get_child();			
+			PreprocessingAstNode* executed_group_part
+				= NULL;
+
+			if (pp_execute_group_part(
+					group_part,
+					bkl,
+					symtab,
+					executed_group_part)
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+			if (executed_group_part) {
+				executed_group
+					= new PreprocessingAstNode(
+						PreprocessingAstNodeName::GROUP,
+						PreprocessingAstNodeAlt::GROUP_1,
+						NULL);
+				executed_group->add_child(executed_group_part);
+			
+			} else {
+				executed_group = NULL;
+			}
+
+			exitcode 
+				= PreprocessorExitCode::SUCCESS;
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::GROUP_2:
+		{
+			PreprocessingAstNode* lower_group
+				= group->get_child();
+			PreprocessingAstNode* group_part
+				= lower_group->get_sibling();
+
+			PreprocessingAstNode* executed_former_group;
+			if (pp_execute_group(
+					lower_group,
+					bkl,
+					symtab,
+					executed_former_group)
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+			PreprocessingAstNode* executed_latter_group;
+			if (pp_execute_group_part(
+					group_part,
+					bkl,
+				 	symtab,
+					executed_latter_group)
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+
+			if (executed_former_group) {
+
+				if (executed_latter_group) {
+					pp_insert_group_into_group(
+						executed_former_group,
+						executed_latter_group,
+						symtab);
+				} 
+
+				executed_group 
+					= executed_former_group;
+
+			} else if (executed_latter_group) {
+				executed_group
+					= executed_latter_group;
+
+			} else {
+				executed_group 
+					= NULL;
+			}
+
+			exitcode 
+				= PreprocessorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
+
+	}
+
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_group_part(
+	PreprocessingAstNode*       & group_part,
+	AlertList                   & bkl,
+	SymbolTable                 & symtab,
+	PreprocessingAstNode*       & executed_group_part)
 {
 	PreprocessorExitCode exitcode 
 		= PreprocessorExitCode::FAILURE;
@@ -4275,12 +5366,16 @@ static inline PreprocessorExitCode pp_gen_group_part(
 		{
 			PreprocessingAstNode* if_section
 				= group_part->get_child();
-			pp_gen_if_section(
-				if_section,
-				output,
-				bkl);
-			exitcode
-				= PreprocessorExitCode::SUCCESS;
+			if (pp_execute_if_section(
+					if_section,
+					bkl,
+					symtab,
+					executed_group_part
+				)
+				== PreprocessorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = PreprocessorExitCode::SUCCESS;
 			break;
 		}
 
@@ -4288,12 +5383,15 @@ static inline PreprocessorExitCode pp_gen_group_part(
 		{
 			PreprocessingAstNode* control_line
 				= group_part->get_child();
-			pp_gen_control_line(
-				control_line,
-				output,
-				bkl);
-			exitcode
-				= PreprocessorExitCode::SUCCESS;
+			if (pp_execute_control_line(
+					control_line, 
+					group_part,
+					bkl, 
+					symtab)
+				== PreprocessorExitCode::FAILURE) {
+				break;
+			}
+			exitcode = PreprocessorExitCode::SUCCESS;
 			break;
 		}
 
@@ -4301,10 +5399,898 @@ static inline PreprocessorExitCode pp_gen_group_part(
 		{
 			PreprocessingAstNode* text_line
 				= group_part->get_child();
-			pp_gen_text_line(
+			if (pp_execute_text_line(
+					text_line,
+					bkl,
+					symtab) 
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+			executed_group_part = group_part;
+			exitcode = PreprocessorExitCode::SUCCESS;
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::GROUP_PART_4:
+		{
+			PreprocessingAstNode* non_directive
+				= group_part->get_child();
+			if (pp_execute_non_directive(
+					non_directive,
+					bkl,
+					symtab)
+				== PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+			exitcode = PreprocessorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
+	}
+
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_if_section(
+	PreprocessingAstNode*       & if_section,
+	AlertList                   & bkl,
+	SymbolTable                 & symtab,	
+	PreprocessingAstNode*       & executed_group)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+
+	PreprocessingAstNode* if_group
+		= if_section->get_child();
+	PreprocessingAstNode* if_group_sibling
+		= if_group->get_sibling();
+	PreprocessingAstNode* elif_groups
+		= (if_group_sibling->get_name()
+		   == PreprocessingAstNodeName::ELIF_GROUPS)
+		  ? if_group_sibling
+		  : NULL;
+	PreprocessingAstNode* else_group
+		= elif_groups
+		  ? ((elif_groups->get_sibling()->get_name()
+		      == PreprocessingAstNodeName::ELIF_GROUPS)
+		     ? elif_groups->get_sibling()
+		     : NULL)
+		  : ((if_group_sibling->get_name()
+		      == PreprocessingAstNodeName::ELSE_GROUP)
+		     ? if_group_sibling
+			 : NULL);
+	PreprocessingAstNode* endif_line
+		= else_group
+		  ? else_group->get_sibling()
+		  : (elif_groups 
+		     ? elif_groups->get_sibling()
+		     : if_group->get_sibling());
+
+	pp_execute_if_group(
+		if_group,
+		bkl,
+		symtab,
+		executed_group);
+	if (elif_groups) {
+		pp_execute_elif_groups(
+			elif_groups,
+			bkl,
+			symtab);
+	}
+	if (else_group) {
+		pp_execute_else_group(
+			else_group,
+			bkl,
+			symtab);
+	}
+	pp_execute_endif_line(
+		endif_line,
+		bkl,
+		symtab);
+
+	exitcode = PreprocessorExitCode::SUCCESS;
+
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_if_group(
+	PreprocessingAstNode*       & if_group,
+	AlertList                   & bkl,
+	SymbolTable                 & symtab,
+	PreprocessingAstNode*       & executed_group)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+
+	switch (if_group->get_alt()) {
+
+		case PreprocessingAstNodeAlt::IF_GROUP_1:
+		{
+			PreprocessingAstNode* constant_expression
+				= if_group->get_child();
+			PreprocessingAstNode* new_line
+				= constant_expression->get_sibling();
+			PreprocessingAstNode* lower_group
+				= new_line->get_sibling();
+
+			PreprocessingToken preprocessing_tokens[16]
+				= { };
+			PreprocessingToken* preprocessing_tokens_ptr
+				= preprocessing_tokens;
+
+			/* Get the Tokens within the conditional expression. */
+			pp_gen_pp_tokens(
+				constant_expression->get_child(),
+				preprocessing_tokens_ptr,
+				bkl,
+				symtab);
+			int num_preprocessing_tokens
+				= preprocessing_tokens_ptr 
+				  - preprocessing_tokens;
+
+			preprocessing_tokens_ptr
+				= preprocessing_tokens;
+			Token tokens[16]
+				= { };
+			Token* tokens_ptr
+				= tokens;
+
+			lex(
+				preprocessing_tokens_ptr,
+				tokens_ptr,
+				num_preprocessing_tokens,
+				bkl);
+
+			/* Get the Abstract Syntax Tree associated
+				with the conditional expression. */
+			const Token* new_tokens_ptr
+				= tokens;
+			AstNode* ast_constant_expression;
+			parse_constant_expression(
+				NULL,
+				new_tokens_ptr,
+				ast_constant_expression);
+
+			/* Annotate the abstract syntax tree associated
+				with the conditional expression. */
+			AnnotatedAstNode* anno_ast_constant_expression;
+			construct_unatrributed_annotated_ast(
+				ast_constant_expression,
+				anno_ast_constant_expression);
+			SymbolTable* symtab = new SymbolTable();
+			visit_constant_expression(
+				anno_ast_constant_expression,
+				symtab);
+
+			uint64_t constant_expression_val
+				= 0;
+
+			constant_expression_val
+				= anno_ast_constant_expression->get_constant_val()
+				  != 0;
+
+			if (constant_expression_val) {
+				executed_group = lower_group;
+			}
+			exitcode = PreprocessorExitCode::SUCCESS;
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::IF_GROUP_2:
+		{	
+			PreprocessingAstNode* identifier
+				= if_group->get_child();
+			PreprocessingAstNode* new_line
+				= identifier->get_sibling();
+			PreprocessingAstNode* group
+				= new_line->get_sibling();
+			break;
+		}
+		
+		case PreprocessingAstNodeAlt::IF_GROUP_3:
+		{
+			PreprocessingAstNode* identifier
+				= if_group->get_child();
+			PreprocessingAstNode* new_line
+				= identifier->get_sibling();
+			PreprocessingAstNode* group
+				= new_line->get_sibling();
+
+			break;
+		}
+
+		default:
+			break;
+
+	}
+
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_elif_groups(
+	PreprocessingAstNode* & elif_groups,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+
+	switch (elif_groups->get_alt()) {
+
+		case PreprocessingAstNodeAlt::ELIF_GROUPS_1:
+		{
+			PreprocessingAstNode* elif_group
+				= elif_groups->get_child();
+			if (pp_execute_elif_group(
+					elif_group,
+					bkl,
+					symtab)
+				== PreprocessorExitCode::FAILURE) {
+				break;
+			}
+			exitcode
+				= PreprocessorExitCode::SUCCESS;
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::ELIF_GROUPS_2:
+		{
+			PreprocessingAstNode* lesser_elif_groups
+				= elif_groups->get_child();
+			PreprocessingAstNode* elif_group
+				= lesser_elif_groups->get_sibling();
+			if (pp_execute_elif_groups(
+					lesser_elif_groups,
+					bkl,
+					symtab)
+				== PreprocessorExitCode::FAILURE) {
+				break;
+			}
+			if (pp_execute_elif_group(
+					elif_group,
+					bkl,
+					symtab)
+				== PreprocessorExitCode::FAILURE) {
+				break;
+			}
+			exitcode
+				= PreprocessorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
+
+	}
+
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_identifier_list(
+	PreprocessingAstNode* & identifier_list,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_constant_expression(
+	PreprocessingAstNode* & constant_expression,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_elif_group(
+	PreprocessingAstNode* & elif_group,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_else_group(
+	PreprocessingAstNode* & else_group,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_endif_line(
+	PreprocessingAstNode* & endif_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_control_line_1(
+	PreprocessingAstNode* & control_line,
+	PreprocessingAstNode* & group_part,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	/* TODO; */
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_control_line_2(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+
+	PreprocessingAstNode* identifier
+		= control_line->get_child();
+	PreprocessingAstNode* replacement_list
+		= identifier->get_sibling();
+
+	PreprocessingToken* terminal
+		= identifier->get_terminal();
+	const char* lexeme 
+		= terminal->get_lexeme();
+
+	symtab.add_entry(
+		lexeme);
+	SymbolTableEntry* entry 
+		= symtab.get_entry(lexeme);
+	entry->identifier_type  
+		= IdentifierClassifier::MACRO_NAME;
+	entry->replacement_list 
+		= replacement_list;
+
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_control_line_3(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	switch (control_line->get_alt()) {
+
+	}
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_control_line_4(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	switch (control_line->get_alt()) {
+
+	}
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_control_line_5(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	switch (control_line->get_alt()) {
+
+	}
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_control_line_6(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable			  & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_control_line_7(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	switch (control_line->get_alt()) {
+
+	}
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_control_line_8(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	switch (control_line->get_alt()) {
+
+	}
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_control_line_9(
+	PreprocessingAstNode* & control_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+	switch (control_line->get_alt()) {
+
+	}
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_control_line(
+	PreprocessingAstNode* & control_line,
+	PreprocessingAstNode* & group_part,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode = PreprocessorExitCode::FAILURE;
+	switch (control_line->get_alt()) {
+
+		case PreprocessingAstNodeAlt::CONTROL_LINE_1:
+		{
+			pp_execute_control_line_1(
+				control_line,
+				group_part,
+				bkl,
+				symtab);
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::CONTROL_LINE_2:
+		{
+			pp_execute_control_line_2(
+				control_line,
+				bkl,
+				symtab);
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::CONTROL_LINE_3:
+		{
+			pp_execute_control_line_3(
+				control_line,
+				bkl,
+				symtab);
+			break;
+		}
+		
+		case PreprocessingAstNodeAlt::CONTROL_LINE_4:
+		{
+			pp_execute_control_line_4(
+				control_line,
+				bkl,
+				symtab);
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::CONTROL_LINE_5:
+		{
+			pp_execute_control_line_5(
+				control_line,
+				bkl,
+				symtab);
+			break;
+		}
+		
+		case PreprocessingAstNodeAlt::CONTROL_LINE_6:
+		{	pp_execute_control_line_6(
+				control_line,
+				bkl,
+				symtab);
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::CONTROL_LINE_7:
+		{
+			pp_execute_control_line_7(
+				control_line,
+				bkl,
+				symtab);
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::CONTROL_LINE_8:
+		{
+			pp_execute_control_line_8(
+				control_line,
+				bkl,
+				symtab);
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::CONTROL_LINE_9:
+		{
+			pp_execute_control_line_9(
+				control_line,
+				bkl,
+				symtab);
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::CONTROL_LINE_10:
+		{
+			exitcode = PreprocessorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
+	}
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_text_line(
+	PreprocessingAstNode* & text_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::SUCCESS;
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_new_line(
+	PreprocessingAstNode* & new_line,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::SUCCESS;
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_non_directive(
+	PreprocessingAstNode* & non_directive,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::SUCCESS;
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_lparen(
+	PreprocessingAstNode* & lparen,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::SUCCESS;
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_replacement_list(
+	PreprocessingAstNode* & replacement_list,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::SUCCESS;
+	
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_insert_macro_replacement_list(
+	PreprocessingAstNode* & replacement_list,
+	PreprocessingAstNode* & pp_tokens,
+	SymbolTable           & symtab)
+{ 
+	PreprocessorExitCode exitcode
+		= PreprocessorExitCode::FAILURE;
+
+	switch (pp_tokens->get_alt()) {
+
+		case PreprocessingAstNodeAlt::PP_TOKENS_1:
+		{
+			PreprocessingAstNode* preprocessing_token
+				= pp_tokens->get_child();
+			PreprocessingAstNode* lower_pp_tokens
+				= replacement_list->get_child();
+			PreprocessingAstNode* higher_pp_tokens
+				= new PreprocessingAstNode(
+					PreprocessingAstNodeName::PP_TOKENS,
+					PreprocessingAstNodeAlt::PP_TOKENS_2,
+					NULL);
+			higher_pp_tokens->add_child(
+				lower_pp_tokens);
+			higher_pp_tokens->add_child(
+				preprocessing_token);
+			pp_tokens
+				= higher_pp_tokens;
+			exitcode
+				= PreprocessorExitCode::SUCCESS;
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::PP_TOKENS_2:
+		{
+			PreprocessingAstNode* lower_pp_tokens
+				= replacement_list->get_child();
+			pp_insert_macro_replacement_list(
+				replacement_list,
+				lower_pp_tokens,
+				symtab);
+			exitcode
+				= PreprocessorExitCode::SUCCESS;
+			break;
+		}
+
+		default:
+			break;
+	}
+
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_execute_pp_tokens(
+	PreprocessingAstNode* & pp_tokens,
+	AlertList             & bkl,
+	SymbolTable           & symtab)
+{
+	PreprocessorExitCode exitcode
+		= PreprocessorExitCode::SUCCESS;
+
+	/* Macro Invocation. */
+	switch (pp_tokens->get_alt()) {
+
+		case PreprocessingAstNodeAlt::PP_TOKENS_1:
+		{
+			PreprocessingAstNode* preprocessing_token
+				= pp_tokens->get_child();
+
+			PreprocessingToken* const terminal
+				= preprocessing_token->get_terminal();
+			if (terminal->get_name()
+				== PreprocessingTokenName::IDENTIFIER) {
+
+				const char* lexeme
+					= terminal->get_lexeme();
+				SymbolTableEntry* entry
+					= symtab.get_entry(lexeme);
+				if (entry != NULL
+					&& (entry->identifier_type 
+					    == IdentifierClassifier::MACRO_NAME)) {
+
+					/* Insert the tokens within the macro here. */
+					PreprocessingAstNode* replacement_list
+						= entry->replacement_list;
+					pp_insert_macro_replacement_list(
+						replacement_list,
+						pp_tokens,
+						symtab);
+				}
+			}
+			break;
+		}
+		
+		case PreprocessingAstNodeAlt::PP_TOKENS_2:
+		{
+			PreprocessingAstNode* lower_pp_tokens
+				= pp_tokens->get_child();
+			PreprocessingAstNode* preprocessing_token
+				= lower_pp_tokens->get_sibling();
+
+			PreprocessingToken* const terminal
+				= preprocessing_token->get_terminal();
+			if (terminal->get_name()
+				== PreprocessingTokenName::IDENTIFIER) {
+
+				const char* lexeme
+					= terminal->get_lexeme();
+				SymbolTableEntry* entry
+					= symtab.get_entry(lexeme);
+				if (entry != NULL
+					&& (entry->identifier_type
+						== IdentifierClassifier::MACRO_NAME)) {
+
+					/* Insert the tokens within the macro here. */
+					PreprocessingAstNode* replacement_list
+						= entry->replacement_list;
+					pp_insert_macro_replacement_list(
+						replacement_list,
+						pp_tokens,
+						symtab);
+				}
+			}
+			break;
+		}
+		
+		default:
+			break;
+	}
+
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_gen_preprocessing_file(
+	PreprocessingAstNode* const& preprocessing_file,
+	PreprocessingToken*        & output,
+	AlertList                  & bkl,
+	SymbolTable                & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::SUCCESS;
+	
+	symtab = SymbolTable();
+
+	PreprocessingAstNode* group 
+		= preprocessing_file->get_child();
+	if (group) {
+
+		if (pp_gen_group(
+				group,
+				output,
+				bkl, 
+				symtab)
+			== PreprocessorExitCode::SUCCESS) {
+			exitcode 
+				= PreprocessorExitCode::SUCCESS;
+		}
+
+	} else {
+		exitcode 
+			= PreprocessorExitCode::SUCCESS;
+	}
+
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_gen_group(
+	PreprocessingAstNode* const& group,
+	PreprocessingToken*        & output,
+	AlertList                  & bkl,
+	SymbolTable                & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::SUCCESS;
+
+	switch (group->get_alt()) {
+
+		case PreprocessingAstNodeAlt::GROUP_1:
+		{
+			PreprocessingAstNode* group_part
+				= group->get_child();
+			if (pp_gen_group_part(
+					group_part,
+					output,
+					bkl,
+					symtab)
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::GROUP_2:
+		{
+			PreprocessingAstNode* lesser_group
+				= group->get_child();
+			PreprocessingAstNode* group_part
+				= lesser_group->get_sibling();
+			if (pp_gen_group(
+					lesser_group,
+					output,
+					bkl,
+					symtab)
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+			if (pp_gen_group_part(
+					group_part,
+					output,
+					bkl,
+					symtab)
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+			break;
+		}
+
+		default:
+			break;
+	}
+	return exitcode;
+}
+
+static inline
+PreprocessorExitCode pp_gen_group_part(
+	PreprocessingAstNode* const& group_part,
+	PreprocessingToken*        & output,
+	AlertList                  & bkl,
+	SymbolTable                & symtab)
+{
+	PreprocessorExitCode exitcode 
+		= PreprocessorExitCode::FAILURE;
+
+	switch (group_part->get_alt()) {
+
+		case PreprocessingAstNodeAlt::GROUP_PART_1:
+		{
+			/* Cannot generate tokens from
+			   an if-section, it is a directive 
+			   not text. */
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::GROUP_PART_2:
+		{
+			/* Cannot generate tokens from
+			   a control-line, it is a directive
+			   not text. */
+			break;
+		}
+
+		case PreprocessingAstNodeAlt::GROUP_PART_3:
+		{
+			PreprocessingAstNode* text_line
+				= group_part->get_child();
+			if (pp_gen_text_line(
 				text_line,
 				output,
-				bkl);
+				bkl,
+				symtab)
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
 			exitcode
 				= PreprocessorExitCode::SUCCESS;
 			break;
@@ -4317,7 +6303,8 @@ static inline PreprocessorExitCode pp_gen_group_part(
 			pp_gen_non_directive(
 				non_directive,
 				output,
-				bkl);
+				bkl,
+				symtab);
 			exitcode
 				= PreprocessorExitCode::SUCCESS;
 			break;
@@ -4331,222 +6318,55 @@ static inline PreprocessorExitCode pp_gen_group_part(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_gen_if_section(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	//TODO;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_gen_elif_groups(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
-{
-	PreprocessorExitCode exitcode
-		= PreprocessorExitCode::FAILURE;
-	//TODO;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_gen_elif_group(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	//TODO;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_gen_else_group(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	//TODO;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_gen_endif(
-	PreprocessingAstNode* const& preprocessing_file,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	//TODO;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_gen_control_line(
-	PreprocessingAstNode* const& control_line,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::FAILURE;
-	switch (control_line->get_alt()) {
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_1:
-		{
-			/* Inclusion Logic. TODO; */
-			PreprocessingAstNode* pp_tokens
-				= control_line->get_child();
-			break;
-		}
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_2:
-		{
-			/* Define Logic. TODO; */
-			break;
-		}
-		
-		case PreprocessingAstNodeAlt::CONTROL_LINE_3:
-		{
-			/* Define Logic. TODO;*/
-			break;
-		}
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_4:
-		{
-			/* Define Logic. TODO;*/
-			break;
-		}
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_5:
-		{
-			/* Define logic. TODO. */
-			break;
-		}
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_6:
-		{	
-			/* Undef Logic. TODO; */
-			break;
-		}
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_7:
-		{
-			/* Line Logic. TODO; */
-			break;
-		}
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_8:
-		{
-			/* Error Logic. TODO; */
-			break;
-		}
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_9:
-		{
-			/* Pragma Logic. TODO; */
-			break;
-		}
-
-		case PreprocessingAstNodeAlt::CONTROL_LINE_10:
-		{
-			exitcode = PreprocessorExitCode::SUCCESS;
-			break; 
-		}
-
-		default:
-			break;
-
-	}
-	//TODO;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_gen_text_line(
+static inline
+PreprocessorExitCode pp_gen_text_line(
 	PreprocessingAstNode* const& text_line,
 	PreprocessingToken*        & output,
-	AlertList                  & bkl)
+	AlertList                  & bkl,
+	SymbolTable                & symtab)
 {
 	PreprocessorExitCode exitcode 
 		= PreprocessorExitCode::SUCCESS;
 
 	PreprocessingAstNode* pp_tokens
 		= text_line->get_child();
-	if (pp_tokens) {
-		pp_gen_pp_tokens(
-			pp_tokens,
-			output,
-			bkl);
+	if (pp_tokens
+		&& pp_gen_pp_tokens(
+		       pp_tokens,
+			   output,
+			   bkl,
+			   symtab)
+			== PreprocessorExitCode::SUCCESS) {
+		exitcode 
+			= PreprocessorExitCode::SUCCESS;
+	} else {
+		exitcode
+			= PreprocessorExitCode::SUCCESS;
 	}
 
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_gen_non_directive(
+static inline
+PreprocessorExitCode pp_gen_non_directive(
 	PreprocessingAstNode* const& non_directive,
 	PreprocessingToken*        & output,
-	AlertList                  & bkl)
+	AlertList                  & bkl,
+	SymbolTable                & symtab)
 {
 	PreprocessorExitCode exitcode 
 		= PreprocessorExitCode::SUCCESS;
-
-	PreprocessingAstNode* pp_tokens 
-		= non_directive->get_child();
-	pp_gen_pp_tokens(
-		pp_tokens,
-		output,
-		bkl);
-
+	/* Do not need to do anything in this case, 
+	   much like a comment it is ignored. */
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_gen_lparen(
-	PreprocessingAstNode* const& lparen,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::SUCCESS;
-
-	PreprocessingAstNode* preprocessing_token
-		= lparen->get_child();
-	if (preprocessing_token) {
-		pp_gen_preprocessing_token(
-			preprocessing_token,
-			output,
-			bkl);
-	}
-
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_gen_replacement_list(
-	PreprocessingAstNode* const& replacement_list,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::SUCCESS;
-
-	PreprocessingAstNode* pp_tokens
-		= replacement_list->get_child();
-	if (pp_tokens) {
-		pp_gen_pp_tokens(
-			pp_tokens, 
-			output, 
-			bkl);
-	}
-
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_gen_pp_tokens(
+static inline
+PreprocessorExitCode pp_gen_pp_tokens(
 	PreprocessingAstNode* const& pp_tokens,
 	PreprocessingToken*        & output,
-	AlertList                  & bkl)
+	AlertList                  & bkl,
+	SymbolTable                & symtab)
 {
 	PreprocessorExitCode exitcode 
 		= PreprocessorExitCode::FAILURE;
@@ -4557,11 +6377,16 @@ static inline PreprocessorExitCode pp_gen_pp_tokens(
 		{
 			PreprocessingAstNode* preprocessing_token
 				= pp_tokens->get_child();
-			pp_gen_preprocessing_token(
-				preprocessing_token,
-				output,
-				bkl);
-			exitcode = PreprocessorExitCode::SUCCESS;
+			if (pp_gen_preprocessing_token(
+					preprocessing_token,
+					output,
+					bkl,
+					symtab) 
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+			exitcode 
+				= PreprocessorExitCode::SUCCESS;
 			break;
 		}
 
@@ -4571,15 +6396,24 @@ static inline PreprocessorExitCode pp_gen_pp_tokens(
 				= pp_tokens->get_child();
 			PreprocessingAstNode* preprocessing_token
 				= lesser_pp_tokens->get_sibling();
-			pp_gen_pp_tokens(
-				lesser_pp_tokens,
-				output,
-				bkl);
-			pp_gen_preprocessing_token(
-				preprocessing_token,
-				output,
-				bkl);
-			exitcode = PreprocessorExitCode::SUCCESS;
+			if (pp_gen_pp_tokens(
+					lesser_pp_tokens,
+					output,
+					bkl,
+					symtab)
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+			if (pp_gen_preprocessing_token(
+					preprocessing_token,
+					output,
+					bkl,
+					symtab)
+				!= PreprocessorExitCode::SUCCESS) {
+				break;
+			}
+			exitcode 
+				= PreprocessorExitCode::SUCCESS;
 			break;
 		}
 
@@ -4590,28 +6424,21 @@ static inline PreprocessorExitCode pp_gen_pp_tokens(
 	return exitcode;
 }
 
-static inline PreprocessorExitCode pp_gen_new_line(
-	PreprocessingAstNode* const& new_line,
-	PreprocessingToken*        & output,
-	AlertList                  & bkl)
-{
-	PreprocessorExitCode exitcode 
-		= PreprocessorExitCode::SUCCESS;
-	return exitcode;
-}
-
-static inline PreprocessorExitCode pp_gen_preprocessing_token(
+static inline
+PreprocessorExitCode pp_gen_preprocessing_token(
 	PreprocessingAstNode* const& preprocessing_token,
 	PreprocessingToken*        & output,
-	AlertList                  & bkl) 
+	AlertList                  & bkl,
+	SymbolTable                & symtab)
 {
 	*output++ = *(preprocessing_token->get_terminal());
 	return PreprocessorExitCode::SUCCESS;
 }
 
-static inline PreprocessorExitCode preprocess(
+static inline
+PreprocessorExitCode preprocess(
 	const char*              & input,
-	const char**             & produced_lexema, 
+	LexemaPool               & lexema_pool,
 	const char*         const& filename,
 	AlertList                & bkl,
 	PreprocessingToken*      & pp_tokens)
@@ -4621,21 +6448,31 @@ static inline PreprocessorExitCode preprocess(
 	FileLocationDescriptor file_location_descriptor
 		= FileLocationDescriptor( 
 			  { filename, 0, 0, 0 } );
+	/* Parse the Preprocessing File */
 	PreprocessingAstNode* preprocessing_file;
+	SymbolTable symtab;
 	pp_parse_preprocessing_file(
 		input,
-		produced_lexema,
+		lexema_pool,
 		file_location_descriptor,
 		bkl,
 		preprocessing_file);
+	/* Execute the preprocessing file, 
+	   acting on given directives. */
+	PreprocessingAstNode* executed_preprocessing_file;
 	pp_execute_preprocessing_file(
 		preprocessing_file,
-		produced_lexema,
-		bkl);
+		bkl,
+		executed_preprocessing_file);
+	/* Convert the directed preprocessing ast node 
+	   tree back into a series of preprocessing 
+	   tokens suitable for input into the lexer.   */
 	pp_gen_preprocessing_file(
-		preprocessing_file,
+		executed_preprocessing_file,
 		pp_tokens,
-		bkl);
+		bkl,
+		symtab);
+
 	return exitcode;
 }
 

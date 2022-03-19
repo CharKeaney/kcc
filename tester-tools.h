@@ -1,3 +1,6 @@
+/* Authored By Charlie Keaney                    */
+/* symbol-table.h - Responsible for representing
+					tools used by all testers.   */
 
 #ifndef TESTER_TOOLS_H
 #define TESTER_TOOLS_H 1
@@ -13,12 +16,15 @@ inline void print_to_output(
 	const char* const& val_to_print, 
 	char*            & output) 
 {
-	for (const char* c = val_to_print; *c != NULL; ) {
+	for (const char* c = val_to_print; 
+		 *c != NULL; 
+		 ) {
 		*output++ = *c++;
 	}
 }
 
-static inline void present_test_set_synopsis(
+static inline
+void present_test_set_synopsis(
 	const char*       & title,
 	TestResult   const& test_set_result,
 	TestResult*  const& subtest_results,

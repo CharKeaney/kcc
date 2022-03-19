@@ -1,9 +1,18 @@
+/* Authored By Charlie Keaney             */
+/* token.h - Responsible for representing 
+*            a token.                     */
 
 #ifndef TOKEN_H
 #define TOKEN_H 1
 
 #include <iostream>
 #include "preprocessing-token.h"
+
+#define NUM_TOKEN_NAMES 6
+
+/*****************************************************//**
+*                      Declarations                      *
+/********************************************************/
 
 using namespace std;
 
@@ -15,9 +24,9 @@ enum class TokenName {
 	PUNCTUATOR,
 	ERROR
 };
-#define NUM_TOKEN_NAMES 6
 
-static const char* token_name_string_reprs[] {
+static 
+const char* token_name_string_reprs[] {
 	"KEYWORD",
 	"IDENTIFIER",
 	"CONSTANT",
@@ -27,7 +36,6 @@ static const char* token_name_string_reprs[] {
 };
 #define token_name_string(p) \
 		token_name_string_reprs[(int) p]
-
 
 enum class TokenForm {
 	/* Mark as no specific form */
@@ -101,7 +109,6 @@ enum class TokenForm {
 	GREATER_THAN,
 	LESS_THAN_EQUAL,
 	GREATER_THAN_EQUAL,
-
 	EQUAL,
 	NOT_EQUAL,
 	XOR,
@@ -135,7 +142,8 @@ enum class TokenForm {
 };
 #define NUM_TOKEN_FORMS 97
 
-static const char* token_form_string_reprs[] {
+static 
+const char* token_form_string_reprs[] {
 	"SIMPLE",
 	"AUTO",
 	"BREAK",

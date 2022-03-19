@@ -1,3 +1,8 @@
+/* Authored By Charlie Keaney                    */
+/* symbol-table.h - Responsible for representing
+                    symbol tables that store
+					information on each symbol.  */
+
 #ifndef SYMBOL_TABLE_H
 #define SYMBOL_TABLE_H 1
 
@@ -6,47 +11,10 @@
 #include <iostream>
 #include <iomanip>
 
+#include "preprocessor.h"
 #include "semantics.h"
 
 #define DEBUG_TYPE_SHOW_NULL_DUPLICATION 0
-
-using namespace std;
-
-struct SymbolTableEntry {
-	/*     Key data.          */
-	const char*          symbol;
-	SymbolTableEntry*    next_entry;
-	/*   General Attributes.           */
-	IdentifierClassifier identifier_type;
-	bool                 is_literal;
-	int                  value;
-	int                  base_pointer_offset;
-	const Type*          type;
-	int                  number_formal_parameters;
-	SymbolTableEntry*    function_ptr;
-	int                  function_frame_size;
-	Scope                scope;		
-	/* Attributes added during code generation.*/
-	const char*          literal_constant_ptr_label;
-};
-
-static inline SymbolTableEntry construct_symbol_table_entry(
-	const char* const& symbol)
-{
-	SymbolTableEntry result = {
-		symbol,
-		NULL,
-		IdentifierClassifier::UNDEFINED,
-		0,
-		0,
-		false,
-		NULL,
-		0,
-		0,
-		NULL 
-	};
-	return result;
-}
 
 #define ST_PRINT_SYMBOL_WIDTH
 #define ST_PRINT_IDENTIFIER_TYPE_WIDTH
@@ -59,7 +27,192 @@ static inline SymbolTableEntry construct_symbol_table_entry(
 #define ST_PRINT_FRAME_SIZE
 #define ST_PRINT_TYPE
 
-static inline void print_symbol_table_entry_header()
+#define NUM_SYMBOL_TABLE_ENTRIES 6151
+
+/*****************************************************//**
+*                      Declarations                      *
+/********************************************************/
+
+using namespace std;
+
+class PreprocessingAstNode;
+
+struct SymbolTableEntry {
+	/*     Key data.          */
+	const char*           symbol;
+	SymbolTableEntry*     next_entry;
+	/*   General Attributes.           */
+	IdentifierClassifier  identifier_type;
+	bool                  is_literal;
+	int                   value;
+	int                   base_pointer_offset;
+	const Type*           type;
+	int                   number_formal_parameters;
+	SymbolTableEntry*     function_ptr;
+	int                   function_frame_size;
+	Scope                 scope;
+	PreprocessingAstNode* replacement_list;
+	/* Attributes added during code generation.   */
+	const char*           literal_constant_ptr_label;
+};
+
+static inline
+SymbolTableEntry construct_symbol_table_entry(
+	const char* const& symbol);
+
+static inline
+void print_symbol_table_entry_header();
+
+static inline
+void print_symbol_table_entry_content(
+	const SymbolTableEntry* const& entry);
+
+class SymbolTable {
+private:
+	SymbolTableEntry* entries[NUM_SYMBOL_TABLE_ENTRIES] = { };
+
+	unsigned int hash(const char* const& x) const
+	{
+		long long string_val = 0;
+		for (const char* c = x; *c; c++) {
+			string_val += 256 * *c;
+		}
+		const unsigned int h 
+			= (string_val * 12289) 
+			  % 6151;
+		return h;
+	}
+public:
+	inline SymbolTable() { }
+
+	inline SymbolTableEntry* get_entry(
+		const char* const& symbol) const
+	{
+		const unsigned int h 
+			= hash(symbol);
+		SymbolTableEntry* entry 
+			= *(entries + h);
+		if (entry != NULL) {
+			while (entry != NULL) {
+				if (strcmp(
+						entry->symbol, 
+						symbol) 
+					!= 0) {
+					entry = entry->next_entry;
+				} else {
+					break;
+				}
+			}
+		}
+		return entry;
+	}
+
+	inline void get_entries(
+		SymbolTableEntry** returned_entries) const
+	{
+		for (SymbolTableEntry *const * e = entries;
+			e < entries + NUM_SYMBOL_TABLE_ENTRIES;
+			e++) {
+
+			for (SymbolTableEntry * f = *e;
+				f != NULL;
+				f = f->next_entry) {
+
+				*returned_entries++ = f;
+			}
+		}
+		return;
+	}
+
+	inline void add_entry(
+		const char* const& symbol) 
+	{
+		SymbolTableEntry* data = new SymbolTableEntry(
+			construct_symbol_table_entry(symbol));
+
+		unsigned int h = hash(symbol);
+		SymbolTableEntry** entry_addr 
+			= entries + h;
+		if (*entry_addr != NULL) {
+			SymbolTableEntry* old_entry = *entry_addr;
+			*entry_addr = data;
+			(*entry_addr)->next_entry = old_entry;
+		} else {
+			*entry_addr = data;
+		}
+	}
+
+	inline void add_entry(
+		SymbolTableEntry* const& data)
+	{
+		unsigned int h = hash(data->symbol);
+		SymbolTableEntry** entry_addr
+			= entries + h;
+		if (*entry_addr != NULL) {
+			SymbolTableEntry* old_entry = *entry_addr;
+			*entry_addr = data;
+			(*entry_addr)->next_entry = old_entry;
+		}
+		else {
+			*entry_addr = data;
+		}
+	}
+
+	inline void print(
+		string const& prefix = "") const
+	{
+		cout << prefix;
+		for (int i = 0; i < 16 * 9; i++) {
+			cout << "-";
+		}
+		cout << endl;
+
+		cout << prefix;
+		print_symbol_table_entry_header();
+		cout << endl;
+
+		cout << prefix;
+		for (int i = 0; i < 16 * 9; i++) {
+			cout << "-";
+		}
+		cout << endl;
+
+		for (const SymbolTableEntry *const * e = entries;
+			e < entries + NUM_SYMBOL_TABLE_ENTRIES;
+			e++) {
+
+			for (const SymbolTableEntry* f = *e;
+				f != NULL;
+				f = f->next_entry) {
+
+				cout << prefix;
+				print_symbol_table_entry_content(f);
+				cout << endl;
+			}		
+		}
+
+		cout << prefix;
+		for (int i = 0; i < 16 * 9; i++) {
+			cout << "-";
+		}
+		cout << endl;
+	}
+};
+
+/*****************************************************//**
+*                         Definitions                    *
+/********************************************************/
+
+static inline
+SymbolTableEntry construct_symbol_table_entry(
+	const char* const& symbol)
+{
+	SymbolTableEntry result = { symbol };
+	return result;
+}
+
+static inline
+void print_symbol_table_entry_header()
 {
 	cout << ": symbol       "
 		 << ": identifier type "
@@ -73,7 +226,8 @@ static inline void print_symbol_table_entry_header()
 		 << ": type         ";
 }
 
-static inline void print_symbol_table_entry_content(
+static inline
+void print_symbol_table_entry_content(
 	const SymbolTableEntry* const& entry)
 {
 	cout << ": "
@@ -82,19 +236,22 @@ static inline void print_symbol_table_entry_content(
 		 << std::setfill(' ')
 		 << entry->symbol;
 
+	const int i_entry_id_t
+		= (int) entry->identifier_type;
 	cout << ": "
 		 << std::left
 		 << std::setw(16)
 		 << std::setfill(' ')
-		 << identifier_classifier_string_repr[(int)entry->identifier_type];
+		 << identifier_classifier_string_repr[
+			 i_entry_id_t];
 
 	cout << ": "
 		 << std::left
 		 << std::setw(12)
 		 << std::setfill(' ')
 		 << (entry->is_literal 
-			? "true" 
-			: "false");
+			 ? "true" 
+			 : "false");
 
 	cout << ": 0x"
 		 << std::right
@@ -146,122 +303,5 @@ static inline void print_symbol_table_entry_content(
 		cout << "N/A";
 	}
 }
-#define NUM_SYMBOL_TABLE_ENTRIES 6151
-
-class SymbolTable {
-private:
-	SymbolTableEntry* entries[NUM_SYMBOL_TABLE_ENTRIES] = { };
-
-	unsigned int hash(const char* const& x) const
-	{
-		long long string_val = 0;
-		for (const char* c = x; *c; c++) {
-			string_val += 256 * *c;
-		}
-		const unsigned int h = (string_val * 12289) % 6151;
-		return h;
-	}
-
-public:
-	inline SymbolTable() { }
-
-	~SymbolTable() {
-		delete[] entries;
-	}
-
-	inline SymbolTableEntry* get_entry(
-		const char* const& symbol) const
-	{
-		const unsigned int h 
-			= hash(symbol);
-		SymbolTableEntry* entry 
-			= *(entries + h);
-		if (entry != NULL) {
-			while (entry != NULL) {
-				if (strcmp(entry->symbol, symbol) != 0) {
-					entry = entry->next_entry;
-				} else {
-					break;
-				}
-			}
-		}
-		return entry;
-	}
-
-	inline void get_entries(
-		SymbolTableEntry** returned_entries) const
-	{
-		for (SymbolTableEntry *const * e = entries;
-			e < entries + NUM_SYMBOL_TABLE_ENTRIES;
-			e++) {
-
-			for (SymbolTableEntry * f = *e;
-				f != NULL;
-				f = f->next_entry) {
-
-				*returned_entries++ = f;
-			}
-		}
-		return;
-	}
-
-	inline void add_entry(
-		const char* const& symbol) 
-	{
-		SymbolTableEntry* data = new SymbolTableEntry(
-			construct_symbol_table_entry(symbol));
-
-		unsigned int h = hash(symbol);
-		SymbolTableEntry** entry_addr 
-			= entries + h;
-		if (*entry_addr != NULL) {
-			SymbolTableEntry* old_entry = *entry_addr;
-			*entry_addr = data;
-			(*entry_addr)->next_entry = old_entry;
-		} else {
-			*entry_addr = data;
-		}
-	}
-
-	inline void print(
-		string const& prefix = "") const
-	{
-		cout << prefix;
-		for (int i = 0; i < 16 * 9; i++) {
-			cout << "-";
-		}
-		cout << endl;
-
-		cout << prefix;
-		print_symbol_table_entry_header();
-		cout << endl;
-
-		cout << prefix;
-		for (int i = 0; i < 16 * 9; i++) {
-			cout << "-";
-		}
-		cout << endl;
-
-		for (const SymbolTableEntry *const * e = entries;
-			e < entries + NUM_SYMBOL_TABLE_ENTRIES;
-			e++) {
-
-			for (const SymbolTableEntry* f = *e;
-				f != NULL;
-				f = f->next_entry) {
-
-				cout << prefix;
-				print_symbol_table_entry_content(f);
-				cout << endl;
-			}		
-		}
-
-		cout << prefix;
-		for (int i = 0; i < 16 * 9; i++) {
-			cout << "-";
-		}
-		cout << endl;
-	}
-};
 
 #endif

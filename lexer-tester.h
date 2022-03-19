@@ -1,3 +1,6 @@
+/* Authored by Charlie Keaney                          */
+/* lexer-tester.h - Responsible for testing the lexer.
+					Temporarily defunct.			   */
 
 #ifdef LEXER_TESTER_H
 #define LEXER_TESTER_H 1

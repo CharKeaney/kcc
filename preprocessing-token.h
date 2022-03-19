@@ -1,10 +1,29 @@
+/* Authored By Charlie Keaney                     */
+/* preprocessing-token.h - Responsible for 
+						   storing information on
+						   each preprocessing 
+						   token.				  */
 
 #ifndef PREPROCESSING_TOKEN_H
 #define PREPROCESSING_TOKEN_H 1
 
+#define PPT_TABLE_ENTRY_LEXEME_WIDTH 32
+#define PPT_TABLE_ENTRY_NAME_WIDTH   13
+#define PPT_TABLE_ENTRY_FORM_WIDTH   20
+#define PPT_TABLE_ENTRY_FILE_WIDTH   13
+#define PPT_TABLE_ENTRY_LINE_WIDTH   6
+#define PPT_TABLE_ENTRY_CHAR_WIDTH   6
+#define PPT_TABLE_ENTRY_LEN_WIDTH    6
+
+#include <iomanip>
+
 #include <iostream>
 
 using namespace std;
+
+/*****************************************************//**
+*                      Declarations                      *
+/********************************************************/
 
 enum class PreprocessingTokenName {
 	ERROR,
@@ -20,7 +39,8 @@ enum class PreprocessingTokenName {
 	// CANNOT BE ONE OF THE ABOVE
 };
 
-static const char* preprocessing_token_name_string_repr[] {
+static 
+const char* preprocessing_token_name_string_repr[] {
 	"ERROR",
 	"HEADER_NAME",
 	"IDENTIFIER",
@@ -34,7 +54,7 @@ static const char* preprocessing_token_name_string_repr[] {
 enum class PreprocessingTokenForm {
 	/* Mark as no specific form */
 	UNDEFINED,
-	/* HEADER_NAME */	
+	/* HEADER_NAME */
 	HEADER_NAME_1,
 	HEADER_NAME_2,
 	/* IDENTIFIER */
@@ -55,7 +75,7 @@ enum class PreprocessingTokenForm {
 	CHARACTER_CONSTANT_1,
 	CHARACTER_CONSTANT_2,
 	/* STRING_LITERAL */
-	STRING_LITERAL_1, 
+	STRING_LITERAL_1,
 	STRING_LITERAL_2,
 	/* PUNCTUATORS */
 	OPEN_BRACKET,
@@ -88,7 +108,8 @@ enum class PreprocessingTokenForm {
 	DOUBLE_AMPERSAND,
 	DOUBLE_OR,
 	QUESTION_MARK,
-	COLON, SEMI_COLON,
+	COLON,
+	SEMI_COLON,
 	TRIPLE_DOT,
 	ASSIGN,
 	MULTIPLY_EQUAL,
@@ -196,52 +217,16 @@ struct FileLocationDescriptor {
 	unsigned int lexeme_length;
 };
 
-static inline FileLocationDescriptor construct_file_location_descriptor() 
-{
-	FileLocationDescriptor fld = {
-		NULL,
-		0,
-		0,
-		0
-	};
-	return fld;
-}
-
-static inline FileLocationDescriptor construct_file_location_descriptor(
-	const char* const& filen,
-	int         const& line,
-	int         const& character,
-	int         const& lexeme_len) 
-{
-	FileLocationDescriptor fld = {
-		filen,
-		line,
-		character,
-		lexeme_len
-	};
-	return fld;
-}
-
-static inline void print_file_location_descriptor(
-	FileLocationDescriptor const& fld) 
-{
-	cout << "<FileLocationDescriptor={"
-		 << fld.filename
-		 << ","
-		 << fld.line_number
-		 << ","
-		 << fld.character_number
-		 << "}>";
-}
-
 class PreprocessingToken {
 private:
-	const char*            lexeme;
+	const char* lexeme;
 	PreprocessingTokenName name;
 	FileLocationDescriptor file_descriptor;
 	PreprocessingTokenForm form;
 public:
-	const char* get_lexeme() const { return lexeme; }
+	const char* get_lexeme() const {
+		return lexeme;
+	}
 
 	inline PreprocessingTokenName get_name() const {
 		return name;
@@ -257,46 +242,105 @@ public:
 
 	inline PreprocessingToken()
 		: lexeme(0),
-		  name(PreprocessingTokenName::ERROR),
-		  file_descriptor(FileLocationDescriptor()),
-		  form(PreprocessingTokenForm::UNDEFINED) {
+		name(PreprocessingTokenName::ERROR),
+		file_descriptor(FileLocationDescriptor()),
+		form(PreprocessingTokenForm::UNDEFINED) {
 	};
 
 	inline PreprocessingToken(
-		const char*            const& l,
+		const char* const& l,
 		PreprocessingTokenName const& n,
 		FileLocationDescriptor const& filedesc,
 		PreprocessingTokenForm const& f)
-		: lexeme(l), 
-		name(n), 
-		file_descriptor(filedesc), 
+		: lexeme(l),
+		name(n),
+		file_descriptor(filedesc),
 		form(f) {
 	};
 
 	inline ~PreprocessingToken() {
-		/* PreprocessingToken does not 'own' lexeme 
+		/* PreprocessingToken does not 'own' lexeme
 		   so no need to delete it. */
 	};
 
 	inline void print() {
 		cout << "<PreprocessingToken={\""
-			 << lexeme << "\"," 
-			 << preprocessing_token_name_string_repr[(int) name] << "," 
-			 << preprocessing_token_form_string_repr[(int) form] << "}>";
+			<< lexeme << "\","
+			<< preprocessing_token_name_string_repr[(int)name] << ","
+			<< preprocessing_token_form_string_repr[(int)form] << "}>";
 	}
 };
 
-#define PPT_TABLE_ENTRY_LEXEME_WIDTH 32
-#define PPT_TABLE_ENTRY_NAME_WIDTH   13
-#define PPT_TABLE_ENTRY_FORM_WIDTH   20
-#define PPT_TABLE_ENTRY_FILE_WIDTH   13
-#define PPT_TABLE_ENTRY_LINE_WIDTH   6
-#define PPT_TABLE_ENTRY_CHAR_WIDTH   6
-#define PPT_TABLE_ENTRY_LEN_WIDTH    6
+static inline
+FileLocationDescriptor construct_file_location_descriptor();
 
-#include <iomanip>
+static inline
+FileLocationDescriptor construct_file_location_descriptor(
+	const char* const& filen,
+	int         const& line,
+	int         const& character,
+	int         const& lexeme_len);
 
-static inline void print_preprocessing_token_table_entry(
+static inline
+void print_file_location_descriptor(
+	FileLocationDescriptor const& fld);
+
+static inline
+void print_preprocessing_token_table_entry(
+	const PreprocessingToken* const& ppt);
+
+static inline
+void print_preprocessing_token_table(
+	const PreprocessingToken* const& ppts,
+	int						  const& count);
+
+/*****************************************************//**
+*                         Definitions                    *
+/********************************************************/
+
+static inline
+FileLocationDescriptor construct_file_location_descriptor() 
+{
+	FileLocationDescriptor fld = {
+		NULL,
+		0,
+		0,
+		0
+	};
+	return fld;
+}
+
+static inline
+FileLocationDescriptor construct_file_location_descriptor(
+	const char* const& filen,
+	int         const& line,
+	int         const& character,
+	int         const& lexeme_len) 
+{
+	FileLocationDescriptor fld = {
+		filen,
+		line,
+		character,
+		lexeme_len
+	};
+	return fld;
+}
+
+static inline
+void print_file_location_descriptor(
+	FileLocationDescriptor const& fld) 
+{
+	cout << "<FileLocationDescriptor={"
+		 << fld.filename
+		 << ","
+		 << fld.line_number
+		 << ","
+		 << fld.character_number
+		 << "}>";
+}
+
+static inline
+void print_preprocessing_token_table_entry(
 	const PreprocessingToken* const& ppt) 
 {
 	const int name_i         
@@ -318,9 +362,9 @@ static inline void print_preprocessing_token_table_entry(
 		 << std::setfill(' ')
 		 << name_s;
 	cout << std::left
-		<< std::setw(PPT_TABLE_ENTRY_FORM_WIDTH)
-		<< std::setfill(' ')
-		<< form_s;
+		 << std::setw(PPT_TABLE_ENTRY_FORM_WIDTH)
+		 << std::setfill(' ')
+		 << form_s;
 	cout << std::left
 		 << std::setw(PPT_TABLE_ENTRY_FILE_WIDTH)
 		 << std::setfill(' ')
@@ -340,7 +384,8 @@ static inline void print_preprocessing_token_table_entry(
 		 << endl;
 }
 
-static inline void print_preprocessing_token_table(
+static inline
+void print_preprocessing_token_table(
 	const PreprocessingToken* const& ppts,
 	int						  const& count) 
 {	
